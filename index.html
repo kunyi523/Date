@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>今天，怎么心动？</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" />
+<style>
+  :root{
+    --paper:#F5F0E6;      /* 米白纸面 */
+    --paper2:#EFE8DA;
+    --ink:#2B2130;        /* 深紫墨 */
+    --ink-soft:rgba(43,33,48,.62);
+    --gold:#A9853F;       /* 深香槟金（浅底上看得清） */
+    --gold-bright:#C9A96A;
+    --rose:#9C6B76;
+    --card:#251C29;       /* 深紫丝绒卡片 */
+    --card-ivory:#FBF7EE;
+    --line:rgba(43,33,48,.16);
+    --serif:'Noto Serif SC',serif;
+    --latin:'Cormorant Garamond',serif;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  body{
+    margin:0; min-height:100vh; color:var(--ink);
+    background:
+      radial-gradient(900px 500px at 85% -5%, rgba(201,169,106,.16), transparent 60%),
+      radial-gradient(700px 500px at -10% 30%, rgba(156,107,118,.10), transparent 60%),
+      var(--paper);
+    font-family:'Noto Sans SC',-apple-system,sans-serif; font-weight:400;
+    display:flex; justify-content:center; padding-bottom:64px;
+  }
+  .app{width:100%; max-width:430px; padding:30px 22px 0}
+
+  .eyebrow{font-family:var(--latin); font-size:13px; letter-spacing:5px; color:var(--gold); text-transform:uppercase; margin-bottom:8px}
+  h1{font-family:var(--serif); font-weight:900; font-size:32px; line-height:1.25; margin:0 0 6px}
+  .sub{font-size:13px; color:var(--rose); margin-bottom:26px}
+
+  /* 纪念数字：只保留三条 */
+  .hero-stat{border-top:1px solid var(--ink); border-bottom:1px solid var(--line); padding:16px 2px; display:flex; align-items:baseline; justify-content:space-between}
+  .hero-stat small{font-size:12px; letter-spacing:3px; color:var(--ink-soft)}
+  .hero-stat .num{font-family:var(--serif); font-weight:900; font-size:34px; color:var(--gold)}
+  .hero-stat .num i{font-style:normal; font-size:14px; font-weight:600; color:var(--ink); opacity:.65; margin:0 4px}
+  .mstones{margin-bottom:30px}
+  .mstone{display:flex; justify-content:space-between; align-items:baseline; padding:11px 2px; border-bottom:1px solid var(--line); font-size:13.5px}
+  .mstone .val{font-family:var(--latin); font-weight:600; font-size:19px; color:var(--gold)}
+  .mstone .val em{font-style:normal; font-family:'Noto Sans SC'; font-size:11px; font-weight:400; color:var(--ink-soft); margin-left:4px}
+
+  /* 选项：深字浅底，选中反色，保证看得清 */
+  .label{font-family:var(--latin); font-size:12px; letter-spacing:4px; color:var(--gold); text-transform:uppercase; margin:20px 0 10px}
+  .label b{font-family:var(--serif); font-size:13px; letter-spacing:2px; color:var(--ink); font-weight:600; margin-left:8px}
+  .chips{display:flex; gap:8px; flex-wrap:wrap}
+  .chip{
+    padding:9px 15px; border-radius:3px; border:1px solid rgba(43,33,48,.3);
+    background:var(--card-ivory); color:var(--ink); font-size:14px; font-weight:500;
+    cursor:pointer; transition:all .18s ease; font-family:inherit; letter-spacing:.5px;
+    box-shadow:0 2px 5px rgba(43,33,48,.08);
+  }
+  .chip.on{
+    background:var(--ink); border-color:var(--gold); color:var(--gold-bright);
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.4);
+  }
+  .temp-row{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
+  .temp-btn{
+    padding:8px 13px; border-radius:3px; border:1px dashed var(--gold);
+    background:transparent; color:var(--gold); font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  .temp-read{font-family:var(--latin); font-size:15px; color:var(--ink); min-height:1em}
+  .temp-read b{font-family:var(--serif); font-size:13px; color:var(--rose); font-weight:600; margin-left:4px}
+
+  /* 两个抽卡区 */
+  .part{margin-top:34px}
+  .part-head{display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--ink); padding-bottom:8px}
+  .part-head .t{font-family:var(--serif); font-weight:900; font-size:19px}
+  .part-head .en{font-family:var(--latin); font-size:12px; letter-spacing:4px; color:var(--gold); text-transform:uppercase}
+  .deal{
+    width:100%; margin-top:14px; padding:14px 0; border-radius:3px;
+    border:1px solid var(--gold); background:transparent; color:var(--gold);
+    font-family:var(--serif); font-size:15px; font-weight:600; letter-spacing:5px;
+    cursor:pointer; transition:all .2s ease;
+  }
+  .deal:active{background:rgba(169,133,63,.1)}
+
+  /* 卡片：3D 浮起，选中"按下去"凹陷 */
+  .deck{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px}
+  .card{
+    border-radius:6px; background:linear-gradient(160deg, #2C2230, var(--card));
+    color:#F0E8DC; padding:15px 14px 13px; cursor:pointer; position:relative;
+    border:1px solid rgba(201,169,106,.25);
+    border-top-color:rgba(255,255,255,.14);
+    box-shadow:0 12px 22px rgba(43,33,48,.30), 0 3px 6px rgba(43,33,48,.18);
+    transition:transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+    opacity:0; transform:translateY(16px);
+    animation:deal .45s ease forwards;
+  }
+  .card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
+  .card:nth-child(4){animation-delay:.18s}.card:nth-child(5){animation-delay:.24s}
+  .card:nth-child(6){animation-delay:.3s}
+  @keyframes deal{to{opacity:1; transform:translateY(0)}}
+  .card .cat{font-family:var(--latin); font-size:11px; letter-spacing:3px; color:var(--rose); text-transform:uppercase}
+  .card .t{font-family:var(--serif); font-weight:600; font-size:16px; margin:6px 0 5px}
+  .card .d{font-size:12px; color:rgba(240,232,220,.62); line-height:1.6}
+  .card.sel{
+    transform:translateY(3px) scale(.985);
+    border-color:var(--gold-bright);
+    box-shadow:inset 0 4px 12px rgba(0,0,0,.55), 0 2px 5px rgba(43,33,48,.18);
+  }
+  .card.sel::after{
+    content:"✓ 已入选"; position:absolute; top:10px; right:10px;
+    font-size:10px; letter-spacing:1px; color:var(--ink);
+    background:var(--gold-bright); padding:2px 7px; border-radius:2px;
+  }
+  .empty{grid-column:1/-1; text-align:center; font-size:13px; color:var(--ink-soft); padding:14px 0}
+
+  /* 最终计划 */
+  .final{
+    width:100%; margin-top:36px; padding:17px 0; border-radius:3px; border:none;
+    background:linear-gradient(160deg, #33283A, var(--card)); color:var(--gold-bright);
+    font-family:var(--serif); font-size:16px; font-weight:600; letter-spacing:5px; cursor:pointer;
+    box-shadow:0 12px 24px rgba(43,33,48,.35), 0 3px 6px rgba(43,33,48,.2);
+    border-top:1px solid rgba(255,255,255,.14);
+  }
+  .final:disabled{opacity:.4; cursor:not-allowed}
+  .menu{
+    margin-top:24px; background:linear-gradient(165deg, #2C2230, #221A26);
+    color:#F0E8DC; border-radius:8px; padding:32px 26px 26px; position:relative;
+    box-shadow:0 18px 36px rgba(43,33,48,.4);
+    animation:rise .6s ease both;
+  }
+  @keyframes rise{from{opacity:0; transform:translateY(18px)}to{opacity:1; transform:translateY(0)}}
+  .menu::before{content:""; position:absolute; inset:9px; border:1px solid rgba(201,169,106,.4); border-radius:5px; pointer-events:none}
+  .menu .m-eyebrow{font-family:var(--latin); text-align:center; font-size:12px; letter-spacing:5px; color:var(--gold-bright); text-transform:uppercase}
+  .menu h2{font-family:var(--serif); font-weight:900; text-align:center; font-size:23px; margin:8px 0 2px}
+  .menu .m-date{font-family:var(--latin); text-align:center; font-size:13px; font-style:italic; color:rgba(240,232,220,.55); margin-bottom:18px}
+  .course{padding:14px 4px; border-top:1px solid rgba(240,232,220,.14)}
+  .course .no{font-family:var(--latin); font-size:12px; letter-spacing:3px; color:var(--gold-bright)}
+  .course .row{display:flex; justify-content:space-between; align-items:baseline; margin-top:3px}
+  .course .t{font-family:var(--serif); font-weight:600; font-size:16.5px}
+  .course .time{font-family:var(--latin); font-size:14px; color:rgba(240,232,220,.55)}
+  .course .d{font-size:12.5px; color:rgba(240,232,220,.6); line-height:1.65; margin-top:3px}
+  .m-note{border-top:1px solid rgba(240,232,220,.14); margin-top:2px; padding-top:14px; text-align:center; font-size:12.5px; line-height:1.8; color:rgba(240,232,220,.7)}
+  .m-note .sig{font-family:var(--serif); font-weight:600; font-size:13.5px; color:var(--gold-bright); margin-top:6px}
+
+  .sweet-btn{
+    width:100%; margin-top:32px; padding:13px 0; border-radius:3px;
+    border:1px dashed var(--gold); background:transparent; color:var(--gold);
+    font-size:14px; letter-spacing:3px; cursor:pointer; font-family:inherit;
+  }
+  .sweet{margin-top:14px; text-align:center; font-family:var(--serif); font-weight:600; font-size:16.5px; line-height:1.8; animation:rise .4s ease both; min-height:1em}
+  footer{margin-top:40px; text-align:center; font-family:var(--latin); font-size:11px; letter-spacing:3px; color:rgba(43,33,48,.4); text-transform:uppercase}
+  .hidden{display:none}
+  button:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+  @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="eyebrow">Private Reserve</div>
+    <h1>今天，怎么心动？</h1>
+    <div class="sub">为你一人定制的心动菜单</div>
+  </header>
+
+  <div class="hero-stat"><small>在 一 起</small><div class="num"><i>第</i><span id="days">—</span><i>天</i></div></div>
+  <div class="mstones" id="mstones"></div>
+
+  <div class="label">Budget<b>预算</b></div>
+  <div class="chips" id="budgets"></div>
+
+  <div class="label">Weather<b>天气</b></div>
+  <div class="chips" id="weathers"></div>
+  <div class="temp-row">
+    <button class="temp-btn" id="tempBtn">📍 测一下现在气温</button>
+    <div class="temp-read" id="tempRead"></div>
+  </div>
+  <div class="chips" id="temps" style="margin-top:10px"></div>
+
+  <div class="label">Where<b>想跑多远</b></div>
+  <div class="chips" id="locs"></div>
+
+  <!-- Part A 出行 -->
+  <div class="part">
+    <div class="part-head"><span class="t">今日出行计划</span><span class="en">The Outing</span></div>
+    <button class="deal" id="dealA">抽 取 玩 乐 卡</button>
+    <div class="deck hidden" id="deckA"></div>
+  </div>
+
+  <!-- Part B 菜单 -->
+  <div class="part">
+    <div class="part-head"><span class="t">今日约会菜单</span><span class="en">The Table</span></div>
+    <button class="deal" id="dealB">抽 取 美 食 卡</button>
+    <div class="deck hidden" id="deckB"></div>
+  </div>
+
+  <button class="final" id="combine" disabled>生 成 最 终 计 划</button>
+
+  <div class="menu hidden" id="menu">
+    <div class="m-eyebrow">Menu du jour</div>
+    <h2>最终约会计划</h2>
+    <div class="m-date" id="m-date"></div>
+    <div id="m-courses"></div>
+    <div class="m-note" id="m-note"></div>
+  </div>
+
+  <button class="sweet-btn" id="sweetBtn">抽 一 句 情 话</button>
+  <div class="sweet" id="sweet"></div>
+
+  <footer>Handcrafted with love · Not by AI</footer>
+</div>
+
+<script>
+// ————— 纪念数字（只留三条，想加往 MILES 里塞就行）—————
+const ANNI = new Date(2026, 3, 15);
+const strip = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+const dayDiff = (a,b) => Math.round((strip(b)-strip(a))/86400000);
+const now = new Date();
+document.getElementById('days').textContent = dayDiff(ANNI, now)+1;
+
+let bd = new Date(now.getFullYear(), 11, 6);
+if (dayDiff(now, bd) < 0) bd = new Date(now.getFullYear()+1, 11, 6);
+const MILES = [
+  { label:'你的生日 🎂 还有', val:dayDiff(now, bd) },
+  { label:'第一次见面已经',   val:dayDiff(new Date(2026,1,24), now) },
+  { label:'第一束 🌹 已经',   val:dayDiff(new Date(2026,4,6), now) },
+];
+document.getElementById('mstones').innerHTML = MILES.map(m =>
+  '<div class="mstone"><span>'+m.label+'</span><span class="val">'+m.val+'<em>天</em></span></div>'
+).join('');
+
+// ————— 选项 —————
+const state = { budget:'小奢侈', weather:'☀️ 晴', temp:null, loc:'市区逛逛' };
+function renderChips(id, items, key, allowOff){
+  const box = document.getElementById(id);
+  box.innerHTML = '';
+  items.forEach(v => {
+    const b = document.createElement('button');
+    b.className = 'chip' + (state[key]===v ? ' on' : '');
+    b.textContent = v;
+    b.onclick = () => {
+      state[key] = (allowOff && state[key]===v) ? null : v;
+      renderChips(id, items, key, allowOff);
+    };
+    box.appendChild(b);
+  });
+}
+renderChips('budgets', ['穷开心','小奢侈','豪华版'], 'budget');
+renderChips('weathers', ['☀️ 晴','☁️ 阴','🌧️ 雨','🌨️ 雪'], 'weather');
+renderChips('temps', ['🥵 炎热','🙂 舒适','🧥 微凉','🥶 寒冷'], 'temp', true);
+renderChips('locs', ['🏠 家附近','🌆 市区逛逛','🚗 出逃半日'], 'loc');
+
+// 实时气温（需联网 + 定位授权；不给权限就手动选温度档）
+document.getElementById('tempBtn').onclick = () => {
+  const read = document.getElementById('tempRead');
+  if (!navigator.geolocation){ read.textContent = '设备不支持定位，手动选温度档吧'; return; }
+  read.textContent = '定位中…';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    try{
+      const {latitude, longitude} = pos.coords;
+      const r = await fetch('https://api.open-meteo.com/v1/forecast?latitude='+latitude+'&longitude='+longitude+'&current=temperature_2m');
+      const j = await r.json();
+      const t = Math.round(j.current.temperature_2m);
+      let band = '🙂 舒适';
+      if (t >= 30) band = '🥵 炎热';
+      else if (t < 8) band = '🥶 寒冷';
+      else if (t < 18) band = '🧥 微凉';
+      state.temp = band;
+      renderChips('temps', ['🥵 炎热','🙂 舒适','🧥 微凉','🥶 寒冷'], 'temp', true);
+      read.innerHTML = t + '°C<b>' + band.slice(3) + '，已自动选好</b>';
+    }catch(e){ read.textContent = '气温获取失败，手动选温度档吧'; }
+  }, () => { read.textContent = '没拿到定位权限，手动选温度档吧'; });
+};
+
+// ————— 卡池 —————
+// cat: 行/游/彩蛋/食 · w:'晴'|'雨'|'皆'（阴按晴算，雪按雨算） · loc · b:最低预算档 · noHot/noCold:极端温度回避
+const NEAR='🏠 家附近', CITY='🌆 市区逛逛', FAR='🚗 出逃半日';
+const POOL = [
+  // —— 玩乐 · 家附近 ——
+  {cat:'游', t:'球场投篮', d:'进一球兑换一个愿望', w:'晴', loc:[NEAR], b:0, noHot:1},
+  {cat:'行', t:'遛弯到便利店', d:'各买一样新品，互相打分', w:'皆', loc:[NEAR], b:0},
+  {cat:'彩蛋', t:'超市大采购', d:'零食自由，今天上不封顶', w:'皆', loc:[NEAR], b:0},
+  {cat:'游', t:'桌游杀两局', d:'输的人答应赢的人一件事', w:'雨', loc:[NEAR,CITY], b:0},
+  {cat:'游', t:'在家电影马拉松', d:'片单一人选一部，不许嫌弃', w:'雨', loc:[NEAR], b:0},
+  {cat:'彩蛋', t:'窗边拍立得', d:'听雨，拍一张今天的我们', w:'雨', loc:[NEAR], b:0},
+  {cat:'行', t:'晚饭后压马路', d:'走没走过的那条路', w:'晴', loc:[NEAR], b:0},
+  // —— 玩乐 · 市区 ——
+  {cat:'游', t:'美术馆看展', d:'各选一幅最喜欢的，讲给对方听', w:'皆', loc:[CITY], b:0},
+  {cat:'游', t:'唱片店淘歌', d:'给对方挑一首"这就是你"的歌', w:'皆', loc:[CITY], b:0},
+  {cat:'行', t:'老街区漫步', d:'专挑没走过的巷子钻', w:'晴', loc:[CITY], b:0},
+  {cat:'行', t:'长堤走走', d:'风替我说想你', w:'晴', loc:[CITY], b:0, noCold:1},
+  {cat:'游', t:'游船夜航', d:'上层甲板风大，外套先给她', w:'晴', loc:[CITY], b:1, noCold:1},
+  {cat:'彩蛋', t:'大头贴合影', d:'认真拍一版，再拍最丑一版', w:'皆', loc:[CITY], b:0},
+  {cat:'彩蛋', t:'顺手买束花', d:'不为节日，就是今天想送', w:'皆', loc:[CITY], b:1},
+  {cat:'彩蛋', t:'写心愿纸条', d:'各写一张封好，生日当天拆', w:'皆', loc:[CITY,FAR], b:0},
+  {cat:'游', t:'书店躲雨', d:'各选一本，交换读第一页', w:'雨', loc:[CITY], b:0},
+  {cat:'游', t:'陶艺手作课', d:'做丑了统一称为抽象派', w:'雨', loc:[CITY], b:1},
+  {cat:'游', t:'水族馆散步', d:'在水母缸前多站一会儿', w:'雨', loc:[CITY], b:1},
+  {cat:'游', t:'KTV 小包', d:'专属点歌权移交给她', w:'雨', loc:[CITY], b:0},
+  // —— 玩乐 · 出逃半日 ——
+  {cat:'行', t:'山径轻徒步', d:'走到观景台就算登顶成功', w:'晴', loc:[FAR], b:0, noHot:1},
+  {cat:'游', t:'果园采摘', d:'摘满一小篮才准下班', w:'晴', loc:[FAR], b:0},
+  {cat:'游', t:'花田风车打卡', d:'照片配额：她九张我一张', w:'晴', loc:[FAR], b:0},
+  {cat:'彩蛋', t:'夜观星空', d:'认不出星座就现场编一个', w:'晴', loc:[FAR], b:0, noCold:1},
+  {cat:'游', t:'温泉半日', d:'泡到手指起皱为止', w:'皆', loc:[FAR], b:1},
+  {cat:'游', t:'民宿发呆', d:'什么都不安排也是一种安排', w:'雨', loc:[FAR], b:2},
+  {cat:'彩蛋', t:'共撑一把伞', d:'伞记得往她那边偏', w:'雨', loc:[NEAR,CITY,FAR], b:0},
+  // —— 美食 ——
+  {cat:'食', t:'楼下宵夜摊', d:'一人一串，禁止互抢', w:'皆', loc:[NEAR], b:0},
+  {cat:'食', t:'街口面包房', d:'刚出炉的那盘先来两个', w:'皆', loc:[NEAR], b:0},
+  {cat:'食', t:'奶茶对比评测', d:'两家各买一杯，盲测打分', w:'皆', loc:[NEAR,CITY], b:0},
+  {cat:'食', t:'煮一锅热汤面', d:'雨天的标准答案', w:'雨', loc:[NEAR], b:0},
+  {cat:'食', t:'火锅暖场', d:'辣度以她的意见为准', w:'雨', loc:[NEAR,CITY], b:0},
+  {cat:'食', t:'老字号小馆', d:'点一道她没吃过的招牌菜', w:'皆', loc:[CITY], b:0},
+  {cat:'食', t:'甜品二人份', d:'一份两勺，第一口让她先尝', w:'皆', loc:[NEAR,CITY], b:0},
+  {cat:'食', t:'水边咖啡座', d:'一直坐到夕阳收工', w:'晴', loc:[CITY], b:0},
+  {cat:'食', t:'临水小酒馆', d:'一杯就好，微醺刚刚好', w:'雨', loc:[CITY], b:1},
+  {cat:'食', t:'高层景观餐厅', d:'订靠窗位，卡着日落入座', w:'皆', loc:[CITY], b:2},
+  {cat:'食', t:'农家菜午餐', d:'现摘现炒，白饭管够', w:'晴', loc:[FAR], b:0},
+  {cat:'食', t:'山脚小馆', d:'招牌是什么就吃什么', w:'皆', loc:[FAR], b:0},
+  {cat:'食', t:'服务区小吃巡礼', d:'出逃路上的仪式感', w:'皆', loc:[FAR], b:0},
+  {cat:'食', t:'带上野餐篮', d:'三明治 + 她爱喝的那款', w:'晴', loc:[FAR], b:0},
+];
+const CAT_EN = { '行':'Stroll', '游':'Play', '食':'Taste', '彩蛋':'Surprise' };
+const BUDGET_RANK = { '穷开心':0, '小奢侈':1, '豪华版':2 };
+const BUDGET_NOTE = {
+  '穷开心':'本日计划走心不走钱包，快乐照常供应。',
+  '小奢侈':'今日允许一点小挥霍，例如为她加一份甜品。',
+  '豪华版':'豪华版已生效：她看什么，就是什么。',
+};
+const ENDINGS = [
+  '行程可以临时改，牵你的手不改。',
+  '卡片是随机的，想见你是必然的。',
+  '走到哪一站都行，反正终点是你。',
+  '本计划长期有效，凭本人可兑换拥抱一份。',
+];
+const pick = a => a[Math.floor(Math.random()*a.length)];
+const shuffle = a => a.slice().sort(()=>Math.random()-.5);
+
+function fits(it){
+  const w = (state.weather.includes('晴') || state.weather.includes('阴')) ? '晴' : '雨';
+  if (!(it.w==='皆' || it.w===w)) return false;
+  if (!it.loc.includes(state.loc)) return false;
+  if (BUDGET_RANK[state.budget] < it.b) return false;
+  if (state.temp && state.temp.includes('炎热') && it.noHot) return false;
+  if (state.temp && state.temp.includes('寒冷') && it.noCold) return false;
+  return true;
+}
+
+// ————— 两个牌堆 —————
+const decks = {
+  A: { dealt:[], sel:new Set(), el:'deckA', btn:'dealA', filter:it=>it.cat!=='食', n:6, label:'抽 取 玩 乐 卡' },
+  B: { dealt:[], sel:new Set(), el:'deckB', btn:'dealB', filter:it=>it.cat==='食', n:4, label:'抽 取 美 食 卡' },
+};
+function updateFinalBtn(){
+  const btn = document.getElementById('combine');
+  const a = decks.A.sel.size, b = decks.B.sel.size;
+  btn.disabled = !(a>=1 && b>=1);
+  btn.textContent = btn.disabled ? '生 成 最 终 计 划' : '生成最终计划（玩'+a+' · 食'+b+'）';
+}
+function deal(k){
+  const D = decks[k];
+  const fit = POOL.filter(it => D.filter(it) && fits(it));
+  D.dealt = shuffle(fit).slice(0, D.n);
+  D.sel = new Set();
+  const box = document.getElementById(D.el);
+  box.classList.remove('hidden');
+  box.innerHTML = '';
+  if (!D.dealt.length){
+    box.innerHTML = '<div class="empty">这个条件下没抽到卡，换个条件试试</div>';
+  }
+  D.dealt.forEach((it, i) => {
+    const c = document.createElement('div');
+    c.className = 'card';
+    c.setAttribute('role','button'); c.setAttribute('tabindex','0');
+    c.innerHTML = '<div class="cat">'+CAT_EN[it.cat]+' · '+it.cat+'</div><div class="t">'+it.t+'</div><div class="d">'+it.d+'</div>';
+    const toggle = () => {
+      if (D.sel.has(i)) D.sel.delete(i); else D.sel.add(i);
+      c.classList.toggle('sel');
+      updateFinalBtn();
+    };
+    c.onclick = toggle;
+    c.onkeydown = e => { if (e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } };
+    box.appendChild(c);
+  });
+  document.getElementById(D.btn).textContent = '换 一 批';
+  document.getElementById('menu').classList.add('hidden');
+  updateFinalBtn();
+}
+document.getElementById('dealA').onclick = () => deal('A');
+document.getElementById('dealB').onclick = () => deal('B');
+
+// ————— 组合最终计划 —————
+const PLAY_TIMES = ['14:00','16:00','20:30','22:00'];
+const FOOD_TIMES = ['18:30','21:30','12:30'];
+const ROMAN = ['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ⅵ'];
+document.getElementById('combine').onclick = () => {
+  const plays = [...decks.A.sel].sort((a,b)=>a-b).map(i=>decks.A.dealt[i]).slice(0,4);
+  const foods = [...decks.B.sel].sort((a,b)=>a-b).map(i=>decks.B.dealt[i]).slice(0,3);
+  const stops = [
+    ...plays.map((it,i)=>({it, time:PLAY_TIMES[i]})),
+    ...foods.map((it,i)=>({it, time:FOOD_TIMES[i]})),
+  ].sort((x,y)=>x.time.localeCompare(y.time));
+  document.getElementById('m-date').textContent =
+    now.getFullYear()+' . '+(now.getMonth()+1)+' . '+now.getDate()+' — For the one and only';
+  document.getElementById('m-courses').innerHTML = stops.map((s,i)=>
+    '<div class="course"><div class="no">'+ROMAN[i]+' · '+CAT_EN[s.it.cat]+'</div>'+
+    '<div class="row"><span class="t">'+s.it.t+'</span><span class="time">'+s.time+'</span></div>'+
+    '<div class="d">'+s.it.d+'</div></div>'
+  ).join('');
+  document.getElementById('m-note').innerHTML =
+    BUDGET_NOTE[state.budget] + '<div class="sig">'+pick(ENDINGS)+'</div>';
+  const menu = document.getElementById('menu');
+  menu.classList.remove('hidden');
+  menu.scrollIntoView({behavior:'smooth', block:'nearest'});
+};
+
+// ————— 情话 —————
+const SWEETS = [
+  '你猜我的手机为什么这么烫？因为它存着你。',
+  '今天风好大，把我往你那边吹。',
+  '我不忙，我的日程表上只有你。',
+  '别的软件要充会员，喜欢你我充了一辈子。',
+  '你一笑，我这边信号就满格了。',
+  '我查过了，全世界的巧合加起来，都不如遇见你。',
+  '据统计，见你一面可以开心 48 小时，所以要经常见。',
+  '我的导航坏了，只会往你那儿走。',
+  '今日份心动已送达，请查收并回复。',
+  '你不用抽情话，你本人就是最好的那句。',
+  '本条消息由心跳代发。',
+  '这个 App 有个 bug：一想到你就闪退去傻笑。',
+];
+let lastSweet = -1;
+document.getElementById('sweetBtn').onclick = () => {
+  let i;
+  do { i = Math.floor(Math.random()*SWEETS.length); } while (i===lastSweet && SWEETS.length>1);
+  lastSweet = i;
+  const el = document.getElementById('sweet');
+  el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
+  el.textContent = '「' + SWEETS[i] + '」';
+};
+</script>
+</body>
+</html>
