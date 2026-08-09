@@ -237,6 +237,7 @@
 
   <div class="label">Where<b>想跑多远</b></div>
   <div class="chips" id="locs"></div>
+  <div class="temp-read" id="timeHint" style="margin-top:14px"></div>
 
   <div class="part">
     <div class="part-head"><span class="t">今日出行计划</span><span class="en">The Outing</span></div>
@@ -301,6 +302,11 @@
       <input type="checkbox" id="cfgGate" style="width:20px;height:20px" />
     </div>
 
+    <div class="f-label" style="margin-top:20px">🔗 把设置带给她</div>
+    <div class="hint" style="margin-bottom:8px">先点保存，再生成链接——她打开这个链接，看到的直接就是你设置好的日子，不用自己再填一遍。</div>
+    <button class="m-add" id="shareBtn">生成分享链接</button>
+    <input type="text" id="shareOut" readonly placeholder="链接会出现在这里，长按全选复制" style="margin-top:8px; font-size:12px" />
+
     <div class="panel-actions">
       <button class="p-save" id="saveCfg">保 存</button>
       <button class="p-reset" id="resetCfg">恢复默认</button>
@@ -310,27 +316,37 @@
 
 <script>
 // ====== 可配置数据 ======
-var DEFAULT_CFG = {
-  gate: true,
-  anni: '2026-04-15',
-  miles: [
-    {label:'你的生日 🎂', date:'2026-12-06', mode:'annual'},
-    {label:'第一次见面',  date:'2026-02-24', mode:'since'},
-    {label:'第一束 🌹',   date:'2026-05-06', mode:'since'},
-  ]
-};
+var DEFAULT_CFG = { gate:true, anni:'', miles:[] };
 var CFG_KEY = 'xindong_cfg_v1';
+// 从分享链接里读设置（#c=…）
+function decodeShare(){
+  try{
+    var m = location.hash.match(/#c=([^&]+)/);
+    if(!m) return null;
+    var c = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+    if(!Array.isArray(c.miles)) throw 0;
+    if(typeof c.gate !== 'boolean') c.gate = true;
+    return c;
+  }catch(e){ return null; }
+}
+var sharedCfg = decodeShare();
 function loadCfg(){
+  if (sharedCfg){
+    try{ localStorage.setItem(CFG_KEY, JSON.stringify(sharedCfg)); }catch(e){}
+    try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
+    return sharedCfg;
+  }
   try{
     var raw = localStorage.getItem(CFG_KEY);
     if(!raw) return JSON.parse(JSON.stringify(DEFAULT_CFG));
     var c = JSON.parse(raw);
-    if(!c.anni || !Array.isArray(c.miles)) throw 0;
+    if(!Array.isArray(c.miles)) throw 0;
     if(typeof c.gate !== 'boolean') c.gate = true;
     return c;
   }catch(e){ return JSON.parse(JSON.stringify(DEFAULT_CFG)); }
 }
 var cfg = loadCfg();
+var firstRun = !sharedCfg && !localStorage.getItem(CFG_KEY);
 
 var strip = function(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
 var dayDiff = function(a,b){ return Math.round((strip(b)-strip(a))/86400000); };
@@ -340,7 +356,7 @@ function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').rep
 
 // ====== 渲染纪念数字 ======
 function renderStats(){
-  document.getElementById('days').textContent = dayDiff(parseDate(cfg.anni), now)+1;
+  document.getElementById('days').textContent = cfg.anni ? (dayDiff(parseDate(cfg.anni), now)+1) : '—';
   var html = cfg.miles.map(function(m){
     var d = parseDate(m.date), label, val;
     if (m.mode === 'annual'){
@@ -356,6 +372,7 @@ function renderStats(){
     }
     return '<div class="mstone"><span>'+label+'</span><span class="val">'+val+'<em>天</em></span></div>';
   }).join('');
+  if (!html) html = '<div class="mstone"><span>还没设置你们的日子，点右上角 ⚙︎ 开始</span><span class="val"></span></div>';
   document.getElementById('mstones').innerHTML = html;
 }
 renderStats();
@@ -390,6 +407,7 @@ renderStats();
     }
     setTimeout(function(){ gate.classList.add('done'); }, 500);
     setTimeout(function(){ gate.remove(); }, 1400);
+    if (firstRun) setTimeout(function(){ openPanel(); }, 1600);
   }
   yes.onclick = accept;
 })();
@@ -454,6 +472,14 @@ document.getElementById('resetCfg').onclick = function(){
   renderStats();
   panel.classList.remove('show');
 };
+document.getElementById('shareBtn').onclick = function(){
+  var enc = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))));
+  var url = location.origin + location.pathname + '#c=' + enc;
+  var out = document.getElementById('shareOut');
+  out.value = url;
+  out.focus(); out.select();
+  try{ navigator.clipboard.writeText(url); }catch(e){}
+};
 
 // ====== 条件选项 ======
 var state = { budget:'小奢侈', weather:'☀️ 晴', temp:null, loc:'🌆 市区逛逛' };
@@ -510,47 +536,48 @@ document.getElementById('tempBtn').onclick = function(){
 };
 
 // ====== 卡池 ======
+// tw:[最早开始, 最晚开始]（小时）——超过最晚开始时间的项目今天就不出现了
 var POOL = [
-  {cat:'游', t:'球场投篮', d:'进一球兑换一个愿望', w:'晴', loc:[NEAR], b:0, noHot:1},
-  {cat:'行', t:'遛弯到便利店', d:'各买一样新品，互相打分', w:'皆', loc:[NEAR], b:0},
-  {cat:'彩蛋', t:'超市大采购', d:'零食自由，今天上不封顶', w:'皆', loc:[NEAR], b:0},
-  {cat:'游', t:'桌游杀两局', d:'输的人答应赢的人一件事', w:'雨', loc:[NEAR,CITY], b:0},
-  {cat:'游', t:'在家电影马拉松', d:'片单一人选一部，不许嫌弃', w:'雨', loc:[NEAR], b:0},
+  {cat:'游', t:'球场投篮', d:'进一球兑换一个愿望', w:'晴', loc:[NEAR], b:0, noHot:1, tw:[9,19]},
+  {cat:'行', t:'遛弯到便利店', d:'各买一样新品，互相打分', w:'皆', loc:[NEAR], b:0, tw:[10,22]},
+  {cat:'彩蛋', t:'超市大采购', d:'零食自由，今天上不封顶', w:'皆', loc:[NEAR], b:0, tw:[10,21]},
+  {cat:'游', t:'桌游杀两局', d:'输的人答应赢的人一件事', w:'雨', loc:[NEAR,CITY], b:0, tw:[12,21]},
+  {cat:'游', t:'在家电影马拉松', d:'片单一人选一部，不许嫌弃', w:'雨', loc:[NEAR], b:0, tw:[13,22]},
   {cat:'彩蛋', t:'窗边拍立得', d:'听雨，拍一张今天的我们', w:'雨', loc:[NEAR], b:0},
-  {cat:'行', t:'晚饭后压马路', d:'走没走过的那条路', w:'晴', loc:[NEAR], b:0},
-  {cat:'游', t:'美术馆看展', d:'各选一幅最喜欢的，讲给对方听', w:'皆', loc:[CITY], b:0},
-  {cat:'游', t:'唱片店淘歌', d:'给对方挑一首"这就是你"的歌', w:'皆', loc:[CITY], b:0},
-  {cat:'行', t:'老街区漫步', d:'专挑没走过的巷子钻', w:'晴', loc:[CITY], b:0},
-  {cat:'行', t:'长堤走走', d:'风替我说想你', w:'晴', loc:[CITY], b:0, noCold:1},
-  {cat:'游', t:'游船夜航', d:'上层甲板风大，外套先给她', w:'晴', loc:[CITY], b:1, noCold:1},
-  {cat:'彩蛋', t:'大头贴合影', d:'认真拍一版，再拍最丑一版', w:'皆', loc:[CITY], b:0},
-  {cat:'彩蛋', t:'顺手买束花', d:'不为节日，就是今天想送', w:'皆', loc:[CITY], b:1},
+  {cat:'行', t:'晚饭后压马路', d:'走没走过的那条路', w:'晴', loc:[NEAR], b:0, tw:[18,21]},
+  {cat:'游', t:'美术馆看展', d:'各选一幅最喜欢的，讲给对方听', w:'皆', loc:[CITY], b:0, tw:[10,16]},
+  {cat:'游', t:'唱片店淘歌', d:'给对方挑一首"这就是你"的歌', w:'皆', loc:[CITY], b:0, tw:[11,20]},
+  {cat:'行', t:'老街区漫步', d:'专挑没走过的巷子钻', w:'晴', loc:[CITY], b:0, tw:[10,20]},
+  {cat:'行', t:'长堤走走', d:'风替我说想你', w:'晴', loc:[CITY], b:0, noCold:1, tw:[9,19]},
+  {cat:'游', t:'游船夜航', d:'上层甲板风大，外套先给她', w:'晴', loc:[CITY], b:1, noCold:1, tw:[18,21]},
+  {cat:'彩蛋', t:'大头贴合影', d:'认真拍一版，再拍最丑一版', w:'皆', loc:[CITY], b:0, tw:[11,21]},
+  {cat:'彩蛋', t:'顺手买束花', d:'不为节日，就是今天想送', w:'皆', loc:[CITY], b:1, tw:[10,20]},
   {cat:'彩蛋', t:'写心愿纸条', d:'各写一张封好，生日当天拆', w:'皆', loc:[CITY,FAR], b:0},
-  {cat:'游', t:'书店躲雨', d:'各选一本，交换读第一页', w:'雨', loc:[CITY], b:0},
-  {cat:'游', t:'陶艺手作课', d:'做丑了统一称为抽象派', w:'雨', loc:[CITY], b:1},
-  {cat:'游', t:'水族馆散步', d:'在水母缸前多站一会儿', w:'雨', loc:[CITY], b:1},
-  {cat:'游', t:'KTV 小包', d:'专属点歌权移交给她', w:'雨', loc:[CITY], b:0},
-  {cat:'行', t:'山径轻徒步', d:'走到观景台就算登顶成功', w:'晴', loc:[FAR], b:0, noHot:1},
-  {cat:'游', t:'果园采摘', d:'摘满一小篮才准下班', w:'晴', loc:[FAR], b:0},
-  {cat:'游', t:'花田风车打卡', d:'照片配额：她九张我一张', w:'晴', loc:[FAR], b:0},
-  {cat:'彩蛋', t:'夜观星空', d:'认不出星座就现场编一个', w:'晴', loc:[FAR], b:0, noCold:1},
-  {cat:'游', t:'温泉半日', d:'泡到手指起皱为止', w:'皆', loc:[FAR], b:1},
-  {cat:'游', t:'民宿发呆', d:'什么都不安排也是一种安排', w:'雨', loc:[FAR], b:2},
+  {cat:'游', t:'书店躲雨', d:'各选一本，交换读第一页', w:'雨', loc:[CITY], b:0, tw:[10,20]},
+  {cat:'游', t:'陶艺手作课', d:'做丑了统一称为抽象派', w:'雨', loc:[CITY], b:1, tw:[10,18]},
+  {cat:'游', t:'水族馆散步', d:'在水母缸前多站一会儿', w:'雨', loc:[CITY], b:1, tw:[10,17]},
+  {cat:'游', t:'KTV 小包', d:'专属点歌权移交给她', w:'雨', loc:[CITY], b:0, tw:[13,22]},
+  {cat:'行', t:'山径轻徒步', d:'走到观景台就算登顶成功', w:'晴', loc:[FAR], b:0, noHot:1, tw:[8,14]},
+  {cat:'游', t:'果园采摘', d:'摘满一小篮才准下班', w:'晴', loc:[FAR], b:0, tw:[9,15]},
+  {cat:'游', t:'花田风车打卡', d:'照片配额：她九张我一张', w:'晴', loc:[FAR], b:0, tw:[9,16]},
+  {cat:'彩蛋', t:'夜观星空', d:'认不出星座就现场编一个', w:'晴', loc:[FAR], b:0, noCold:1, tw:[20,23]},
+  {cat:'游', t:'温泉半日', d:'泡到手指起皱为止', w:'皆', loc:[FAR], b:1, tw:[10,20]},
+  {cat:'游', t:'民宿发呆', d:'什么都不安排也是一种安排', w:'雨', loc:[FAR], b:2, tw:[12,20]},
   {cat:'彩蛋', t:'共撑一把伞', d:'伞记得往她那边偏', w:'雨', loc:[NEAR,CITY,FAR], b:0},
-  {cat:'食', t:'楼下宵夜摊', d:'一人一串，禁止互抢', w:'皆', loc:[NEAR], b:0},
-  {cat:'食', t:'街口面包房', d:'刚出炉的那盘先来两个', w:'皆', loc:[NEAR], b:0},
-  {cat:'食', t:'奶茶对比评测', d:'两家各买一杯，盲测打分', w:'皆', loc:[NEAR,CITY], b:0},
-  {cat:'食', t:'煮一锅热汤面', d:'雨天的标准答案', w:'雨', loc:[NEAR], b:0},
-  {cat:'食', t:'火锅暖场', d:'辣度以她的意见为准', w:'雨', loc:[NEAR,CITY], b:0},
-  {cat:'食', t:'老字号小馆', d:'点一道她没吃过的招牌菜', w:'皆', loc:[CITY], b:0},
-  {cat:'食', t:'甜品二人份', d:'一份两勺，第一口让她先尝', w:'皆', loc:[NEAR,CITY], b:0},
-  {cat:'食', t:'水边咖啡座', d:'一直坐到夕阳收工', w:'晴', loc:[CITY], b:0},
-  {cat:'食', t:'临水小酒馆', d:'一杯就好，微醺刚刚好', w:'雨', loc:[CITY], b:1},
-  {cat:'食', t:'高层景观餐厅', d:'订靠窗位，卡着日落入座', w:'皆', loc:[CITY], b:2},
-  {cat:'食', t:'农家菜午餐', d:'现摘现炒，白饭管够', w:'晴', loc:[FAR], b:0},
-  {cat:'食', t:'山脚小馆', d:'招牌是什么就吃什么', w:'皆', loc:[FAR], b:0},
-  {cat:'食', t:'服务区小吃巡礼', d:'出逃路上的仪式感', w:'皆', loc:[FAR], b:0},
-  {cat:'食', t:'带上野餐篮', d:'三明治 + 她爱喝的那款', w:'晴', loc:[FAR], b:0},
+  {cat:'食', t:'楼下宵夜摊', d:'一人一串，禁止互抢', w:'皆', loc:[NEAR], b:0, tw:[20,23]},
+  {cat:'食', t:'街口面包房', d:'刚出炉的那盘先来两个', w:'皆', loc:[NEAR], b:0, tw:[8,19]},
+  {cat:'食', t:'奶茶对比评测', d:'两家各买一杯，盲测打分', w:'皆', loc:[NEAR,CITY], b:0, tw:[11,21]},
+  {cat:'食', t:'煮一锅热汤面', d:'雨天的标准答案', w:'雨', loc:[NEAR], b:0, tw:[17,22]},
+  {cat:'食', t:'火锅暖场', d:'辣度以她的意见为准', w:'雨', loc:[NEAR,CITY], b:0, tw:[11,21]},
+  {cat:'食', t:'老字号小馆', d:'点一道她没吃过的招牌菜', w:'皆', loc:[CITY], b:0, tw:[11,19]},
+  {cat:'食', t:'甜品二人份', d:'一份两勺，第一口让她先尝', w:'皆', loc:[NEAR,CITY], b:0, tw:[13,21]},
+  {cat:'食', t:'水边咖啡座', d:'一直坐到夕阳收工', w:'晴', loc:[CITY], b:0, tw:[13,17]},
+  {cat:'食', t:'临水小酒馆', d:'一杯就好，微醺刚刚好', w:'雨', loc:[CITY], b:1, tw:[19,22]},
+  {cat:'食', t:'高层景观餐厅', d:'订靠窗位，卡着日落入座', w:'皆', loc:[CITY], b:2, tw:[17,20]},
+  {cat:'食', t:'农家菜午餐', d:'现摘现炒，白饭管够', w:'晴', loc:[FAR], b:0, tw:[11,13]},
+  {cat:'食', t:'山脚小馆', d:'招牌是什么就吃什么', w:'皆', loc:[FAR], b:0, tw:[11,19]},
+  {cat:'食', t:'服务区小吃巡礼', d:'出逃路上的仪式感', w:'皆', loc:[FAR], b:0, tw:[9,20]},
+  {cat:'食', t:'带上野餐篮', d:'三明治 + 她爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15]},
 ];
 var CAT_EN = { '行':'Stroll', '游':'Play', '食':'Taste', '彩蛋':'Surprise' };
 var BUDGET_RANK = { '穷开心':0, '小奢侈':1, '豪华版':2 };
@@ -568,6 +595,7 @@ var ENDINGS = [
 var pick = function(a){ return a[Math.floor(Math.random()*a.length)]; };
 var shuffle = function(a){ return a.slice().sort(function(){ return Math.random()-.5; }); };
 
+var HOUR = now.getHours();
 function fits(it){
   var w = (state.weather.indexOf('晴')>-1 || state.weather.indexOf('阴')>-1) ? '晴' : '雨';
   if (!(it.w==='皆' || it.w===w)) return false;
@@ -575,8 +603,16 @@ function fits(it){
   if (BUDGET_RANK[state.budget] < it.b) return false;
   if (state.temp && state.temp.indexOf('炎热')>-1 && it.noHot) return false;
   if (state.temp && state.temp.indexOf('寒冷')>-1 && it.noCold) return false;
+  if (it.tw && it.tw[1] < HOUR) return false; // 今天已经来不及开始的，不出现
   return true;
 }
+(function(){
+  var m = now.getMinutes();
+  var txt = '🕐 现在 ' + HOUR + ':' + (m<10?'0':'') + m + '，抽卡按当前时间实时筛选';
+  if (HOUR >= 20) txt += '（深夜模式：只出今晚还来得及的）';
+  else if (HOUR >= 16) txt += '（傍晚模式：白天场次已收起）';
+  document.getElementById('timeHint').textContent = txt;
+})();
 
 var decks = {
   A: { dealt:[], sel:{}, el:'deckA', btn:'dealA', isFood:false, n:6 },
@@ -619,8 +655,9 @@ function deal(k){
 document.getElementById('dealA').onclick = function(){ deal('A'); };
 document.getElementById('dealB').onclick = function(){ deal('B'); };
 
-var PLAY_TIMES = ['14:00','16:00','20:30','22:00'];
-var FOOD_TIMES = ['18:30','21:30','12:30'];
+var NIGHT = HOUR >= 18;
+var PLAY_TIMES = NIGHT ? ['19:30','21:00','22:30','23:30'] : ['14:00','16:00','20:30','22:00'];
+var FOOD_TIMES = NIGHT ? ['20:15','21:45','23:00'] : ['18:30','21:30','12:30'];
 var ROMAN = ['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ⅵ'];
 document.getElementById('combine').onclick = function(){
   var plays = Object.keys(decks.A.sel).map(Number).sort(function(a,b){return a-b;}).map(function(i){return decks.A.dealt[i];}).slice(0,4);
@@ -677,6 +714,24 @@ var SWEETS = [
   '你不用抽情话，你本人就是最好的那句。',
   '本条消息由心跳代发。',
   '这个 App 有个 bug：一想到你就闪退去傻笑。',
+  '奶茶三分甜，见你十分甜。',
+  '我的手很凉，正好缺一个你。',
+  '今晚月亮不错，但比不过来看月亮的你。',
+  '走慢一点，我想把这条路走成很长的以后。',
+  '你负责貌美如花，我负责研究今天去哪。',
+  '和你在一起之后，我连堵车都觉得是加时赛。',
+  '别人收藏歌单，我收藏你说过的话。',
+  '天气预报说今天有雨，我说今天有你，都准了。',
+  '我攒了一口袋的开心，见面分你一半。',
+  '世界上最短的路，是你到我心里这条。',
+  '你打个哈欠，我这边就到了想你的点。',
+  '今天的任务清单：见你。已完成。',
+  '风是自由的，但它也会拐个弯来找你。',
+  '我五行缺你，今天必须补上。',
+  '如果开心可以充电，你就是我的充电口。',
+  '地球在自转，我在围着你转。',
+  '你的名字，是我打字最快的几个字。',
+  '存了很多句晚安，只对你按发送。',
 ];
 var lastSweet = -1;
 document.getElementById('sweetBtn').onclick = function(){
