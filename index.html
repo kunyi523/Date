@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<meta name="color-scheme" content="light dark" />
 <title>今天，怎么心动？</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" />
 <style>
@@ -180,6 +181,48 @@
   .p-reset{flex:1; padding:13px 0; border:1px solid var(--line); border-radius:3px; background:transparent; color:var(--ink-soft); font-size:13.5px; cursor:pointer; font-family:inherit}
   @media (prefers-reduced-motion:reduce){*{animation:none!important; transition:none!important}}
 
+  /* ————— 夜间：深丝绒紫黑 + 香槟金 + 象牙白 ————— */
+  html{color-scheme:light dark}
+  @media (prefers-color-scheme: dark){
+    :root{
+      --paper:#1D1620; --paper2:#261E2A;
+      --ink:#F2EAE0; --ink-soft:rgba(242,234,224,.6);
+      --gold:#C9A96A; --line:rgba(242,234,224,.14);
+      --card-ivory:#2A2130;
+    }
+    .chip{border-color:rgba(242,234,224,.25); box-shadow:0 2px 5px rgba(0,0,0,.3)}
+    .chip.on{background:rgba(201,169,106,.14); border-color:var(--gold-bright); color:var(--gold-bright); box-shadow:inset 0 2px 6px rgba(0,0,0,.5)}
+    .gear{color:var(--ink-soft)}
+    .hero-stat{border-top-color:var(--gold)}
+    .part-head{border-bottom-color:rgba(242,234,224,.4)}
+    .p-save{background:#3A2E42; color:var(--gold-bright)}
+    input[type=date], input[type=text], select{border-color:rgba(242,234,224,.25)}
+    .m-row{background:rgba(42,33,48,.5)}
+    #noBtn{border-color:rgba(242,234,224,.3)}
+  }
+
+  /* ————— 动态氛围 ————— */
+  .orbs{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none}
+  .orbs span{
+    position:absolute; width:340px; height:340px; border-radius:50%;
+    filter:blur(70px); opacity:.5;
+  }
+  .orbs span:nth-child(1){background:rgba(201,169,106,.28); top:-12%; right:-14%; animation:drift1 16s ease-in-out infinite alternate}
+  .orbs span:nth-child(2){background:rgba(156,107,118,.22); top:36%; left:-20%; animation:drift2 20s ease-in-out infinite alternate}
+  @keyframes drift1{to{transform:translate(-50px, 70px) scale(1.15)}}
+  @keyframes drift2{to{transform:translate(70px, -50px) scale(1.1)}}
+
+  .reveal{opacity:0; transform:translateY(18px); transition:opacity .7s ease, transform .7s ease}
+  .reveal.in{opacity:1; transform:none}
+
+  .final{position:relative; overflow:hidden}
+  .final::before{
+    content:""; position:absolute; top:0; bottom:0; width:55%;
+    background:linear-gradient(115deg, transparent, rgba(255,255,255,.14), transparent);
+    left:-60%; animation:sheen 3.4s ease-in-out infinite;
+  }
+  @keyframes sheen{0%,55%{left:-60%}85%,100%{left:120%}}
+
   /* ————— 彩蛋：初衷 ————— */
   #origin{cursor:pointer; user-select:none}
   #originMask{position:fixed; inset:0; z-index:70; background:rgba(43,33,48,.55); display:none; align-items:center; justify-content:center; padding:30px}
@@ -200,6 +243,7 @@
 </style>
 </head>
 <body>
+<div class="orbs"><span></span><span></span></div>
 
 <!-- 开场互动 -->
 <div id="gate" class="hidden">
@@ -318,12 +362,14 @@
 // ====== 可配置数据 ======
 var DEFAULT_CFG = { gate:true, anni:'', miles:[] };
 var CFG_KEY = 'xindong_cfg_v1';
-// 从分享链接里读设置（#c=…）
+// 从分享链接里读设置（?c=…，兼容旧的 #c=…）
 function decodeShare(){
   try{
-    var m = location.hash.match(/#c=([^&]+)/);
+    var m = location.search.match(/[?&]c=([^&]+)/) || location.hash.match(/#c=([^&]+)/);
     if(!m) return null;
-    var c = JSON.parse(decodeURIComponent(escape(atob(decodeURIComponent(m[1])))));
+    var raw = decodeURIComponent(m[1]).replace(/-/g,'+').replace(/_/g,'/');
+    while (raw.length % 4) raw += '=';
+    var c = JSON.parse(decodeURIComponent(escape(atob(raw))));
     if(!Array.isArray(c.miles)) throw 0;
     if(typeof c.gate !== 'boolean') c.gate = true;
     return c;
@@ -376,6 +422,38 @@ function renderStats(){
   document.getElementById('mstones').innerHTML = html;
 }
 renderStats();
+
+// 大数字滚动动画
+(function(){
+  var el = document.getElementById('days');
+  var target = parseInt(el.textContent, 10);
+  if (isNaN(target)) return;
+  var t0 = null;
+  function step(ts){
+    if (!t0) t0 = ts;
+    var p = Math.min((ts - t0) / 900, 1);
+    el.textContent = Math.round(target * (1 - Math.pow(1-p, 3)));
+    if (p < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+})();
+
+// 滚动渐显
+(function(){
+  var els = document.querySelectorAll('.mstones, .part, .final, .sweet-btn');
+  els.forEach(function(el){ el.classList.add('reveal'); });
+  if ('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if (en.isIntersecting){ en.target.classList.add('in'); io.unobserve(en.target); }
+      });
+    }, {threshold:.12});
+    els.forEach(function(el){ io.observe(el); });
+    setTimeout(function(){ els.forEach(function(el){ el.classList.add('in'); }); }, 2500);
+  } else {
+    els.forEach(function(el){ el.classList.add('in'); });
+  }
+})();
 
 // ====== 开场互动 ======
 (function(){
@@ -452,7 +530,7 @@ panel.onclick = function(e){ if (e.target === panel) panel.classList.remove('sho
 document.getElementById('addMile').onclick = function(){
   document.getElementById('mList').appendChild(mileRow({label:'', date:'', mode:'since'}));
 };
-document.getElementById('saveCfg').onclick = function(){
+function collectCfg(){
   var anni = document.getElementById('cfgAnni').value;
   if (anni) cfg.anni = anni;
   cfg.gate = document.getElementById('cfgGate').checked;
@@ -464,21 +542,29 @@ document.getElementById('saveCfg').onclick = function(){
   }
   try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); }catch(e){}
   renderStats();
+}
+document.getElementById('saveCfg').onclick = function(){
+  collectCfg();
   panel.classList.remove('show');
 };
 document.getElementById('resetCfg').onclick = function(){
   try{ localStorage.removeItem(CFG_KEY); }catch(e){}
-  cfg = loadCfg();
+  sharedCfg = null;
+  cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
   renderStats();
   panel.classList.remove('show');
 };
 document.getElementById('shareBtn').onclick = function(){
-  var enc = encodeURIComponent(btoa(unescape(encodeURIComponent(JSON.stringify(cfg)))));
-  var url = location.origin + location.pathname + '#c=' + enc;
+  collectCfg(); // 先自动保存，防止忘点保存
+  var b64 = btoa(unescape(encodeURIComponent(JSON.stringify(cfg))))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+  var url = location.origin + location.pathname + '?c=' + b64;
   var out = document.getElementById('shareOut');
   out.value = url;
   out.focus(); out.select();
+  try{ out.setSelectionRange(0, url.length); }catch(e){}
   try{ navigator.clipboard.writeText(url); }catch(e){}
+  document.getElementById('shareBtn').textContent = '已生成 ✓ 长按下面的链接复制';
 };
 
 // ====== 条件选项 ======
