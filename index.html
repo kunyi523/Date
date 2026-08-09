@@ -347,7 +347,7 @@
     </div>
 
     <div class="f-label" style="margin-top:20px">🔗 把设置带给她</div>
-    <div class="hint" style="margin-bottom:8px">先点保存，再生成链接——她打开这个链接，看到的直接就是你设置好的日子，不用自己再填一遍。</div>
+    <div class="hint" style="margin-bottom:8px">生成的链接会把你当前的设置封装在链接里，永久独立：她每次点开看到的都是这一份，谁也改不了。她想存到自己手机的话，打开后点保存即可。</div>
     <button class="m-add" id="shareBtn">生成分享链接</button>
     <input type="text" id="shareOut" readonly placeholder="链接会出现在这里，长按全选复制" style="margin-top:8px; font-size:12px" />
 
@@ -377,11 +377,8 @@ function decodeShare(){
 }
 var sharedCfg = decodeShare();
 function loadCfg(){
-  if (sharedCfg){
-    try{ localStorage.setItem(CFG_KEY, JSON.stringify(sharedCfg)); }catch(e){}
-    try{ history.replaceState(null, '', location.pathname + location.search); }catch(e){}
-    return sharedCfg;
-  }
+  // 分享链接：只展示链接里带的设置，不写入本机、不改地址栏——和主链接完全独立
+  if (sharedCfg) return sharedCfg;
   try{
     var raw = localStorage.getItem(CFG_KEY);
     if(!raw) return JSON.parse(JSON.stringify(DEFAULT_CFG));
@@ -393,6 +390,10 @@ function loadCfg(){
 }
 var cfg = loadCfg();
 var firstRun = !sharedCfg && !localStorage.getItem(CFG_KEY);
+if (sharedCfg){
+  var subEl = document.querySelector('.sub');
+  if (subEl) subEl.textContent = '为你一人定制的心动菜单 · 专属版';
+}
 
 var strip = function(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); };
 var dayDiff = function(a,b){ return Math.round((strip(b)-strip(a))/86400000); };
