@@ -155,8 +155,8 @@
     .header-note { margin: 0; color: var(--muted); font-size: 0.92rem; }
     .hero {
       position: relative;
-      margin: 0 0 1.35rem;
-      min-height: min(22rem, 58dvh);
+      margin: 0 0 1.1rem;
+      min-height: min(20rem, 52dvh);
       color: var(--cream);
       isolation: isolate;
     }
@@ -167,6 +167,7 @@
       height: 100%;
       object-fit: cover;
       z-index: 0;
+      background: #3a2a20;
     }
     .hero::after {
       content: "";
@@ -205,6 +206,16 @@
       max-width: 22rem;
       font-size: 1.08rem;
       color: #f3e6cf;
+    }
+    .stock-tag {
+      display: inline-block;
+      margin: 0.7rem 0 0;
+      font-family: var(--font-label);
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--rule);
     }
     .cta-row {
       display: grid;
@@ -262,18 +273,24 @@
       margin: 0 0 0.7rem;
     }
     .story p { margin: 0 0 0.85rem; color: var(--ink-soft); }
-    .hours-list {
+    .hours-list,
+    .services-list {
       list-style: none;
       margin: 0;
       padding: 0;
       border-top: 1px solid rgba(184, 137, 58, 0.35);
     }
-    .hours-list li {
+    .hours-list li,
+    .services-list li {
       display: flex;
       justify-content: space-between;
       gap: 1rem;
       padding: 0.7rem 0.35rem;
       border-bottom: 1px solid rgba(184, 137, 58, 0.35);
+    }
+    .services-list li {
+      font-weight: 600;
+      color: var(--ink);
     }
     .hours-list .day { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
     .hours-list .closed { color: var(--closed); }
@@ -291,12 +308,6 @@
       padding: 0.05rem 0.35rem;
     }
     .note { color: var(--muted); font-size: 0.95rem; margin: 0.85rem 0 0; }
-    .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 0.45rem; }
-    .gallery figure { margin: 0; }
-    .gallery img { width: 100%; height: 8.5rem; object-fit: cover; background: #cbb892; }
-    .gallery figure:first-child { grid-column: 1 / -1; }
-    .gallery figure:first-child img { height: 12rem; }
-    .caption { margin: 0.7rem 0 0; color: var(--muted); font-size: 0.88rem; }
     .rating-note { margin: 0 0 1rem; color: var(--muted); }
     .quotes { display: grid; gap: 0.85rem; margin: 0; }
     blockquote {
@@ -338,14 +349,15 @@
     }
     .fb { display: inline-block; margin-top: 0.25rem; }
     .site-footer {
-      margin-top: 1.75rem;
-      padding: 1.25rem 0 0.5rem;
+      margin-top: 1.15rem;
+      padding: 0.85rem 0 0.35rem;
       border-top: 1px solid rgba(184, 137, 58, 0.4);
       color: var(--muted);
-      font-size: 0.86rem;
-      line-height: 1.45;
+      font-size: 0.8rem;
+      line-height: 1.4;
     }
-    .site-footer p { margin: 0 0 0.55rem; }
+    .site-footer p { margin: 0 0 0.3rem; }
+    .site-footer p:last-child { margin: 0; }
     .sticky {
       position: fixed;
       left: 0;
@@ -392,7 +404,7 @@
       <img
         class="hero-img"
         src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=900&amp;q=70"
-        alt="Traditional barbershop chairs and mirrors. Licensed stock photo for atmosphere, not a photo of this shop."
+        alt="Traditional barbershop chairs and mirrors. Licensed atmosphere stock, not a photo of this shop."
         width="900"
         height="580"
         fetchpriority="high"
@@ -402,6 +414,7 @@
         <p class="kicker">King Street East</p>
         <h1>Gus &amp; Son <span>Barbershop</span></h1>
         <p class="lede">Old-school walk-in shop. Espresso while you wait. World Cup on the TV.</p>
+        <p class="stock-tag">Atmosphere stock — not this shop</p>
         <div class="cta-row">
           <a class="btn btn-call" href="tel:+19055451945">Call</a>
           <a class="btn btn-dir" href="https://www.google.com/maps/dir/?api=1&amp;destination=1530+King+St+E,+Hamilton,+ON+L8K+1S9" rel="noopener">Directions</a>
@@ -410,12 +423,24 @@
     </section>
 
     <div class="wrap">
+      <section id="services">
+        <p class="section-label">Services</p>
+        <h2>In the chair</h2>
+        <ul class="services-list">
+          <li>Men’s haircut</li>
+          <li>Beard trim</li>
+          <li>Head shave</li>
+          <li>Hot towel shave</li>
+        </ul>
+        <p class="note">Regulars mention about $20 out the door. Walk-in only — no online booking.</p>
+      </section>
+
+      <hr class="rule">
+
       <div class="quick">
         <p><a class="phone-lg" href="tel:+19055451945">905-545-1945</a></p>
         <address class="addr">1530 King St E<br>Hamilton, ON L8K 1S9</address>
       </div>
-
-      <hr class="rule">
 
       <section id="hours">
         <p class="section-label">Hours</p>
@@ -429,7 +454,7 @@
           <li data-day="sat"><span class="day">Saturday</span><span>8:00 AM–3:00 PM</span></li>
           <li data-day="sun"><span class="day">Sunday</span><span class="closed">Closed</span></li>
         </ul>
-        <p class="note">Walk-in only. No online booking on this page — that is how the shop actually works.</p>
+        <p class="note">Walk-in only. No appointments on this page — that is how the shop actually works.</p>
       </section>
 
       <hr class="rule">
@@ -439,31 +464,6 @@
         <h2>Gus, then Lou</h2>
         <p>Gus &amp; Son has been a neighbourhood barbershop on King Street East since about 1956. Agostino “Gus” Di Nardo opened it. He died in 2020. His son Louie (Lou) Di Nardo still runs the chair.</p>
         <p>It is a traditional walk-in shop: espresso while you wait, an old-school feel, soccer on the big screen. Regulars mention about $20 out the door — cheaper than the chain haircut stores, as they put it.</p>
-      </section>
-
-      <hr class="rule">
-
-      <section id="photos">
-        <p class="section-label">Atmosphere</p>
-        <h2>The kind of shop this is</h2>
-        <div class="gallery">
-          <figure>
-            <img src="https://images.unsplash.com/photo-1503951914875-452162b0f3f1?auto=format&amp;fit=crop&amp;w=800&amp;q=70" alt="Barber giving a haircut in a classic shop. Licensed stock photo." width="800" height="560" loading="lazy" decoding="async">
-          </figure>
-          <figure>
-            <img src="https://images.unsplash.com/photo-1599351431202-1e0f0137899a?auto=format&amp;fit=crop&amp;w=600&amp;q=70" alt="Close haircut with clippers. Licensed stock photo." width="600" height="450" loading="lazy" decoding="async">
-          </figure>
-          <figure>
-            <img src="https://images.unsplash.com/photo-1621605815971-fbc98d665033?auto=format&amp;fit=crop&amp;w=600&amp;q=70" alt="Barber combing a client’s hair. Licensed stock photo." width="600" height="450" loading="lazy" decoding="async">
-          </figure>
-          <figure>
-            <img src="https://images.pexels.com/photos/1813272/pexels-photo-1813272.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=600" alt="Vintage barbershop interior. Licensed stock photo." width="600" height="450" loading="lazy" decoding="async">
-          </figure>
-          <figure>
-            <img src="https://images.pexels.com/photos/1319460/pexels-photo-1319460.jpeg?auto=compress&amp;cs=tinysrgb&amp;w=600" alt="Barber using clippers. Licensed stock photo." width="600" height="450" loading="lazy" decoding="async">
-          </figure>
-        </div>
-        <p class="caption">Photos are licensed Unsplash and Pexels images of traditional barbershops, used for atmosphere. They are not photographs of Gus &amp; Son.</p>
       </section>
 
       <hr class="rule">
@@ -525,8 +525,8 @@
       </section>
 
       <footer class="site-footer">
-        <p>This is an unofficial sample website prepared as a proposal. It is not affiliated with Gus &amp; Son Barbershop. It was built so the owner can see what a simple site could look like.</p>
-        <p>Hours, address, phone, and quotes are from public listings. Atmosphere photos are licensed stock, not pictures of this shop. No appointments or payments are taken here.</p>
+        <p>Unofficial proposal — not affiliated with Gus &amp; Son Barbershop.</p>
+        <p>Hours, address, phone, and quotes from public listings.</p>
       </footer>
     </div>
 
