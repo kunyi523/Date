@@ -51,6 +51,7 @@
       -webkit-text-size-adjust: 100%;
       text-size-adjust: 100%;
       color-scheme: dark;
+      background: var(--bg);
     }
     * { -webkit-tap-highlight-color: transparent; }
     body {
@@ -123,6 +124,12 @@
     .kicker, .section-label, .block-label {
       font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
       font-size: .7rem; color: var(--gold); margin: 0;
+    }
+    .section-label {
+      display: flex; align-items: center; gap: .75rem;
+    }
+    .section-label::after {
+      content: ""; flex: 0 0 2.4rem; height: 1px; background: var(--gold); opacity: .55;
     }
     .hero {
       position: relative; color: var(--ivory); isolation: isolate;
@@ -239,12 +246,7 @@
     .quotes { display: grid; gap: 1rem; margin: 0; }
     blockquote {
       margin: 0; padding: 1.35rem 1.25rem 1.2rem; background: var(--panel);
-      border: 1px solid var(--line); position: relative;
-    }
-    blockquote::before {
-      content: "“"; position: absolute; top: .35rem; left: .85rem;
-      font-family: var(--font-display); font-size: 2.4rem; line-height: 1; color: var(--gold);
-      opacity: .55;
+      border: 1px solid var(--line); border-left: 2px solid var(--gold);
     }
     blockquote p {
       margin: 0; font-family: var(--font-display); font-size: 1.28rem; line-height: 1.4;
@@ -336,9 +338,10 @@
       .services-list li:last-child { border-right: 0; }
       .quotes { grid-template-columns: 1fr 1fr; gap: 1.2rem; }
       .map-wrap iframe { height: 26rem; }
-      .about-grid, .hours-layout {
+      .about-grid {
         display: grid; grid-template-columns: 1.2fr .8fr; gap: 3.5rem; align-items: start;
       }
+      .hours-layout { max-width: 42rem; }
       .story p { font-size: 1.22rem; }
       .hours-list li { padding: .95rem .15rem; }
     }
@@ -398,7 +401,7 @@
         <div class="section-head">
           <p class="section-label">Overview</p>
           <h2>Come when you need a cut.</h2>
-          <p class="section-intro">No booking, no payments on this page. Call if you like, then walk in — that is how the shop works.</p>
+          <p class="section-intro">No booking. Call if you like, then walk in — Lou will get to you.</p>
         </div>
         <div class="overview-grid">
           <div>
@@ -489,7 +492,7 @@
         <div class="section-head">
           <p class="section-label">Hours</p>
           <h2>When to walk in</h2>
-          <p class="section-intro">Come when you can. There are no appointments — that is how the shop actually works.</p>
+          <p class="section-intro">Come when you can. There are no appointments — walk in when the door is open.</p>
         </div>
         <div class="hours-layout">
           <ul class="hours-list">
@@ -501,7 +504,7 @@
             <li data-day="sat"><span class="day">Saturday</span><span>8:00 AM–3:00 PM</span></li>
             <li data-day="sun"><span class="day">Sunday</span><span class="closed">Closed</span></li>
           </ul>
-          <p class="note">Walk-in only. We do not take bookings or payments on this page. Call 905-545-1945 if you want to check before you come down.</p>
+          <p class="note">Walk-in only. Call 905-545-1945 if you want to check before you come down.</p>
         </div>
       </section>
 
