@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="dark">
   <meta name="format-detection" content="telephone=yes">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="mobile-web-app-capable" content="yes">
   <title>Gus &amp; Son Barbershop — King Street East, Hamilton</title>
   <meta name="description" content="Unofficial sample website for Gus &amp; Son Barbershop, a traditional walk-in shop at 1530 King St E, Hamilton. Call 905-545-1945. Not affiliated with the shop.">
-  <meta name="theme-color" content="#8f2420">
+  <meta name="theme-color" content="#0a0a0b">
   <link rel="icon" href="favicon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="favicon.svg">
   <link rel="canonical" href="https://kunyi523.github.io/Date/gus-and-son/">
@@ -21,453 +21,252 @@
   <meta property="og:image" content="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=1200&amp;q=75">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@700&amp;family=Cormorant+Garamond:ital,wght@0,600;1,500&amp;display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&amp;family=Jost:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
   <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "BarberShop",
-    "name": "Gus & Son Barbershop",
-    "alternateName": "Gus and Son Barber Shop",
-    "telephone": "+19055451945",
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": "1530 King St E",
-      "addressLocality": "Hamilton",
-      "addressRegion": "ON",
-      "postalCode": "L8K 1S9",
-      "addressCountry": "CA"
-    },
-    "url": "https://www.facebook.com/Gus-and-Son-Barbershop-994011864041912/",
-    "openingHoursSpecification": [
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": ["Wednesday", "Thursday", "Friday"],
-        "opens": "08:00",
-        "closes": "17:00"
-      },
-      {
-        "@type": "OpeningHoursSpecification",
-        "dayOfWeek": "Saturday",
-        "opens": "08:00",
-        "closes": "15:00"
-      }
-    ]
-  }
+  {"@context":"https://schema.org","@type":"BarberShop","name":"Gus & Son Barbershop","alternateName":"Gus and Son Barber Shop","telephone":"+19055451945","address":{"@type":"PostalAddress","streetAddress":"1530 King St E","addressLocality":"Hamilton","addressRegion":"ON","postalCode":"L8K 1S9","addressCountry":"CA"},"url":"https://www.facebook.com/Gus-and-Son-Barbershop-994011864041912/","openingHoursSpecification":[{"@type":"OpeningHoursSpecification","dayOfWeek":["Wednesday","Thursday","Friday"],"opens":"08:00","closes":"17:00"},{"@type":"OpeningHoursSpecification","dayOfWeek":"Saturday","opens":"08:00","closes":"15:00"}]}
   </script>
   <style>
     :root {
-      --paper: #f3e6cf;
-      --paper-2: #e9d7b4;
-      --ink: #1c120c;
-      --ink-soft: #3d2c22;
-      --muted: #6a5346;
-      --rule: #c4a36a;
-      --brass: #b8893a;
-      --burgundy: #8f2420;
-      --burgundy-dark: #6e1b18;
-      --navy: #2c3d6b;
-      --closed: #7a3a32;
-      --cream: #f7f1e3;
-      --shadow: 0 10px 30px rgba(28, 18, 12, 0.12);
+      --bg: #0a0a0b;
+      --panel: #141316;
+      --ivory: #f4eee4;
+      --ivory-dim: #d8cfc2;
+      --muted: #9a9084;
+      --gold: #c4a36a;
+      --gold-2: #a6854d;
+      --line: rgba(196,163,106,.22);
+      --line-strong: rgba(196,163,106,.4);
+      --closed: #8a7b6c;
       --sticky-h: 5.25rem;
-      --max: 1120px;
-      --font-display: "Cormorant Garamond", "Palatino Linotype", Palatino, Georgia, serif;
-      --font-body: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
-      --font-label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
+      --max: 1200px;
+      --font-display: "Cormorant Garamond", Palatino, Georgia, serif;
+      --font-ui: Jost, "Segoe UI", system-ui, sans-serif;
     }
     *, *::before, *::after { box-sizing: border-box; }
-    html {
-      scroll-behavior: smooth;
-      -webkit-text-size-adjust: 100%;
-      text-size-adjust: 100%;
-      color-scheme: light;
-    }
+    html { scroll-behavior: smooth; -webkit-text-size-adjust: 100%; text-size-adjust: 100%; color-scheme: dark; }
     * { -webkit-tap-highlight-color: transparent; }
     body {
-      margin: 0;
-      color: var(--ink);
-      background: var(--paper);
-      font-family: var(--font-body);
-      font-size: 1.0625rem;
-      line-height: 1.55;
+      margin: 0; color: var(--ivory); background: var(--bg);
+      font-family: var(--font-ui); font-size: 1.0625rem; line-height: 1.6;
       text-rendering: optimizeLegibility;
     }
     img { max-width: 100%; height: auto; display: block; }
-    a { color: var(--burgundy-dark); text-underline-offset: 0.18em; }
-    a:hover { color: var(--burgundy); }
-    :focus-visible { outline: 3px solid var(--brass); outline-offset: 3px; }
+    a { color: var(--gold); text-underline-offset: .18em; }
+    a:hover { color: var(--ivory); }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
     .skip {
-      position: absolute; left: 0.75rem; top: -3rem; z-index: 20;
-      background: var(--ink); color: var(--paper); padding: 0.5rem 0.85rem;
+      position: absolute; left: .75rem; top: -3rem; z-index: 20;
+      background: var(--gold); color: var(--bg); padding: .5rem .85rem;
+      font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+      text-decoration: none; font-size: .8rem;
     }
-    .skip:focus { top: 0.75rem; }
+    .skip:focus { top: .75rem; }
     .page {
-      position: relative;
-      background: var(--paper);
-      min-height: 100vh;
-      min-height: 100dvh;
-      width: 100%;
-      margin: 0 auto;
+      background: var(--bg); min-height: 100vh; min-height: 100dvh; width: 100%;
+      margin: 0 auto; overflow-x: hidden;
       padding-bottom: calc(var(--sticky-h) + env(safe-area-inset-bottom, 0px));
-      overflow-x: hidden;
     }
-    .page::before {
-      content: "";
-      pointer-events: none;
-      position: absolute;
-      inset: 0;
-      opacity: 0.035;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
-      z-index: 0;
-    }
-    .pole {
-      height: 0.55rem;
-      background: repeating-linear-gradient(
-        115deg,
-        var(--burgundy) 0 0.55rem,
-        var(--cream) 0.55rem 1.05rem,
-        var(--navy) 1.05rem 1.6rem,
-        var(--cream) 1.6rem 2.1rem
-      );
-    }
+    .gold-line { height: 1px; background: linear-gradient(90deg, transparent, var(--gold) 18%, var(--gold) 82%, transparent); opacity: .55; }
     .wrap {
-      position: relative;
-      z-index: 1;
-      width: 100%;
-      max-width: var(--max);
-      margin: 0 auto;
+      width: 100%; max-width: var(--max); margin: 0 auto;
       padding: 0 max(1.15rem, env(safe-area-inset-right, 0px)) 0 max(1.15rem, env(safe-area-inset-left, 0px));
     }
     .site-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      gap: 0.75rem;
-      padding: 0.85rem 0 0.7rem;
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      padding: .95rem 0;
     }
-    .eyebrow, .kicker, .section-label {
-      font-family: var(--font-label);
-      font-weight: 700;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
-      font-size: 0.78rem;
-      color: var(--burgundy);
-      margin: 0;
+    .wordmark {
+      font-family: var(--font-display); font-size: 1.4rem; font-weight: 600;
+      letter-spacing: .04em; color: var(--ivory); text-decoration: none; line-height: 1;
     }
-    .header-note { margin: 0; color: var(--muted); font-size: 0.92rem; }
-    .hero {
-      position: relative;
-      margin: 0 0 1.1rem;
-      min-height: min(20rem, 52dvh);
-      color: var(--cream);
-      isolation: isolate;
+    .wordmark span { color: var(--gold); }
+    .nav { display: none; align-items: center; gap: 1.6rem; }
+    .nav a {
+      font-size: .72rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+      text-decoration: none; color: var(--ivory-dim);
     }
-    .hero-img {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: 0;
-      background: #3a2a20;
+    .nav a:hover { color: var(--gold); }
+    .header-note {
+      margin: 0; color: var(--muted); font-size: .7rem; font-weight: 500;
+      letter-spacing: .16em; text-transform: uppercase;
     }
+    .btn-header { display: none; }
+    .kicker, .section-label, .block-label {
+      font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
+      font-size: .72rem; color: var(--gold); margin: 0;
+    }
+    .hero { position: relative; color: var(--ivory); isolation: isolate; display: flex; align-items: flex-end; }
+    .hero-img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: 0; background: #121110; }
     .hero::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      z-index: 1;
-      background: linear-gradient(180deg, rgba(28, 18, 12, 0.18) 0%, rgba(28, 18, 12, 0.55) 42%, rgba(28, 18, 12, 0.88) 100%);
+      content: ""; position: absolute; inset: 0; z-index: 1;
+      background:
+        linear-gradient(90deg, rgba(10,10,11,.84) 0%, rgba(10,10,11,.42) 52%, rgba(10,10,11,.22) 100%),
+        linear-gradient(180deg, rgba(10,10,11,.18) 0%, rgba(10,10,11,.5) 52%, rgba(10,10,11,.96) 100%);
     }
     .hero-copy {
-      position: relative;
-      z-index: 2;
-      padding: 5.5rem max(1.15rem, env(safe-area-inset-right, 0px)) 1.4rem max(1.15rem, env(safe-area-inset-left, 0px));
-      width: 100%;
-      max-width: var(--max);
-      margin: 0 auto;
+      position: relative; z-index: 2; width: 100%; max-width: var(--max); margin: 0 auto;
+      padding: 4.4rem max(1.15rem, env(safe-area-inset-right, 0px)) 1.7rem max(1.15rem, env(safe-area-inset-left, 0px));
     }
     .hero-copy h1 {
-      font-family: var(--font-display);
-      font-weight: 600;
-      font-size: clamp(2.6rem, 11vw, 3.35rem);
-      line-height: 0.9;
-      letter-spacing: 0.01em;
-      margin: 0.15rem 0 0.35rem;
+      font-family: var(--font-display); font-weight: 600;
+      font-size: clamp(3.15rem, 14vw, 4.5rem); line-height: .88; letter-spacing: .01em;
+      margin: .4rem 0 .15rem;
     }
     .hero-copy h1 span {
-      display: block;
-      font-size: 0.42em;
-      font-family: var(--font-label);
-      font-weight: 700;
-      letter-spacing: 0.28em;
-      text-transform: uppercase;
-      margin-top: 0.45rem;
-      color: var(--rule);
+      display: block; font-size: .3em; font-family: var(--font-ui); font-weight: 600;
+      letter-spacing: .42em; text-transform: uppercase; margin-top: .75rem; color: var(--gold);
     }
-    .lede {
-      margin: 0.55rem 0 0;
-      max-width: 22rem;
-      font-size: 1.08rem;
-      color: #f3e6cf;
-    }
+    .lede { margin: .9rem 0 0; max-width: 28rem; font-size: 1.08rem; color: var(--ivory-dim); }
     .stock-tag {
-      display: inline-block;
-      margin: 0.7rem 0 0;
-      font-family: var(--font-label);
-      font-size: 0.68rem;
-      font-weight: 700;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: var(--rule);
+      display: inline-block; margin: .75rem 0 0; font-size: .64rem; font-weight: 600;
+      letter-spacing: .16em; text-transform: uppercase; color: var(--gold-2);
     }
-    .cta-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.65rem;
-      margin: 1.15rem 0 0;
-    }
+    .cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: 1.3rem 0 0; }
     .btn {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      min-height: 56px;
-      padding: 0.75rem 0.9rem;
-      border-radius: 0.2rem;
-      text-decoration: none;
-      font-family: var(--font-label);
-      font-size: 1.2rem;
-      font-weight: 700;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      border: 2px solid transparent;
-      touch-action: manipulation;
+      display: inline-flex; align-items: center; justify-content: center; min-height: 56px;
+      padding: .75rem 1rem; border-radius: 0; text-decoration: none; font-family: var(--font-ui);
+      font-size: .9rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+      border: 1px solid transparent; touch-action: manipulation;
     }
-    .btn-call { background: var(--burgundy); color: #f7f1e3; }
-    .btn-call:hover { background: var(--burgundy-dark); color: #f7f1e3; }
-    .btn-dir { background: transparent; color: #f7f1e3; border-color: var(--rule); }
-    .btn-dir:hover { background: rgba(247, 241, 227, 0.1); color: #fff; }
-    .btn-light { color: var(--burgundy-dark); border-color: var(--burgundy); background: transparent; }
-    .btn-light:hover { background: #f7f1e3; color: var(--burgundy-dark); }
-    .btn-solid { background: var(--burgundy); color: #f7f1e3; }
-    .quick { display: grid; gap: 0.55rem; padding: 0.15rem 0 0.85rem; }
-    .quick p { margin: 0; }
-    .phone-lg {
-      font-family: var(--font-display);
-      font-size: 1.85rem;
-      font-weight: 600;
-      text-decoration: none;
-      color: var(--ink);
-      letter-spacing: 0.02em;
-    }
-    .addr { font-style: normal; color: var(--ink-soft); }
-    section, .visit { padding: 0.35rem 0 1.15rem; }
-    .section-label { margin-bottom: 0.45rem; }
+    .btn-call, .btn-solid { background: var(--gold); color: #0a0a0b; }
+    .btn-call:hover, .btn-solid:hover { background: #d4b67a; color: #0a0a0b; }
+    .btn-dir, .btn-light { background: transparent; color: var(--ivory); border-color: var(--gold); }
+    .btn-dir:hover, .btn-light:hover { background: rgba(196,163,106,.12); color: #fff; }
+    section { padding: 1.7rem 0 .35rem; }
+    .section-head { margin-bottom: 1.15rem; }
+    .section-label { margin-bottom: .45rem; }
     h2 {
-      font-family: var(--font-display);
-      font-size: 2rem;
-      font-weight: 600;
-      line-height: 1.05;
-      margin: 0 0 0.7rem;
+      font-family: var(--font-display); font-size: clamp(2rem, 5vw, 2.85rem); font-weight: 600;
+      line-height: 1.05; margin: 0 0 .45rem; color: var(--ivory);
     }
-    .story p { margin: 0 0 0.85rem; color: var(--ink-soft); }
-    .hours-list,
-    .services-list {
-      list-style: none;
-      margin: 0;
-      padding: 0;
-      border-top: 1px solid rgba(184, 137, 58, 0.35);
+    .section-intro { margin: 0; color: var(--muted); max-width: 36rem; }
+    .overview-grid { display: flex; flex-direction: column; gap: 1.85rem; }
+    .phone-block { display: grid; gap: .4rem; }
+    .phone-block p { margin: 0; }
+    .phone-lg {
+      font-family: var(--font-display); font-size: clamp(2.45rem, 9vw, 3.7rem); font-weight: 600;
+      text-decoration: none; color: var(--ivory); letter-spacing: .02em; line-height: .95;
     }
-    .hours-list li,
-    .services-list li {
-      display: flex;
-      justify-content: space-between;
-      gap: 1rem;
-      padding: 0.7rem 0.35rem;
-      border-bottom: 1px solid rgba(184, 137, 58, 0.35);
+    .phone-lg:hover { color: var(--gold); }
+    .addr { font-style: normal; color: var(--ivory-dim); font-size: 1rem; line-height: 1.5; }
+    .block-label { margin: 1.25rem 0 .65rem; }
+    .hours-list, .services-list {
+      list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line);
     }
-    .services-list li {
-      font-weight: 600;
-      color: var(--ink);
+    .hours-list li, .services-list li {
+      display: flex; justify-content: space-between; gap: 1rem;
+      padding: .72rem .15rem; border-bottom: 1px solid var(--line);
     }
-    .hours-list .day { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+    .services-list li { font-weight: 500; color: var(--ivory); }
+    .hours-list .day { font-weight: 500; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
     .hours-list .closed { color: var(--closed); }
     .hours-list .is-today {
-      background: rgba(184, 137, 58, 0.16);
-      box-shadow: inset 3px 0 0 var(--burgundy);
+      background: rgba(196,163,106,.08); box-shadow: inset 3px 0 0 var(--gold); padding-left: .7rem;
     }
     .today-tag {
-      font-family: var(--font-label);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      font-size: 0.7rem;
-      color: var(--burgundy);
-      border: 1px solid var(--burgundy);
-      padding: 0.05rem 0.35rem;
+      letter-spacing: .14em; text-transform: uppercase; font-size: .62rem; font-weight: 600;
+      color: var(--bg); background: var(--gold); padding: .12rem .4rem;
     }
-    .note { color: var(--muted); font-size: 0.95rem; margin: 0.85rem 0 0; }
-    .rating-note { margin: 0 0 1rem; color: var(--muted); }
-    .quotes { display: grid; gap: 0.85rem; margin: 0; }
+    .note, .rating-note { color: var(--muted); font-size: .95rem; }
+    .note { margin: .85rem 0 0; }
+    .rating-note { margin: 0 0 1.1rem; }
+    .quotes { display: grid; gap: .85rem; margin: 0; }
     blockquote {
-      margin: 0;
-      padding: 0.95rem 1rem 0.9rem;
-      background: var(--cream);
-      border-left: 3px solid var(--burgundy);
-      box-shadow: var(--shadow);
+      margin: 0; padding: 1.15rem 1.15rem 1.05rem; background: var(--panel);
+      border: 1px solid var(--line); border-left: 2px solid var(--gold);
     }
     blockquote p {
-      margin: 0;
-      font-family: var(--font-display);
-      font-size: 1.2rem;
-      line-height: 1.35;
-      font-style: italic;
+      margin: 0; font-family: var(--font-display); font-size: 1.22rem; line-height: 1.4;
+      font-style: italic; color: var(--ivory-dim);
     }
     blockquote footer {
-      margin-top: 0.55rem;
-      font-style: normal;
-      font-size: 0.92rem;
-      color: var(--muted);
-      font-family: var(--font-label);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
+      margin-top: .7rem; font-style: normal; font-size: .72rem; color: var(--gold);
+      letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
     }
-    .map-wrap { margin: 0.75rem 0 1rem; background: var(--paper-2); min-height: 14rem; }
+    .story p { margin: 0 0 .95rem; color: var(--ivory-dim); max-width: 42rem; }
+    .map-wrap { margin: .75rem 0 1rem; background: var(--panel); min-height: 14rem; border: 1px solid var(--line); }
     .map-wrap iframe {
-      display: block;
-      width: 100%;
-      height: 16rem;
-      border: 0;
-      filter: saturate(0.85) contrast(0.95);
+      display: block; width: 100%; height: 16rem; border: 0;
+      filter: grayscale(.45) contrast(1.05) brightness(.72) sepia(.15);
     }
-    .visit-actions {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.65rem;
-      margin: 0.9rem 0 1rem;
-    }
-    .fb { display: inline-block; margin-top: 0.25rem; }
+    .visit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: .9rem 0 1rem; }
+    .fb { display: inline-block; margin-top: .25rem; }
     .site-footer {
-      margin-top: 0.35rem;
-      padding: 0.85rem 0 0.5rem;
-      border-top: 1px solid rgba(184, 137, 58, 0.4);
-      color: var(--muted);
-      font-size: 0.8rem;
-      line-height: 1.4;
+      margin-top: 2.2rem; padding: 1.2rem 0 1.5rem; border-top: 1px solid var(--line);
+      color: var(--muted); font-size: .78rem; line-height: 1.5;
     }
-    .site-footer p { margin: 0 0 0.3rem; }
+    .site-footer p { margin: 0 0 .3rem; }
     .site-footer p:last-child { margin: 0; }
     .sticky {
-      position: fixed;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 10;
-      background: #1c120c;
-      padding: 0.7rem 0.85rem calc(0.7rem + env(safe-area-inset-bottom, 0px));
-      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28);
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      background: rgba(10,10,11,.94); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--line);
+      padding: .7rem .85rem calc(.7rem + env(safe-area-inset-bottom, 0px));
     }
     .sticky-inner {
-      width: 100%;
-      max-width: 28rem;
-      margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.55rem;
+      width: 100%; max-width: 28rem; margin: 0 auto; display: grid;
+      grid-template-columns: 1fr 1fr; gap: .55rem;
     }
     .sticky .btn { min-height: 56px; }
-    .main-grid { display: flex; flex-direction: column; }
     @media (min-width: 900px) {
       body { font-size: 1.125rem; }
-      .page { padding-bottom: 2.5rem; }
+      .page { padding-bottom: 0; }
       .sticky { display: none; }
-      .site-header { padding: 1.15rem 0 1rem; }
+      .site-header { padding: 1.15rem 0; }
       .wrap { padding-left: 2rem; padding-right: 2rem; }
-      .hero {
-        min-height: 28rem;
-        margin-bottom: 2rem;
+      .nav { display: flex; }
+      .header-note { display: none; }
+      .btn-header { display: inline-flex; min-height: 2.6rem; padding: .45rem 1rem; font-size: .72rem; }
+      .hero { min-height: min(82vh, 44rem); }
+      .hero-copy { padding: 11rem 2rem 3.4rem; }
+      .hero-copy h1 { font-size: 6.6rem; }
+      .lede { max-width: 36rem; font-size: 1.28rem; }
+      .cta-row { display: flex; max-width: 30rem; }
+      .cta-row .btn { min-width: 11.5rem; min-height: 3.25rem; }
+      .btn { min-height: 3.25rem; }
+      section { padding: 3.6rem 0 .6rem; }
+      .overview-grid {
+        display: grid; grid-template-columns: 1.05fr .95fr; gap: 2.2rem 3.5rem; align-items: start;
       }
-      .hero-copy {
-        padding: 8rem 2rem 2.25rem;
-      }
-      .hero-copy h1 { font-size: 4.5rem; }
-      .lede {
-        max-width: 36rem;
-        font-size: 1.28rem;
-      }
-      .cta-row {
-        display: flex;
-        max-width: 28rem;
-      }
-      .cta-row .btn { min-width: 10.5rem; min-height: 3.15rem; }
-      .btn { min-height: 3.15rem; }
-      h2 { font-size: 2.35rem; }
-      .main-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        grid-template-areas:
-          "services services"
-          "visit find"
-          "about about"
-          "reviews reviews"
-          "footer footer";
-        column-gap: 3rem;
-        row-gap: 0.35rem;
-        align-items: start;
-      }
-      #services { grid-area: services; }
-      .visit { grid-area: visit; }
-      #find { grid-area: find; }
-      #about { grid-area: about; }
-      #reviews { grid-area: reviews; }
-      .site-footer { grid-area: footer; }
+      .phone-lg { font-size: 3.9rem; }
+      .services-block { grid-column: 1 / -1; }
       .services-list {
-        display: grid;
-        grid-template-columns: repeat(4, 1fr);
-        border: 1px solid rgba(184, 137, 58, 0.4);
-        border-bottom: 0;
+        display: grid; grid-template-columns: repeat(4, 1fr);
+        border: 1px solid var(--line-strong); border-bottom: 0;
       }
       .services-list li {
-        display: block;
-        padding: 1.05rem 1.1rem;
-        border-right: 1px solid rgba(184, 137, 58, 0.4);
-        border-bottom: 1px solid rgba(184, 137, 58, 0.4);
+        display: block; padding: 1.2rem 1.15rem;
+        border-right: 1px solid var(--line-strong); border-bottom: 1px solid var(--line-strong);
       }
       .services-list li:last-child { border-right: 0; }
-      .quotes {
-        grid-template-columns: 1fr 1fr;
-        gap: 1rem;
-      }
-      .map-wrap iframe { height: 22rem; }
-      .phone-lg { font-size: 2.1rem; }
+      .quotes { grid-template-columns: 1fr 1fr; gap: 1.1rem; }
+      .map-wrap iframe { height: 24rem; }
+      .story p { font-size: 1.18rem; }
     }
-    @media (prefers-reduced-motion: reduce) {
-      html { scroll-behavior: auto; }
-    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
   </style>
 </head>
 <body>
-  <a class="skip" href="#hours">Skip to hours</a>
+  <a class="skip" href="#overview">Skip to overview</a>
   <div class="page">
-    <div class="pole" aria-hidden="true"></div>
-
+    <div class="gold-line" aria-hidden="true"></div>
     <header class="site-header wrap">
-      <p class="eyebrow">Hamilton · Walk-in</p>
-      <p class="header-note">Since about 1956</p>
+      <a class="wordmark" href="#overview">Gus <span>&amp;</span> Son</a>
+      <nav class="nav" aria-label="Page">
+        <a href="#overview">Overview</a>
+        <a href="#reviews">Reviews</a>
+        <a href="#about">About</a>
+      </nav>
+      <div>
+        <p class="header-note">Hamilton · Walk-in</p>
+        <a class="btn btn-call btn-header" href="tel:+19055451945">Call</a>
+      </div>
     </header>
 
     <section class="hero" aria-label="Gus and Son Barbershop">
-      <img
-        class="hero-img"
-        src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=1600&amp;q=70"
-        srcset="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=900&amp;q=70 900w, https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=1600&amp;q=70 1600w"
-        sizes="100vw"
-        alt="Traditional barbershop chairs and mirrors. Licensed atmosphere stock, not a photo of this shop."
-        width="1600"
-        height="900"
-        fetchpriority="high"
-        decoding="async"
-      >
+      <img class="hero-img" src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=1600&amp;q=70" srcset="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=900&amp;q=70 900w, https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=1600&amp;q=70 1600w" sizes="100vw" alt="Traditional barbershop chairs and mirrors. Licensed atmosphere stock, not a photo of this shop." width="1600" height="900" fetchpriority="high" decoding="async">
       <div class="hero-copy">
-        <p class="kicker">King Street East</p>
+        <p class="kicker">King Street East · Hamilton</p>
         <h1>Gus &amp; Son <span>Barbershop</span></h1>
         <p class="lede">Old-school walk-in shop. Espresso while you wait. World Cup on the TV.</p>
         <p class="stock-tag">Atmosphere stock — not this shop</p>
@@ -478,50 +277,65 @@
       </div>
     </section>
 
-    <div class="wrap main-grid">
-      <section id="services">
-        <p class="section-label">Services</p>
-        <h2>In the chair</h2>
-        <ul class="services-list">
-          <li>Men’s haircut</li>
-          <li>Beard trim</li>
-          <li>Head shave</li>
-          <li>Hot towel shave</li>
-        </ul>
-        <p class="note">Regulars mention about $20 out the door. Walk-in only — no online booking.</p>
-      </section>
-
-      <div class="visit">
-        <div class="quick">
-          <p><a class="phone-lg" href="tel:+19055451945">905-545-1945</a></p>
-          <address class="addr">1530 King St E<br>Hamilton, ON L8K 1S9</address>
+    <div class="wrap">
+      <section id="overview">
+        <div class="section-head">
+          <p class="section-label">Overview</p>
+          <h2>Walk in. That is the whole system.</h2>
+          <p class="section-intro">No online booking. Call if you need to, then come to the chair.</p>
         </div>
-        <section id="hours">
-          <p class="section-label">Hours</p>
-          <h2>When to walk in</h2>
-          <ul class="hours-list">
-            <li data-day="mon"><span class="day">Monday</span><span class="closed">Closed</span></li>
-            <li data-day="tue"><span class="day">Tuesday</span><span class="closed">Closed</span></li>
-            <li data-day="wed"><span class="day">Wednesday</span><span>8:00 AM–5:00 PM</span></li>
-            <li data-day="thu"><span class="day">Thursday</span><span>8:00 AM–5:00 PM</span></li>
-            <li data-day="fri"><span class="day">Friday</span><span>8:00 AM–5:00 PM</span></li>
-            <li data-day="sat"><span class="day">Saturday</span><span>8:00 AM–3:00 PM</span></li>
-            <li data-day="sun"><span class="day">Sunday</span><span class="closed">Closed</span></li>
-          </ul>
-          <p class="note">Walk-in only. No appointments on this page — that is how the shop actually works.</p>
-        </section>
-      </div>
-
-      <section id="about" class="story">
-        <p class="section-label">The shop</p>
-        <h2>Gus, then Lou</h2>
-        <p>Gus &amp; Son has been a neighbourhood barbershop on King Street East since about 1956. Agostino “Gus” Di Nardo opened it. He died in 2020. His son Louie (Lou) Di Nardo still runs the chair.</p>
-        <p>It is a traditional walk-in shop: espresso while you wait, an old-school feel, soccer on the big screen. Regulars mention about $20 out the door — cheaper than the chain haircut stores, as they put it.</p>
+        <div class="overview-grid">
+          <div>
+            <div class="phone-block">
+              <p><a class="phone-lg" href="tel:+19055451945">905-545-1945</a></p>
+              <address class="addr">1530 King St E<br>Hamilton, ON L8K 1S9</address>
+            </div>
+            <div id="hours">
+              <p class="block-label">Hours</p>
+              <ul class="hours-list">
+                <li data-day="mon"><span class="day">Monday</span><span class="closed">Closed</span></li>
+                <li data-day="tue"><span class="day">Tuesday</span><span class="closed">Closed</span></li>
+                <li data-day="wed"><span class="day">Wednesday</span><span>8:00 AM–5:00 PM</span></li>
+                <li data-day="thu"><span class="day">Thursday</span><span>8:00 AM–5:00 PM</span></li>
+                <li data-day="fri"><span class="day">Friday</span><span>8:00 AM–5:00 PM</span></li>
+                <li data-day="sat"><span class="day">Saturday</span><span>8:00 AM–3:00 PM</span></li>
+                <li data-day="sun"><span class="day">Sunday</span><span class="closed">Closed</span></li>
+              </ul>
+              <p class="note">Walk-in only. No appointments on this page — that is how the shop actually works.</p>
+            </div>
+          </div>
+          <div id="find">
+            <p class="block-label">Find the shop</p>
+            <address class="addr">Gus &amp; Son Barbershop<br>1530 King St E, Hamilton, ON L8K 1S9</address>
+            <div class="map-wrap">
+              <iframe title="Map of 1530 King Street East, Hamilton, Ontario" src="https://maps.google.com/maps?q=1530%20King%20St%20E%2C%20Hamilton%2C%20ON%20L8K%201S9&amp;z=16&amp;output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+            </div>
+            <div class="visit-actions">
+              <a class="btn btn-solid" href="tel:+19055451945">Call 905-545-1945</a>
+              <a class="btn btn-light" href="https://www.google.com/maps/dir/?api=1&amp;destination=1530+King+St+E,+Hamilton,+ON+L8K+1S9" rel="noopener">Directions</a>
+            </div>
+            <p>Facebook is the shop’s only official page online:<br>
+              <a class="fb" href="https://www.facebook.com/Gus-and-Son-Barbershop-994011864041912/" rel="noopener noreferrer" target="_blank">Gus and Son Barbershop on Facebook</a>
+            </p>
+          </div>
+          <div class="services-block" id="services">
+            <p class="block-label">In the chair</p>
+            <ul class="services-list">
+              <li>Men’s haircut</li>
+              <li>Beard trim</li>
+              <li>Head shave</li>
+              <li>Hot towel shave</li>
+            </ul>
+            <p class="note">Regulars mention about $20 out the door. Walk-in only — no online booking.</p>
+          </div>
+        </div>
       </section>
 
       <section id="reviews">
-        <p class="section-label">From the chair</p>
-        <h2>Loved by locals</h2>
+        <div class="section-head">
+          <p class="section-label">Reviews</p>
+          <h2>Loved by locals</h2>
+        </div>
         <p class="rating-note">About 4.8 on Google, from public listings. Quotes below are real; names are as they appeared. No invented ratings or dates.</p>
         <div class="quotes">
           <blockquote>
@@ -550,27 +364,13 @@
         </div>
       </section>
 
-      <section id="find">
-        <p class="section-label">Find the shop</p>
-        <h2>1530 King Street East</h2>
-        <address class="addr">Gus &amp; Son Barbershop<br>1530 King St E, Hamilton, ON L8K 1S9</address>
-        <div class="map-wrap">
-          <iframe
-            title="Map of 1530 King Street East, Hamilton, Ontario"
-            src="https://maps.google.com/maps?q=1530%20King%20St%20E%2C%20Hamilton%2C%20ON%20L8K%201S9&amp;z=16&amp;output=embed"
-            loading="lazy"
-            referrerpolicy="no-referrer-when-downgrade"
-            allowfullscreen
-          ></iframe>
+      <section id="about" class="story">
+        <div class="section-head">
+          <p class="section-label">About</p>
+          <h2>Gus, then Lou</h2>
         </div>
-        <div class="visit-actions">
-          <a class="btn btn-solid" href="tel:+19055451945">Call 905-545-1945</a>
-          <a class="btn btn-light" href="https://www.google.com/maps/dir/?api=1&amp;destination=1530+King+St+E,+Hamilton,+ON+L8K+1S9" rel="noopener">Directions</a>
-        </div>
-        <p>
-          Facebook is the shop’s only official page online:<br>
-          <a class="fb" href="https://www.facebook.com/Gus-and-Son-Barbershop-994011864041912/" rel="noopener noreferrer" target="_blank">Gus and Son Barbershop on Facebook</a>
-        </p>
+        <p>Gus &amp; Son has been a neighbourhood barbershop on King Street East since about 1956. Agostino “Gus” Di Nardo opened it. He died in 2020. His son Louie (Lou) Di Nardo still runs the chair.</p>
+        <p>It is a traditional walk-in shop: espresso while you wait, an old-school feel, soccer on the big screen. Regulars mention about $20 out the door — cheaper than the chain haircut stores, as they put it.</p>
       </section>
 
       <footer class="site-footer">
@@ -586,13 +386,9 @@
       </div>
     </div>
   </div>
-
   <script>
     (function () {
-      var weekday = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Toronto",
-        weekday: "short"
-      }).format(new Date()).slice(0, 3).toLowerCase();
+      var weekday = new Intl.DateTimeFormat("en-US", { timeZone: "America/Toronto", weekday: "short" }).format(new Date()).slice(0, 3).toLowerCase();
       var row = document.querySelector('[data-day="' + weekday + '"]');
       if (!row) return;
       row.classList.add("is-today");
