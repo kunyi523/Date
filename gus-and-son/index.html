@@ -70,6 +70,7 @@
       --cream: #f7f1e3;
       --shadow: 0 10px 30px rgba(28, 18, 12, 0.12);
       --sticky-h: 5.25rem;
+      --max: 1120px;
       --font-display: "Cormorant Garamond", "Palatino Linotype", Palatino, Georgia, serif;
       --font-body: Georgia, "Iowan Old Style", "Palatino Linotype", Palatino, serif;
       --font-label: "Barlow Condensed", "Arial Narrow", system-ui, sans-serif;
@@ -85,7 +86,7 @@
     body {
       margin: 0;
       color: var(--ink);
-      background: #1a100c;
+      background: var(--paper);
       font-family: var(--font-body);
       font-size: 1.0625rem;
       line-height: 1.55;
@@ -105,7 +106,7 @@
       background: var(--paper);
       min-height: 100vh;
       min-height: 100dvh;
-      width: min(430px, 100%);
+      width: 100%;
       margin: 0 auto;
       padding-bottom: calc(var(--sticky-h) + env(safe-area-inset-bottom, 0px));
       overflow-x: hidden;
@@ -133,6 +134,7 @@
       position: relative;
       z-index: 1;
       width: 100%;
+      max-width: var(--max);
       margin: 0 auto;
       padding: 0 max(1.15rem, env(safe-area-inset-right, 0px)) 0 max(1.15rem, env(safe-area-inset-left, 0px));
     }
@@ -181,13 +183,14 @@
       z-index: 2;
       padding: 5.5rem max(1.15rem, env(safe-area-inset-right, 0px)) 1.4rem max(1.15rem, env(safe-area-inset-left, 0px));
       width: 100%;
+      max-width: var(--max);
       margin: 0 auto;
     }
     .hero-copy h1 {
       font-family: var(--font-display);
       font-weight: 600;
-      font-size: clamp(2.75rem, 12vw, 3.4rem);
-      line-height: 0.88;
+      font-size: clamp(2.6rem, 11vw, 3.35rem);
+      line-height: 0.9;
       letter-spacing: 0.01em;
       margin: 0.15rem 0 0.35rem;
     }
@@ -227,7 +230,7 @@
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      min-height: 3.5rem;
+      min-height: 56px;
       padding: 0.75rem 0.9rem;
       border-radius: 0.2rem;
       text-decoration: none;
@@ -246,7 +249,7 @@
     .btn-light { color: var(--burgundy-dark); border-color: var(--burgundy); background: transparent; }
     .btn-light:hover { background: #f7f1e3; color: var(--burgundy-dark); }
     .btn-solid { background: var(--burgundy); color: #f7f1e3; }
-    .quick { display: grid; gap: 0.85rem; padding: 0.15rem 0 0.5rem; }
+    .quick { display: grid; gap: 0.55rem; padding: 0.15rem 0 0.85rem; }
     .quick p { margin: 0; }
     .phone-lg {
       font-family: var(--font-display);
@@ -257,13 +260,7 @@
       letter-spacing: 0.02em;
     }
     .addr { font-style: normal; color: var(--ink-soft); }
-    .rule {
-      border: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--rule), transparent);
-      margin: 1.5rem 0;
-    }
-    section { padding: 0.35rem 0 0.5rem; }
+    section, .visit { padding: 0.35rem 0 1.15rem; }
     .section-label { margin-bottom: 0.45rem; }
     h2 {
       font-family: var(--font-display);
@@ -292,7 +289,7 @@
       font-weight: 600;
       color: var(--ink);
     }
-    .hours-list .day { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+    .hours-list .day { font-weight: 600; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
     .hours-list .closed { color: var(--closed); }
     .hours-list .is-today {
       background: rgba(184, 137, 58, 0.16);
@@ -349,8 +346,8 @@
     }
     .fb { display: inline-block; margin-top: 0.25rem; }
     .site-footer {
-      margin-top: 1.15rem;
-      padding: 0.85rem 0 0.35rem;
+      margin-top: 0.35rem;
+      padding: 0.85rem 0 0.5rem;
       border-top: 1px solid rgba(184, 137, 58, 0.4);
       color: var(--muted);
       font-size: 0.8rem;
@@ -369,21 +366,78 @@
       box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.28);
     }
     .sticky-inner {
-      width: min(430px, 100%);
+      width: 100%;
+      max-width: 28rem;
       margin: 0 auto;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 0.55rem;
     }
-    .sticky .btn { min-height: 3.5rem; }
-    @media (min-width: 480px) {
-      body {
-        padding: 1.75rem 1rem 2rem;
-        background:
-          radial-gradient(1200px 500px at 50% -10%, rgba(184, 137, 58, 0.18), transparent 50%),
-          #1a100c;
+    .sticky .btn { min-height: 56px; }
+    .main-grid { display: flex; flex-direction: column; }
+    @media (min-width: 900px) {
+      body { font-size: 1.125rem; }
+      .page { padding-bottom: 2.5rem; }
+      .sticky { display: none; }
+      .site-header { padding: 1.15rem 0 1rem; }
+      .wrap { padding-left: 2rem; padding-right: 2rem; }
+      .hero {
+        min-height: 28rem;
+        margin-bottom: 2rem;
       }
-      .page { box-shadow: 0 24px 60px rgba(0, 0, 0, 0.45); }
+      .hero-copy {
+        padding: 8rem 2rem 2.25rem;
+      }
+      .hero-copy h1 { font-size: 4.5rem; }
+      .lede {
+        max-width: 36rem;
+        font-size: 1.28rem;
+      }
+      .cta-row {
+        display: flex;
+        max-width: 28rem;
+      }
+      .cta-row .btn { min-width: 10.5rem; min-height: 3.15rem; }
+      .btn { min-height: 3.15rem; }
+      h2 { font-size: 2.35rem; }
+      .main-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        grid-template-areas:
+          "services services"
+          "visit find"
+          "about about"
+          "reviews reviews"
+          "footer footer";
+        column-gap: 3rem;
+        row-gap: 0.35rem;
+        align-items: start;
+      }
+      #services { grid-area: services; }
+      .visit { grid-area: visit; }
+      #find { grid-area: find; }
+      #about { grid-area: about; }
+      #reviews { grid-area: reviews; }
+      .site-footer { grid-area: footer; }
+      .services-list {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        border: 1px solid rgba(184, 137, 58, 0.4);
+        border-bottom: 0;
+      }
+      .services-list li {
+        display: block;
+        padding: 1.05rem 1.1rem;
+        border-right: 1px solid rgba(184, 137, 58, 0.4);
+        border-bottom: 1px solid rgba(184, 137, 58, 0.4);
+      }
+      .services-list li:last-child { border-right: 0; }
+      .quotes {
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+      }
+      .map-wrap iframe { height: 22rem; }
+      .phone-lg { font-size: 2.1rem; }
     }
     @media (prefers-reduced-motion: reduce) {
       html { scroll-behavior: auto; }
@@ -403,10 +457,12 @@
     <section class="hero" aria-label="Gus and Son Barbershop">
       <img
         class="hero-img"
-        src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=900&amp;q=70"
+        src="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=1600&amp;q=70"
+        srcset="https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=900&amp;q=70 900w, https://images.unsplash.com/photo-1585747860715-2ba37e788b70?auto=format&amp;fit=crop&amp;w=1600&amp;q=70 1600w"
+        sizes="100vw"
         alt="Traditional barbershop chairs and mirrors. Licensed atmosphere stock, not a photo of this shop."
-        width="900"
-        height="580"
+        width="1600"
+        height="900"
         fetchpriority="high"
         decoding="async"
       >
@@ -422,7 +478,7 @@
       </div>
     </section>
 
-    <div class="wrap">
+    <div class="wrap main-grid">
       <section id="services">
         <p class="section-label">Services</p>
         <h2>In the chair</h2>
@@ -435,29 +491,26 @@
         <p class="note">Regulars mention about $20 out the door. Walk-in only — no online booking.</p>
       </section>
 
-      <hr class="rule">
-
-      <div class="quick">
-        <p><a class="phone-lg" href="tel:+19055451945">905-545-1945</a></p>
-        <address class="addr">1530 King St E<br>Hamilton, ON L8K 1S9</address>
+      <div class="visit">
+        <div class="quick">
+          <p><a class="phone-lg" href="tel:+19055451945">905-545-1945</a></p>
+          <address class="addr">1530 King St E<br>Hamilton, ON L8K 1S9</address>
+        </div>
+        <section id="hours">
+          <p class="section-label">Hours</p>
+          <h2>When to walk in</h2>
+          <ul class="hours-list">
+            <li data-day="mon"><span class="day">Monday</span><span class="closed">Closed</span></li>
+            <li data-day="tue"><span class="day">Tuesday</span><span class="closed">Closed</span></li>
+            <li data-day="wed"><span class="day">Wednesday</span><span>8:00 AM–5:00 PM</span></li>
+            <li data-day="thu"><span class="day">Thursday</span><span>8:00 AM–5:00 PM</span></li>
+            <li data-day="fri"><span class="day">Friday</span><span>8:00 AM–5:00 PM</span></li>
+            <li data-day="sat"><span class="day">Saturday</span><span>8:00 AM–3:00 PM</span></li>
+            <li data-day="sun"><span class="day">Sunday</span><span class="closed">Closed</span></li>
+          </ul>
+          <p class="note">Walk-in only. No appointments on this page — that is how the shop actually works.</p>
+        </section>
       </div>
-
-      <section id="hours">
-        <p class="section-label">Hours</p>
-        <h2>When to walk in</h2>
-        <ul class="hours-list">
-          <li data-day="mon"><span class="day">Monday</span><span class="closed">Closed</span></li>
-          <li data-day="tue"><span class="day">Tuesday</span><span class="closed">Closed</span></li>
-          <li data-day="wed"><span class="day">Wednesday</span><span>8:00 AM–5:00 PM</span></li>
-          <li data-day="thu"><span class="day">Thursday</span><span>8:00 AM–5:00 PM</span></li>
-          <li data-day="fri"><span class="day">Friday</span><span>8:00 AM–5:00 PM</span></li>
-          <li data-day="sat"><span class="day">Saturday</span><span>8:00 AM–3:00 PM</span></li>
-          <li data-day="sun"><span class="day">Sunday</span><span class="closed">Closed</span></li>
-        </ul>
-        <p class="note">Walk-in only. No appointments on this page — that is how the shop actually works.</p>
-      </section>
-
-      <hr class="rule">
 
       <section id="about" class="story">
         <p class="section-label">The shop</p>
@@ -465,8 +518,6 @@
         <p>Gus &amp; Son has been a neighbourhood barbershop on King Street East since about 1956. Agostino “Gus” Di Nardo opened it. He died in 2020. His son Louie (Lou) Di Nardo still runs the chair.</p>
         <p>It is a traditional walk-in shop: espresso while you wait, an old-school feel, soccer on the big screen. Regulars mention about $20 out the door — cheaper than the chain haircut stores, as they put it.</p>
       </section>
-
-      <hr class="rule">
 
       <section id="reviews">
         <p class="section-label">From the chair</p>
@@ -498,8 +549,6 @@
           </blockquote>
         </div>
       </section>
-
-      <hr class="rule">
 
       <section id="find">
         <p class="section-label">Find the shop</p>
