@@ -1,8 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Barber pole">
-  <rect width="32" height="32" rx="7" fill="#f3e6cf"/>
-  <rect x="13" y="4" width="6" height="24" rx="3" fill="#f7f3ea"/>
-  <path fill="#9b2b24" d="M13 8c2.2 2.2 3.8 2.2 6 0v4.5c-2.2 2.2-3.8 2.2-6 0V8z"/>
-  <path fill="#2c3d6b" d="M13 16.5c2.2 2.2 3.8 2.2 6 0V21c-2.2 2.2-3.8 2.2-6 0v-4.5z"/>
-  <rect x="12" y="3" width="8" height="3.2" rx="1.2" fill="#1c120c"/>
-  <rect x="12" y="25.8" width="8" height="3.2" rx="1.2" fill="#1c120c"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Gus and Son Barbershop">
+  <rect width="32" height="32" rx="8" fill="#0a0a0b"/>
+  <rect x="13" y="5" width="6" height="22" rx="3" fill="#161412"/>
+  <path fill="#c4a36a" d="M13 9c2.2 2.2 3.8 2.2 6 0v4.2c-2.2 2.2-3.8 2.2-6 0V9z"/>
+  <path fill="#8d7349" d="M13 17.2c2.2 2.2 3.8 2.2 6 0V21.4c-2.2 2.2-3.8 2.2-6 0v-4.2z"/>
+  <rect x="12" y="3.4" width="8" height="2.8" rx="1.1" fill="#c4a36a"/>
+  <rect x="12" y="25.8" width="8" height="2.8" rx="1.1" fill="#c4a36a"/>
 </svg>
