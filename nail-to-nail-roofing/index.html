@@ -26,8 +26,523 @@
   <script type="application/ld+json">
   {"@context":"https://schema.org","@type":"RoofingContractor","name":"Nail To Nail Roofing","alternateName":["Nail To Nail Roofing Inc","Nail to Nail Roofing"],"telephone":"+19055177753","address":{"@type":"PostalAddress","streetAddress":"13 Merchison Ave","addressLocality":"Hamilton","addressRegion":"ON","postalCode":"L8H 3C8","addressCountry":"CA"}}
   </script>
+  <style>
+    :root {
+      --bg: #080809;
+      --bg-2: #0c0b0e;
+      --panel: #131216;
+      --ivory: #f6f0e6;
+      --ivory-dim: #d5ccbe;
+      --muted: #90867a;
+      --gold: #c9a86a;
+      --gold-bright: #e0c48a;
+      --gold-2: #9d8048;
+      --line: rgba(201, 168, 106, .18);
+      --line-strong: rgba(201, 168, 106, .4);
+      --closed: #7a7167;
+      --sticky-h: 5.25rem;
+      --max: 1280px;
+      --font-display: "Cormorant Garamond", "Palatino Linotype", Palatino, Georgia, serif;
+      --font-ui: Outfit, "Segoe UI", system-ui, sans-serif;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html {
+      scroll-behavior: smooth;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+      color-scheme: dark;
+    }
+    * { -webkit-tap-highlight-color: transparent; }
+    body {
+      margin: 0;
+      color: var(--ivory);
+      background:
+        radial-gradient(70rem 36rem at 12% -8%, rgba(201, 168, 106, .07), transparent 52%),
+        radial-gradient(50rem 28rem at 100% 18%, rgba(201, 168, 106, .035), transparent 48%),
+        var(--bg);
+      font-family: var(--font-ui);
+      font-size: 1.0625rem;
+      line-height: 1.65;
+      text-rendering: optimizeLegibility;
+    }
+    img { max-width: 100%; height: auto; display: block; }
+    a { color: var(--gold); text-underline-offset: .18em; }
+    a:hover { color: var(--ivory); }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
+    .skip {
+      position: absolute; left: .75rem; top: -3rem; z-index: 30;
+      background: var(--gold); color: var(--bg); padding: .5rem .85rem;
+      font-weight: 600; letter-spacing: .08em; text-transform: uppercase;
+      text-decoration: none; font-size: .8rem;
+    }
+    .skip:focus { top: .75rem; }
+    .page {
+      background: transparent;
+      min-height: 100vh;
+      min-height: 100dvh;
+      width: 100%;
+      margin: 0 auto;
+      overflow-x: hidden;
+      padding-bottom: calc(var(--sticky-h) + env(safe-area-inset-bottom, 0px));
+    }
+    .gold-line {
+      position: relative; z-index: 6; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold) 14%, var(--gold) 86%, transparent);
+      opacity: .55;
+    }
+    .wrap {
+      width: 100%;
+      max-width: var(--max);
+      margin: 0 auto;
+      padding: 0 max(1.25rem, env(safe-area-inset-right, 0px)) 0 max(1.25rem, env(safe-area-inset-left, 0px));
+    }
+    .site-header {
+      position: absolute; left: 0; right: 0; top: 1px; z-index: 5;
+      background: linear-gradient(180deg, rgba(8, 8, 9, .72) 0%, rgba(8, 8, 9, 0) 100%);
+    }
+    .site-header .wrap {
+      display: flex; justify-content: space-between; align-items: center; gap: 1rem;
+      padding-top: .95rem; padding-bottom: .95rem;
+    }
+    .wordmark {
+      font-family: var(--font-display); font-size: 1.35rem; font-weight: 600;
+      letter-spacing: .045em; color: var(--ivory); text-decoration: none; line-height: 1;
+    }
+    .wordmark span { color: var(--gold); }
+    .nav { display: none; align-items: center; gap: 1.85rem; }
+    .nav a {
+      font-size: .7rem; font-weight: 600; letter-spacing: .2em; text-transform: uppercase;
+      text-decoration: none; color: var(--ivory-dim);
+    }
+    .nav a:hover { color: var(--gold); }
+    .header-note {
+      margin: 0; color: var(--ivory-dim); font-size: .68rem; font-weight: 500;
+      letter-spacing: .16em; text-transform: uppercase;
+    }
+    .btn-header { display: none; }
+    .kicker, .section-label, .block-label {
+      font-weight: 600; letter-spacing: .22em; text-transform: uppercase;
+      font-size: .7rem; color: var(--gold); margin: 0;
+    }
+    .hero {
+      position: relative; color: var(--ivory); isolation: isolate;
+      display: flex; align-items: flex-end;
+    }
+    .hero-img {
+      position: absolute; inset: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: 0; background: #121110;
+    }
+    .hero::after {
+      content: ""; position: absolute; inset: 0; z-index: 1;
+      background:
+        linear-gradient(90deg, rgba(8, 8, 9, .88) 0%, rgba(8, 8, 9, .52) 48%, rgba(8, 8, 9, .28) 100%),
+        linear-gradient(180deg, rgba(8, 8, 9, .28) 0%, rgba(8, 8, 9, .18) 36%, rgba(8, 8, 9, .94) 100%);
+    }
+    .hero-copy {
+      position: relative; z-index: 2; width: 100%; max-width: var(--max); margin: 0 auto;
+      padding: 6.2rem max(1.25rem, env(safe-area-inset-right, 0px)) 1.85rem max(1.25rem, env(safe-area-inset-left, 0px));
+    }
+    .hero-grid { display: flex; flex-direction: column; gap: 1.35rem; }
+    .hero-copy h1 {
+      font-family: var(--font-display); font-weight: 600;
+      font-size: clamp(2.85rem, 12.5vw, 4.35rem); line-height: .9; letter-spacing: .01em;
+      margin: .45rem 0 0;
+    }
+    .hero-copy h1 span {
+      display: block; font-size: .28em; font-family: var(--font-ui); font-weight: 600;
+      letter-spacing: .4em; text-transform: uppercase; margin-top: .85rem; color: var(--gold);
+    }
+    .lede {
+      margin: 1rem 0 0; max-width: 30rem;
+      font-family: var(--font-display); font-style: italic; font-weight: 500;
+      font-size: 1.28rem; line-height: 1.35; color: var(--ivory-dim);
+    }
+    .stock-tag {
+      display: inline-block; margin: .7rem 0 0; font-size: .62rem; font-weight: 600;
+      letter-spacing: .16em; text-transform: uppercase; color: var(--gold-2);
+    }
+    .today-chip {
+      display: inline-flex; align-items: center; gap: .45rem;
+      margin: .85rem 0 0; padding: .38rem .7rem .38rem .55rem;
+      border: 1px solid var(--line-strong); color: var(--ivory);
+      font-size: .68rem; font-weight: 600; letter-spacing: .12em; text-transform: uppercase;
+    }
+    .today-chip::before {
+      content: ""; width: .45rem; height: .45rem; border-radius: 50%;
+      background: var(--gold); box-shadow: 0 0 0 3px rgba(201, 168, 106, .18);
+    }
+    .cta-row { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: 1.25rem 0 0; }
+    .hero-aside { display: none; }
+    .hero-aside .phone-lg { font-size: clamp(2.1rem, 8vw, 2.6rem); }
+    .hero-hours-snap {
+      list-style: none; margin: .75rem 0 0; padding: 0;
+      color: var(--ivory-dim); font-size: .92rem;
+    }
+    .hero-hours-snap li {
+      display: flex; justify-content: space-between; gap: 1rem;
+      padding: .38rem 0; border-bottom: 1px solid var(--line);
+    }
+    .hero-hours-snap li:last-child { border-bottom: 0; }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center; min-height: 56px;
+      padding: .75rem 1.15rem; border-radius: 0; text-decoration: none; font-family: var(--font-ui);
+      font-size: .86rem; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
+      border: 1px solid transparent; touch-action: manipulation;
+    }
+    .btn-call, .btn-solid { background: var(--gold); color: #080809; }
+    .btn-call:hover, .btn-solid:hover { background: var(--gold-bright); color: #080809; }
+    .btn-dir, .btn-light { background: transparent; color: var(--ivory); border-color: var(--gold); }
+    .btn-dir:hover, .btn-light:hover { background: rgba(201, 168, 106, .12); color: #fff; }
+    section { padding: 2.4rem 0 .2rem; }
+    .section-head { margin-bottom: 1.35rem; max-width: 42rem; }
+    .section-label { margin-bottom: .5rem; }
+    h2 {
+      font-family: var(--font-display); font-size: clamp(2.15rem, 7vw, 3.15rem); font-weight: 600;
+      line-height: 1.02; margin: 0 0 .55rem; color: var(--ivory);
+    }
+    .section-intro { margin: 0; color: var(--muted); }
+    .overview-grid { display: flex; flex-direction: column; gap: 2.1rem; }
+    .phone-block { display: grid; gap: .45rem; }
+    .phone-block p { margin: 0; }
+    .phone-lg {
+      font-family: var(--font-display); font-size: clamp(2.35rem, 9vw, 3.6rem); font-weight: 600;
+      text-decoration: none; color: var(--ivory); letter-spacing: .02em; line-height: .95;
+    }
+    .phone-lg:hover { color: var(--gold); }
+    .addr { font-style: normal; color: var(--ivory-dim); font-size: 1.02rem; line-height: 1.55; }
+    .hours-link {
+      display: inline-block; margin-top: .85rem; font-size: .78rem; font-weight: 600;
+      letter-spacing: .14em; text-transform: uppercase; text-decoration: none;
+    }
+    .block-label { margin: 0 0 .75rem; }
+    .hours-list, .services-list, .group-list {
+      list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line);
+    }
+    .hours-list li, .services-list li, .group-list li {
+      display: flex; justify-content: space-between; align-items: baseline; gap: 1rem;
+      padding: .82rem .1rem; border-bottom: 1px solid var(--line);
+    }
+    .services-list li, .group-list li { font-weight: 500; color: var(--ivory); }
+    .note, .rating-note { color: var(--muted); font-size: .95rem; }
+    .note { margin: .95rem 0 0; }
+    .rating-note { margin: 0 0 1.25rem; }
+    .service-groups { display: grid; gap: 1.25rem; }
+    .service-group {
+      padding: 1.25rem 1.15rem 1.1rem;
+      background: var(--panel);
+      border: 1px solid var(--line);
+    }
+    .service-group h3 {
+      font-family: var(--font-display); font-size: 1.7rem; font-weight: 600;
+      margin: 0 0 .85rem; color: var(--ivory); line-height: 1.1;
+    }
+    .group-list { border-top: 1px solid var(--line); }
+    .quotes { display: grid; gap: 1rem; margin: 0; }
+    blockquote {
+      margin: 0; padding: 1.35rem 1.25rem 1.2rem; background: var(--panel);
+      border: 1px solid var(--line); position: relative;
+    }
+    blockquote::before {
+      content: "“"; position: absolute; top: .35rem; left: .85rem;
+      font-family: var(--font-display); font-size: 2.4rem; line-height: 1; color: var(--gold);
+      opacity: .55;
+    }
+    blockquote p {
+      margin: 0; font-family: var(--font-display); font-size: 1.22rem; line-height: 1.4;
+      font-style: italic; color: var(--ivory-dim);
+    }
+    blockquote footer {
+      margin-top: .8rem; font-style: normal; font-size: .7rem; color: var(--gold);
+      letter-spacing: .14em; text-transform: uppercase; font-weight: 600;
+    }
+    blockquote.critical { border-color: rgba(201, 168, 106, .28); }
+    .about-grid { display: flex; flex-direction: column; gap: 1.4rem; }
+    .story p { margin: 0 0 1rem; color: var(--ivory-dim); max-width: 40rem; }
+    .story p:last-child { margin-bottom: 0; }
+    .pull-quote {
+      margin: 0; padding: 1.4rem 1.3rem 1.25rem;
+      border: 1px solid var(--line-strong); background: rgba(201, 168, 106, .05);
+    }
+    .pull-quote p {
+      margin: 0; font-family: var(--font-display); font-style: italic;
+      font-size: 1.45rem; line-height: 1.3; color: var(--ivory);
+    }
+    .pull-quote footer {
+      margin-top: .85rem; font-size: .7rem; letter-spacing: .14em;
+      text-transform: uppercase; font-weight: 600; color: var(--gold);
+    }
+    .hours-layout { display: flex; flex-direction: column; gap: 1.4rem; }
+    .call-lead { margin-bottom: 1rem; }
+    .call-addr { margin-top: .75rem; }
+    .map-wrap { margin: .7rem 0 1.05rem; background: var(--panel); min-height: 14rem; border: 1px solid var(--line); }
+    .map-wrap iframe {
+      display: block; width: 100%; height: 16.5rem; border: 0;
+      filter: grayscale(.5) contrast(1.08) brightness(.7) sepia(.18);
+    }
+    .visit-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .65rem; margin: .35rem 0 1.1rem; }
+    .site-footer {
+      margin-top: 3rem; padding: 1.35rem 0 1.6rem; border-top: 1px solid var(--line);
+      color: var(--muted); font-size: .78rem; line-height: 1.55;
+    }
+    .site-footer p { margin: 0 0 .55rem; }
+    .site-footer p:last-child { margin-bottom: 0; }
+    .sticky {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+      background: rgba(8, 8, 9, .94); backdrop-filter: blur(14px);
+      border-top: 1px solid var(--line);
+      padding: .7rem .85rem calc(.7rem + env(safe-area-inset-bottom, 0px));
+    }
+    .sticky-inner {
+      width: 100%; max-width: 28rem; margin: 0 auto; display: grid;
+      grid-template-columns: 1fr 1fr; gap: .55rem;
+    }
+    .sticky .btn { min-height: 56px; }
+    @media (min-width: 900px) {
+      body { font-size: 1.125rem; }
+      .page { padding-bottom: 0; }
+      .sticky { display: none; }
+      .site-header .wrap { padding-top: 1.25rem; padding-bottom: 1.25rem; }
+      .wrap { padding-left: 2.5rem; padding-right: 2.5rem; }
+      .nav { display: flex; }
+      .header-note { display: none; }
+      .btn-header { display: inline-flex; min-height: 2.7rem; padding: .45rem 1.15rem; font-size: .7rem; }
+      .hero { min-height: min(92vh, 52rem); }
+      .hero-copy { padding: 9.5rem 2.5rem 3.75rem; }
+      .hero-grid {
+        display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(17rem, .65fr);
+        gap: 4rem; align-items: end;
+      }
+      .hero-copy h1 { font-size: 5.6rem; }
+      .lede { max-width: 36rem; font-size: 1.7rem; }
+      .cta-row { display: flex; max-width: 28rem; }
+      .cta-row .btn { min-width: 11.25rem; min-height: 3.35rem; }
+      .hero-aside {
+        display: block;
+        border-top: 0; border-left: 1px solid var(--line);
+        padding: 0 0 0 2.1rem;
+      }
+      .btn { min-height: 3.35rem; }
+      section { padding: 5.25rem 0 .4rem; }
+      .overview-grid {
+        display: grid; grid-template-columns: 1.05fr .95fr; gap: 2.6rem 4.25rem; align-items: start;
+      }
+      .phone-lg { font-size: 3.85rem; }
+      .services-block { grid-column: 1 / -1; }
+      .service-groups { grid-template-columns: repeat(3, 1fr); gap: 1.2rem; }
+      .quotes { grid-template-columns: 1fr 1fr; gap: 1.2rem; }
+      .quotes blockquote:last-child:nth-child(odd) { grid-column: 1 / -1; }
+      .map-wrap iframe { height: 26rem; }
+      .about-grid, .hours-layout {
+        display: grid; grid-template-columns: 1.2fr .8fr; gap: 3.5rem; align-items: start;
+      }
+      .story p { font-size: 1.22rem; }
+    }
+    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+  </style>
 </head>
 <body>
-<p>PLACEHOLDER_WILL_REPLACE</p>
+  <a class="skip" href="#overview">Skip to overview</a>
+  <div class="page">
+    <div class="gold-line" aria-hidden="true"></div>
+    <header class="site-header">
+      <div class="wrap">
+        <a class="wordmark" href="#overview">Nail To <span>Nail</span></a>
+        <nav class="nav" aria-label="Page">
+          <a href="#overview">Overview</a>
+          <a href="#services">Services</a>
+          <a href="#reviews">Reviews</a>
+          <a href="#about">About</a>
+          <a href="#call">Call</a>
+        </nav>
+        <div>
+          <p class="header-note">Hamilton · Call Travis</p>
+          <a class="btn btn-call btn-header" href="tel:+19055177753">Call</a>
+        </div>
+      </div>
+    </header>
+
+    <section class="hero" aria-label="Nail To Nail Roofing">
+      <img class="hero-img" src="https://images.unsplash.com/photo-1569083741872-df188de70e09?auto=format&amp;fit=crop&amp;w=1600&amp;q=70" srcset="https://images.unsplash.com/photo-1569083741872-df188de70e09?auto=format&amp;fit=crop&amp;w=900&amp;q=70 900w, https://images.unsplash.com/photo-1569083741872-df188de70e09?auto=format&amp;fit=crop&amp;w=1600&amp;q=70 1600w, https://images.unsplash.com/photo-1569083741872-df188de70e09?auto=format&amp;fit=crop&amp;w=2200&amp;q=70 2200w" sizes="100vw" alt="Aerial view of a shingled roof. Licensed atmosphere stock, not a photo of this crew’s jobs." width="1600" height="900" fetchpriority="high" decoding="async">
+      <div class="hero-copy">
+        <div class="hero-grid">
+          <div>
+            <p class="kicker">Merchison Avenue · Hamilton</p>
+            <h1>Nail To Nail <span>Roofing</span></h1>
+            <p class="lede">The roof is leaking, or winter is coming. Call Travis for a look — Ice &amp; Water Shield, a repair, or a straight answer before ice sits on it.</p>
+            <p class="stock-tag">Atmosphere stock — not this crew</p>
+            <p class="today-chip" id="season-chip">Call for a look · Free estimate</p>
+            <div class="cta-row">
+              <a class="btn btn-call" href="tel:+19055177753">Call Travis</a>
+              <a class="btn btn-dir" href="https://www.google.com/maps/dir/?api=1&amp;destination=13+Merchison+Ave,+Hamilton,+ON+L8H+3C8" rel="noopener">Directions</a>
+            </div>
+          </div>
+          <aside class="hero-aside">
+            <p class="block-label">Call for a look</p>
+            <p><a class="phone-lg" href="tel:+19055177753">905-517-7753</a></p>
+            <ul class="hero-hours-snap">
+              <li><span>Estimate</span><span>Free — call first</span></li>
+              <li><span>Hours</span><span>Not posted here</span></li>
+              <li><span>Address</span><span>13 Merchison Ave</span></li>
+            </ul>
+          </aside>
+        </div>
+      </div>
+    </section>
+
+    <div class="wrap">
+      <section id="overview">
+        <div class="section-head">
+          <p class="section-label">Overview</p>
+          <h2>Call Travis when the roof leaks.</h2>
+          <p class="section-intro">No booking form and no payments on this page. Hours are not confirmed from a live listing — call for a look, or for a free estimate, then he can tell you what the roof actually needs.</p>
+        </div>
+        <div class="overview-grid">
+          <div>
+            <div class="phone-block">
+              <p><a class="phone-lg" href="tel:+19055177753">905-517-7753</a></p>
+              <address class="addr">13 Merchison Ave<br>Hamilton, ON L8H 3C8</address>
+            </div>
+            <a class="hours-link" href="#call">Call for a look · Free estimate</a>
+          </div>
+          <div id="find">
+            <p class="block-label">Find the crew</p>
+            <address class="addr">Nail To Nail Roofing<br>13 Merchison Ave, Hamilton, ON L8H 3C8</address>
+            <div class="map-wrap">
+              <iframe title="Map of 13 Merchison Avenue, Hamilton, Ontario" src="https://maps.google.com/maps?q=13%20Merchison%20Ave%2C%20Hamilton%2C%20ON%20L8H%203C8&amp;z=16&amp;output=embed" loading="lazy" referrerpolicy="no-referrer-when-downgrade" allowfullscreen></iframe>
+            </div>
+            <div class="visit-actions">
+              <a class="btn btn-solid" href="tel:+19055177753">Call 905-517-7753</a>
+              <a class="btn btn-light" href="https://www.google.com/maps/dir/?api=1&amp;destination=13+Merchison+Ave,+Hamilton,+ON+L8H+3C8" rel="noopener">Directions</a>
+            </div>
+          </div>
+          <div class="services-block" id="services">
+            <p class="block-label">From the Yellow Pages listing</p>
+            <div class="service-groups">
+              <div class="service-group">
+                <h3>The roof</h3>
+                <ul class="group-list">
+                  <li>Shingled roofs</li>
+                  <li>Asphalt roofs</li>
+                  <li>Cedar roofs</li>
+                  <li>Slate roofs</li>
+                  <li>Roof inspection</li>
+                  <li>Roofing repairs</li>
+                  <li>Roof stripping &amp; garbage removal</li>
+                  <li>Roof substrate replacement &amp; repairs</li>
+                  <li>Skylights</li>
+                  <li>Residential</li>
+                </ul>
+              </div>
+              <div class="service-group">
+                <h3>Eavestrough &amp; siding</h3>
+                <ul class="group-list">
+                  <li>Seamless eavestroughs</li>
+                  <li>Siding</li>
+                  <li>Soffit / fascia</li>
+                </ul>
+              </div>
+              <div class="service-group">
+                <h3>Ice, water &amp; attic</h3>
+                <ul class="group-list">
+                  <li>Ice &amp; Water Shield</li>
+                  <li>Attic ventilation</li>
+                </ul>
+              </div>
+            </div>
+            <p class="note">That list is from a Yellow Pages listing. This page does not add extra trades, prices, or warranties. Call 905-517-7753 if you want Travis to look at the roof.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="reviews">
+        <div class="section-head">
+          <p class="section-label">Reviews</p>
+          <h2>What neighbours wrote</h2>
+        </div>
+        <p class="rating-note">About 3.8 from roughly eight public user reviews on an aggregator that cites Google-style reviews — not a live scrape. The words below are quoted as they appeared, including one mixed 3-star review. Names and dates are as they were listed.</p>
+        <div class="quotes">
+          <blockquote>
+            <p>“Nail to nail roofing notified me of a missing vent cover on my roof, he came the next day (Sunday) installed a new one vent, inspected and fixed some areas of my roof, the next day he noticed another vent missing (from an animal) and again came up with a solution right away.Amazing customer service!Very professional.I highly recommend Nail to Nail roofing!”</p>
+            <footer>— David Hamont · Jun 09, 2025</footer>
+          </blockquote>
+          <blockquote>
+            <p>“I recently had the pleasure of working with Nail to Nail Roofing and I couldn't be happier with the experience. Travis, in particular, was outstanding—honest, professional, and incredibly knowledgeable. From our first meeting, he took the time to explain everything in detail, addressing all my concerns without any pressure.The team completed the roofing project on time and within budget, and the quality of work exceeded my expectations. Travis's transparency throughout the process made me feel confident in my decision. I highly recommend Nail to Nail Roofing to anyone in need of roofing services. Thank you, Travis, for a job well done!”</p>
+            <footer>— Carm R · Sep 24, 2024</footer>
+          </blockquote>
+          <blockquote>
+            <p>“Great Job, Done in 2 days. Very detail oriented. Travis cares about the work he does and wants to do the job the right way. Many times the customer is not willing to do what is necessary for a great roof because the last guy cut so many corners and creates so many issues so that he can give you the cheaper quote.In any case, Travis will tell you what needs to be done to do the job correctly and that has value.”</p>
+            <footer>— Phil Z · Sep 04, 2024</footer>
+          </blockquote>
+          <blockquote>
+            <p>“Big shout out to Travis and Billy. I can't give them enough credit for their help finishing the roof on our garage. Consummate professionals. Great work and so speedy. Their number will be one that I keep on hand for all future jobs.”</p>
+            <footer>— Erin Clifford · Oct 13, 2024</footer>
+          </blockquote>
+          <blockquote class="critical">
+            <p>“We used Nail to Nail Roofing for our rental property. They were not the cheapest but seemed to be the most meticulous. Our tenants said "Just wanted to let you know they just finished the roof. Very well organized and professional group." Thumbs up They brought in a full crew and had it all done in one day before 3 pm. We had an issue after the fact where we wanted roof vents installed as there was too much humidity in the house after the new roof was done. After numerous phone calls and requests, we finally gave up as they would not get back to us about that.For that reason, they went from a 5 star to a 3 star.”</p>
+            <footer>— Leslie Kitchen · Dec 09, 2021 · 3 stars</footer>
+          </blockquote>
+        </div>
+        <p class="note">Leslie’s review is mixed: the work was meticulous, then follow-up on extra vents went quiet. That is her account. This page does not invent a reply from the shop.</p>
+      </section>
+
+      <section id="about" class="story">
+        <div class="section-head">
+          <p class="section-label">About</p>
+          <h2>Travis, on Merchison</h2>
+        </div>
+        <div class="about-grid">
+          <div>
+            <p>Travis Truelove is the owner — LinkedIn and the BBB listing name him that way. Public directories also write the company as Nail To Nail Roofing Inc and Nail to Nail Roofing. Reviews mention Billy on a garage job.</p>
+            <p>This is a Hamilton neighbour crew, not a national brand. When a Hamilton roof starts leaking, or before freeze and thaw sit on it, call Travis. The Yellow Pages listing includes Ice &amp; Water Shield — the layer that belongs in this climate — plus attic ventilation, repairs, and the rest of the list above.</p>
+            <p>No public email and no official Instagram or Facebook turned up. This page does not take bookings or payments. Call 905-517-7753 for a look or a free estimate.</p>
+          </div>
+          <blockquote class="pull-quote">
+            <p>“Travis will tell you what needs to be done to do the job correctly and that has value.”</p>
+            <footer>— Phil Z · Sep 04, 2024</footer>
+          </blockquote>
+        </div>
+      </section>
+
+      <section id="call">
+        <div class="section-head">
+          <p class="section-label">Call</p>
+          <h2>A look, or a free estimate</h2>
+          <p class="section-intro">Hours are not confirmed from a live Google listing, so they are not invented here. Do not assume 24/7. Call Travis and ask when he can come look.</p>
+        </div>
+        <div class="hours-layout">
+          <div>
+            <p class="block-label">Hamilton winter is leak season</p>
+            <p class="section-intro call-lead">Fall and winter here are when ice backs up and water finds a way in. If the ceiling is staining now, or you want Ice &amp; Water Shield on before that starts, pick up the phone.</p>
+            <p><a class="phone-lg" href="tel:+19055177753">905-517-7753</a></p>
+            <address class="addr call-addr">13 Merchison Ave<br>Hamilton, ON L8H 3C8</address>
+          </div>
+          <p class="note">We do not take bookings or payments on this page. There is no form that pretends to submit a job. Call 905-517-7753 if you want Travis to look at the roof.</p>
+        </div>
+      </section>
+
+      <footer class="site-footer">
+        <p>Unofficial sample page — not affiliated with Nail To Nail Roofing. Prepared so the company can see what a simple site could look like, until they say otherwise.</p>
+      </footer>
+    </div>
+
+    <div class="sticky" role="navigation" aria-label="Call or directions">
+      <div class="sticky-inner">
+        <a class="btn btn-call" href="tel:+19055177753">Call Travis</a>
+        <a class="btn btn-dir" href="https://www.google.com/maps/dir/?api=1&amp;destination=13+Merchison+Ave,+Hamilton,+ON+L8H+3C8" rel="noopener">Directions</a>
+      </div>
+    </div>
+  </div>
+  <script>
+    (function () {
+      var month = Number(new Intl.DateTimeFormat("en-CA", { timeZone: "America/Toronto", month: "numeric" }).format(new Date()));
+      var chip = document.getElementById("season-chip");
+      if (!chip) return;
+      if (month >= 9 || month <= 3) {
+        chip.textContent = "Hamilton leak & ice season · Call Travis";
+      } else {
+        chip.textContent = "Call before winter · Free estimate";
+      }
+    })();
+  </script>
 </body>
 </html>
