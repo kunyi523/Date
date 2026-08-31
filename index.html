@@ -94,12 +94,14 @@
   }
   .empty{grid-column:1/-1; text-align:center; font-size:13px; color:var(--ink-soft); padding:14px 0}
   .k-lead{font-size:13px; color:var(--ink-soft); line-height:1.75; margin:12px 2px 0}
+  .k-base{font-family:var(--latin); font-size:12px; letter-spacing:2.5px; color:var(--gold); text-transform:uppercase; margin:10px 2px 0}
   .card.kit .cat{color:var(--gold-bright)}
   .card .meta{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px}
   .card .meta span{
     font-size:10px; letter-spacing:.4px; color:var(--gold-bright);
     border:1px solid rgba(201,169,106,.35); padding:2px 6px; border-radius:2px;
   }
+  .shop-chef{font-family:var(--serif); font-size:13.5px; color:var(--gold-bright); margin:12px 0 2px}
 
   .final{
     width:100%; margin-top:36px; padding:17px 0; border-radius:3px; border:none;
@@ -147,7 +149,7 @@
   .k-box{border:1px solid rgba(201,169,106,.25); border-radius:4px; padding:12px 10px}
   .k-box p{margin:0; font-size:12.5px; line-height:1.8; color:rgba(240,232,220,.75)}
   .tl{padding:5px 0; display:flex; gap:10px; font-size:12.5px; color:rgba(240,232,220,.8)}
-  .tl .tm{font-family:var(--latin); color:var(--gold-bright); width:44px; flex-shrink:0}
+  .tl .tm{font-family:var(--latin); color:var(--gold-bright); min-width:44px; flex-shrink:0}
   @media (max-width:360px){ .k-grid{grid-template-columns:1fr} }
 
   .sweet-btn{width:100%; margin-top:32px; padding:13px 0; border-radius:3px; border:1px dashed var(--gold); background:transparent; color:var(--gold); font-size:14px; letter-spacing:3px; cursor:pointer; font-family:inherit}
@@ -326,8 +328,11 @@
 
   <div class="part">
     <div class="part-head"><span class="t">今日私厨</span><span class="en">The Kitchen</span></div>
-    <div class="k-lead" id="kLead">不出门也可以很心动。抽一套今晚的菜，采购单和时间表一并给你。</div>
-    <button class="deal" id="dealK">抽 取 菜 谱</button>
+    <div class="k-base">Hamilton, Ontario</div>
+    <div class="k-lead" id="kLead">三位师傅拼一桌：包饺阿姨、卤味师傅、蛋糕姐姐。勾选档口，抽今日菜单，生成预订清单。</div>
+    <div class="label">Chefs<b>档口</b></div>
+    <div class="chips" id="chefs"></div>
+    <button class="deal" id="dealK">抽 取 今 日 档 口</button>
     <div class="deck hidden" id="deckK"></div>
   </div>
 
@@ -666,7 +671,7 @@ var POOL = [
   {cat:'游', t:'球场投篮', d:'进一球兑换一个愿望', w:'晴', loc:[NEAR], b:0, noHot:1, tw:[9,19]},
   {cat:'行', t:'遛弯到便利店', d:'各买一样新品，互相打分', w:'皆', loc:[NEAR], b:0, tw:[10,22]},
   {cat:'彩蛋', t:'超市大采购', d:'零食自由，今天上不封顶', w:'皆', loc:[NEAR], b:0, tw:[10,21]},
-  {cat:'行', t:'私厨备料采购', d:'按菜单买齐，不许临时加一车零食。可以加一束花。', w:'皆', loc:[NEAR,CITY], b:0, tw:[10,20]},
+  {cat:'行', t:'汉密尔顿取私厨', d:'按菜单去取：包子、卤味、蛋糕。车里先放好保温袋。', w:'皆', loc:[NEAR,CITY], b:0, tw:[10,20]},
   {cat:'彩蛋', t:'布置餐桌', d:'蜡烛、纸巾折叠、手机倒扣。私厨的开场仪式。', w:'皆', loc:[NEAR], b:0, tw:[16,22]},
   {cat:'游', t:'桌游杀两局', d:'输的人答应赢的人一件事', w:'雨', loc:[NEAR,CITY], b:0, tw:[12,21]},
   {cat:'游', t:'在家电影马拉松', d:'片单一人选一部，不许嫌弃', w:'雨', loc:[NEAR], b:0, tw:[13,22]},
@@ -707,46 +712,42 @@ var POOL = [
   {cat:'食', t:'带上野餐篮', d:'三明治 + 她爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15]},
 ];
 var CAT_EN = { '行':'Stroll', '游':'Play', '食':'Taste', '彩蛋':'Surprise', '厨':'Kitchen' };
-var COURSE_EN = { '冷盘':'Hors d\'oeuvre', '汤':'Soup', '主菜':'Main', '面':'Noodles', '甜品':'Dessert', '饮':'Digestif', '宵夜':'Late bite' };
+var CHEFS = [
+  {id:'auntie', chip:'🥟 包饺阿姨', name:'包饺阿姨', stall:'包饺摊', en:'Bao & Dumplings', bio:'包子、锅贴、饺子'},
+  {id:'meat', chip:'🍖 卤味师傅', name:'卤味师傅', stall:'卤味档', en:'Char siu & Lou mei', bio:'叉烧、卤味、手撕鸡'},
+  {id:'cake', chip:'🎂 蛋糕姐姐', name:'蛋糕姐姐', stall:'甜品台', en:'Cakes', bio:'蛋糕'},
+];
+var chefOn = { auntie:true, meat:true, cake:true };
+function chefMeta(id){
+  for (var i=0;i<CHEFS.length;i++) if (CHEFS[i].id===id) return CHEFS[i];
+  return {name:'私厨', stall:'档口', en:'Kitchen'};
+}
 var KITCHEN = [
-  {course:'冷盘', t:'拍黄瓜', d:'蒜要多，醋要香。她负责拍，你负责吃第一口。', shop:['黄瓜 2 根','蒜','陈醋','香油','小米辣'], mins:8, diff:'易', w:'皆', b:0},
-  {course:'冷盘', t:'番茄芝士沙拉', d:'红的绿的叠起来，像一盘夏天。', shop:['圣女果','新鲜沙拉叶','马苏里拉','橄榄油','黑胡椒'], mins:10, diff:'易', w:'晴', b:0, noCold:1},
-  {course:'冷盘', t:'牛油果虾沙拉', d:'摆成一颗心也行，歪了就叫抽象派。', shop:['牛油果 1 个','虾仁 200g','柠檬','沙拉叶','橄榄油'], mins:15, diff:'易', w:'皆', b:1, noCold:1},
-  {course:'汤', t:'番茄蛋花汤', d:'雨天的开场白。胡椒多转两圈。', shop:['番茄 2 个','鸡蛋 2 个','葱','胡椒'], mins:15, diff:'易', w:'雨', b:0, tw:[11,22]},
-  {course:'汤', t:'奶油蘑菇汤', d:'用面包蘸到见底为止，才算喝完。', shop:['蘑菇','洋葱','淡奶油','黄油','吐司'], mins:25, diff:'中', w:'雨', b:1, tw:[16,21]},
-  {course:'汤', t:'味噌汤', d:'豆腐切小块，海苔最后撒。安静的一碗。', shop:['味噌酱','嫩豆腐','海苔','葱'], mins:12, diff:'易', w:'皆', b:0},
-  {course:'主菜', t:'番茄炒蛋', d:'家常菜的天花板。糖少许，她说了算。', shop:['番茄 3 个','鸡蛋 4 个','葱','糖'], mins:15, diff:'易', w:'皆', b:0, tw:[10,21]},
-  {course:'面', t:'葱油拌面', d:'葱油浇下去的那一声，就是开餐铃。', shop:['面条','小葱','生抽','糖','油'], mins:20, diff:'易', w:'皆', b:0, tw:[11,22]},
-  {course:'主菜', t:'可乐鸡翅', d:'收汁收到发亮。第一块归她。', shop:['鸡翅 8 只','可乐 1 罐','姜','酱油'], mins:30, diff:'易', w:'皆', b:0, tw:[16,20]},
-  {course:'主菜', t:'蒜蓉西兰花', d:'绿的要脆，蒜要金。配白饭刚刚好。', shop:['西兰花 1 棵','蒜','盐','白饭米'], mins:15, diff:'易', w:'皆', b:0, tw:[11,21]},
-  {course:'主菜', t:'红烧豆腐', d:'嫩豆腐小心翻。酱汁请自行偷喝。', shop:['嫩豆腐 1 盒','酱油','糖','葱姜','淀粉'], mins:20, diff:'易', w:'皆', b:0, tw:[11,21]},
-  {course:'主菜', t:'黄油蒜香虾', d:'她负责剥虾，你负责颠锅。蒜要多到犯规。', shop:['大虾 300g','蒜头 1 头','黄油','欧芹','柠檬'], mins:20, diff:'易', w:'皆', b:1, tw:[17,21]},
-  {course:'面', t:'奶油蘑菇意面', d:'面要咬过，酱要挂住。两个人分一盘也行。', shop:['意面','蘑菇','淡奶油','蒜','帕玛森'], mins:25, diff:'中', w:'皆', b:1, tw:[17,21]},
-  {course:'主菜', t:'黑椒牛排', d:'七分熟。煎的时候不许翻太勤，也不许玩手机。', shop:['牛排 2 块','黑胡椒','黄油','蒜','迷迭香'], mins:20, diff:'中', w:'皆', b:1, tw:[17,21]},
-  {course:'主菜', t:'三文鱼配时蔬', d:'皮要脆，心要嫩。柠檬挤在她那份上。', shop:['三文鱼排 2 块','西兰花','柠檬','橄榄油','黑胡椒'], mins:25, diff:'中', w:'皆', b:1, tw:[17,21]},
-  {course:'主菜', t:'日式寿喜烧', d:'一个锅，两双筷子。肉跟豆腐一起涮。', shop:['肥牛片','豆腐','大葱','香菇','寿喜烧酱','米饭'], mins:35, diff:'中', w:'雨', b:1, noHot:1, tw:[17,21]},
-  {course:'主菜', t:'麻辣香锅两人份', d:'辣度以她的意见为准。这是厨房宪法。', shop:['莲藕','午餐肉','虾','西兰花','香锅底料'], mins:35, diff:'中', w:'皆', b:1, noHot:1, tw:[17,21]},
-  {course:'主菜', t:'韩式部队锅', d:'泡面最后下。芝士拉丝的那一下要拍下来。', shop:['火腿肠','泡菜','泡面','午餐肉','芝士片','年糕'], mins:30, diff:'易', w:'雨', b:1, noHot:1, tw:[17,22]},
-  {course:'主菜', t:'战斧牛排', d:'豪华版开张。她切第一刀，你负责鼓掌。', shop:['战斧牛排 1 块','海盐','黑胡椒','黄油','迷迭香'], mins:30, diff:'中', w:'皆', b:2, tw:[17,20]},
-  {course:'面', t:'龙虾意面', d:'壳归你拆，酱归她拌。今晚的海鲜要配酒。', shop:['龙虾或鳌虾','意面','蒜','黄油','白葡萄酒','欧芹'], mins:35, diff:'难', w:'皆', b:2, tw:[17,20]},
-  {course:'主菜', t:'红酒炖牛腩', d:'慢才是浪漫。下午就开始炖，晚上刚好软。', shop:['牛腩 500g','红酒 1 瓶','胡萝卜','洋葱','迷迭香'], mins:90, diff:'中', w:'雨', b:2, noHot:1, tw:[14,18]},
-  {course:'甜品', t:'香蕉煎船', d:'配一球冰淇淋。焦糖化的那面朝上给她。', shop:['香蕉 2 根','黄油','糖','冰淇淋'], mins:10, diff:'易', w:'皆', b:0, tw:[18,23]},
-  {course:'甜品', t:'草莓优格蜜', d:'五分钟甜品。红的归她，白的搅拌权归你。', shop:['草莓 1 盒','原味优格','蜂蜜'], mins:5, diff:'易', w:'皆', b:0, noCold:1},
-  {course:'甜品', t:'巧克力熔岩杯', d:'切开要流心。勺子递给她，看她眼睛。', shop:['黑巧克力','黄油','鸡蛋 2 个','低筋面粉','糖'], mins:20, diff:'中', w:'皆', b:1, tw:[18,22]},
-  {course:'甜品', t:'提拉米苏杯', d:'不用烤。冰箱里躺一会儿，心动多一会儿。', shop:['马斯卡彭','手指饼干','咖啡','可可粉','鸡蛋'], mins:15, diff:'中', w:'皆', b:1, tw:[14,21]},
-  {course:'甜品', t:'舒芙蕾', d:'豪华版的心跳。塌了也要一起吃，塌叫酥芙。', shop:['鸡蛋 3 个','牛奶','糖','黄油','低筋面粉'], mins:30, diff:'难', w:'皆', b:2, tw:[18,21]},
-  {course:'饮', t:'手冲咖啡', d:'水温、绕圈、她爱的那点甜。', shop:['咖啡豆或挂耳','热水','糖或牛奶'], mins:8, diff:'易', w:'皆', b:0},
-  {course:'饮', t:'柠檬蜂蜜气泡', d:'冰要满，薄荷要拍香。夏天的私厨标配。', shop:['柠檬 2 个','蜂蜜','苏打水','薄荷','冰块'], mins:5, diff:'易', w:'晴', b:0, noCold:1},
-  {course:'饮', t:'热红酒', d:'橙片、肉桂、慢热。外面越冷，杯子越要捧着。', shop:['红酒','橙子','肉桂棒','蜂蜜','八角'], mins:15, diff:'易', w:'雨', b:1, noHot:1, tw:[17,23]},
-  {course:'饮', t:'气泡酒配草莓', d:'酒先冰，草莓洗好。碰杯的时候看她，别看杯子。', shop:['气泡酒 1 瓶','草莓 1 盒'], mins:5, diff:'易', w:'皆', b:1, tw:[18,22]},
-  {course:'饮', t:'香槟', d:'豪华版收尾。只倒半杯，剩下的话慢慢说。', shop:['香槟 1 瓶','两只高脚杯'], mins:3, diff:'易', w:'皆', b:2, tw:[18,22]},
-  {course:'宵夜', t:'煎饺配醋', d:'深夜厨房。金边焦了才算熟。醋碟两人各一份。', shop:['冷冻饺子','醋','蒜','小米辣'], mins:12, diff:'易', w:'皆', b:0, tw:[20,23]},
-  {course:'宵夜', t:'一碗细面', d:'汤要热，葱花最后撒。宵夜界的标准答案。', shop:['细面','鸡蛋','小白菜','葱','酱油'], mins:15, diff:'易', w:'雨', b:0, tw:[20,23]},
+  {chef:'auntie', course:'包点', t:'鲜肉包', d:'热气一掀开。第一口给她，汁不要滴到衣服上。', order:'鲜肉包 × 6', heat:'蒸 8 分钟', w:'皆', b:0, tw:[9,21]},
+  {chef:'auntie', course:'包点', t:'菜肉包', d:'青菜要有一口清甜。素一点也是正经晚饭。', order:'菜肉包 × 6', heat:'蒸 8 分钟', w:'皆', b:0, tw:[9,21]},
+  {chef:'auntie', course:'包点', t:'香菇青菜包', d:'素的那一屉。她要是说够了，你再补肉的。', order:'香菇青菜包 × 6', heat:'蒸 8 分钟', w:'皆', b:0, tw:[9,21]},
+  {chef:'auntie', course:'锅贴', t:'猪肉锅贴', d:'底要焦，边要透。醋碟两人各一份，不许抢。', order:'猪肉锅贴 × 10', heat:'平底锅煎至金底', w:'皆', b:0, noHot:1, tw:[10,22]},
+  {chef:'auntie', course:'锅贴', t:'白菜猪肉锅贴', d:'雨天配一碟醋，世界就小了。', order:'白菜猪肉锅贴 × 10', heat:'煎至金底', w:'雨', b:0, tw:[10,22]},
+  {chef:'auntie', course:'水饺', t:'猪肉白菜水饺', d:'煮到浮起来再给她捞。蘸醋，不蘸酱油。', order:'猪肉白菜水饺 × 20', heat:'水开下锅', w:'皆', b:0, tw:[11,22]},
+  {chef:'auntie', course:'水饺', t:'韭菜鸡蛋饺', d:'馅是黄的，醋是香的。宵夜也成立。', order:'韭菜鸡蛋饺 × 16', heat:'水煮或蒸', w:'皆', b:0, tw:[16,23]},
+  {chef:'auntie', course:'水饺', t:'玉米猪肉饺', d:'甜口馅。汉密尔顿的冬天很配这一盘。', order:'玉米猪肉饺 × 20', heat:'水煮', w:'雨', b:0, noHot:1, tw:[11,22]},
+  {chef:'meat', course:'叉烧', t:'蜜汁叉烧', d:'切厚一点。肥瘦层层叠，白饭是配角。', order:'蜜汁叉烧 ½ lb', heat:'回热或凉切', w:'皆', b:1, tw:[10,21]},
+  {chef:'meat', course:'卤味', t:'卤味拼盘', d:'卤蛋、豆干、海带、牛腱。一盘够两个人下饭。', order:'卤味拼盘 1 份', heat:'凉吃', w:'皆', b:0, tw:[10,21]},
+  {chef:'meat', course:'卤味', t:'卤牛腱', d:'切片，不要撕。酱香要留在舌头上。', order:'卤牛腱 ½ lb', heat:'凉切', w:'皆', b:1, tw:[10,21]},
+  {chef:'meat', course:'卤味', t:'卤蛋加豆干', d:'穷开心也要有卤味。两颗蛋，切给她那半个黄。', order:'卤蛋 4 个 · 豆干 1 份', heat:'凉吃', w:'皆', b:0, tw:[10,21]},
+  {chef:'meat', course:'手撕鸡', t:'手撕鸡', d:'姜葱油要多。用手撕，用筷子夹给她。', order:'手撕鸡 半只', heat:'室温或微温', w:'皆', b:1, tw:[10,21]},
+  {chef:'meat', course:'叉烧', t:'叉烧拼手撕鸡', d:'豪华版开张。咸的甜的都在，今晚不点外卖。', order:'叉烧 ½ lb + 手撕鸡半只', heat:'摆盘即可', w:'皆', b:2, tw:[10,21]},
+  {chef:'cake', course:'蛋糕', t:'杯子蛋糕两人份', d:'穷开心的甜。杯子小，心意不小。', order:'杯子蛋糕 × 2', heat:'即食', w:'皆', b:0, tw:[10,22]},
+  {chef:'cake', course:'蛋糕', t:'小份奶油蛋糕', d:'两个人的尺寸。蜡烛她吹，你负责鼓掌。', order:'4 寸奶油蛋糕 1 个', heat:'冷藏取出回温 10 分钟', w:'皆', b:1, tw:[10,21]},
+  {chef:'cake', course:'蛋糕', t:'巧克力蛋糕', d:'可可要苦一点，奶油要甜一点。第一叉给她。', order:'巧克力蛋糕 1 份', heat:'冷藏', w:'皆', b:1, tw:[10,21]},
+  {chef:'cake', course:'蛋糕', t:'水果蛋糕', d:'草莓或当季水果。夏天的收尾。', order:'水果蛋糕 1 份', heat:'冷藏', w:'晴', b:1, noCold:1, tw:[10,21]},
+  {chef:'cake', course:'蛋糕', t:'芝士蛋糕', d:'一口就知道今晚值得。叉子只有一把，请轮流。', order:'芝士蛋糕 1 份', heat:'冷藏', w:'皆', b:1, tw:[10,21]},
+  {chef:'cake', course:'蛋糕', t:'定制蛋糕', d:'豪华版。写上她的名字，或者只写今天的日期。', order:'定制蛋糕 1 个（需提前说）', heat:'按姐姐吩咐', w:'皆', b:2, tw:[9,17]},
 ];
 var KITCHEN_ENDINGS = [
-  '今晚的米其林，就两个人。',
-  '灶台可以很小，菜单可以很长。',
-  '洗完碗，才算约会结束。',
+  '三位师傅，一桌给你们。',
+  '汉密尔顿的夜，从这一桌开始。',
+  '包子还热着，蛋糕还凉着，人已经坐齐了。',
   '私厨打烊，拥抱营业。',
   '这顿饭的评分权，全权交给她。',
 ];
@@ -794,15 +795,34 @@ function updateKLead(){
   var el = document.getElementById('kLead');
   if (!el) return;
   var w = state.weather || '', t = state.temp || '', loc = state.loc || '';
-  var msg = '不出门也可以很心动。抽一套今晚的菜，采购单和时间表一并给你。';
-  if (w.indexOf('雨')>-1) msg = '雨天最适合开私厨。世界在窗外，厨房里是你们的。';
-  else if (w.indexOf('雪')>-1) msg = '外面在下雪。灶上热着，今晚私厨营业。';
-  else if (t.indexOf('炎热')>-1) msg = '天太热就少开火。凉拌、冰镇、她负责尝。';
-  else if (t.indexOf('寒冷')>-1) msg = '外面冷，锅要热。今晚用一顿热的把她暖住。';
-  else if (loc.indexOf('家附近')>-1) msg = '今晚哪也不去。私厨的座位只有两个，都留给你们。';
+  var msg = '三位师傅拼一桌：包饺阿姨、卤味师傅、蛋糕姐姐。勾选档口，抽今日菜单，生成预订清单。';
+  if (w.indexOf('雨')>-1) msg = '汉密尔顿下雨就别觅食了。锅贴热着，卤味凉切，蛋糕她收尾。';
+  else if (w.indexOf('雪')>-1) msg = '外面在下雪。饺子要趁热，叉烧切厚一点。';
+  else if (t.indexOf('炎热')>-1) msg = '天太热少开火。卤味凉切，蛋糕冰着，锅贴可改水饺。';
+  else if (t.indexOf('寒冷')>-1) msg = '安省冷的晚上：水饺下锅，手撕鸡配姜葱，蛋糕最后上。';
+  else if (loc.indexOf('家附近')>-1) msg = '今晚不出城。Hamilton 自取，回家开桌。';
   el.textContent = msg;
 }
 updateKLead();
+function renderChefs(){
+  var box = document.getElementById('chefs');
+  if (!box) return;
+  box.innerHTML = '';
+  CHEFS.forEach(function(ch){
+    var b = document.createElement('button');
+    b.className = 'chip' + (chefOn[ch.id] ? ' on' : '');
+    b.textContent = ch.chip;
+    b.title = ch.bio;
+    b.onclick = function(){
+      var n = CHEFS.filter(function(c){ return chefOn[c.id]; }).length;
+      if (chefOn[ch.id] && n===1) return;
+      chefOn[ch.id] = !chefOn[ch.id];
+      renderChefs();
+    };
+    box.appendChild(b);
+  });
+}
+renderChefs();
 function updateFinalBtn(){
   var btn = document.getElementById('combine');
   var a = selCount(decks.A), b = selCount(decks.B), k = selCount(decks.K);
@@ -815,26 +835,22 @@ function updateFinalBtn(){
   btn.textContent = (k && !a && !b ? '生成私厨菜单' : '生成最终计划') + '（' + bits.join(' · ') + '）';
 }
 function fitsKitchen(it){
+  if (!chefOn[it.chef]) return false;
   var w = (state.weather.indexOf('晴')>-1 || state.weather.indexOf('阴')>-1) ? '晴' : '雨';
   if (!(it.w==='皆' || it.w===w)) return false;
   if (BUDGET_RANK[state.budget] < it.b) return false;
   if (state.temp && state.temp.indexOf('炎热')>-1 && it.noHot) return false;
   if (state.temp && state.temp.indexOf('寒冷')>-1 && it.noCold) return false;
   if (it.tw && it.tw[1] < HOUR) return false;
-  if (HOUR >= 21 && it.mins > 30) return false;
-  if (HOUR >= 22 && it.course !== '宵夜' && it.course !== '饮' && it.course !== '甜品' && it.mins > 15) return false;
   return true;
 }
 function dealKitchen(D){
   var fit = KITCHEN.filter(fitsKitchen);
-  var by = {};
-  fit.forEach(function(it){ (by[it.course] = by[it.course] || []).push(it); });
-  var order = HOUR >= 21
-    ? ['宵夜','饮','甜品','面','主菜','汤','冷盘']
-    : ['冷盘','汤','主菜','面','甜品','饮','宵夜'];
   var picked = [];
-  order.forEach(function(c){
-    if (by[c] && by[c].length) picked.push(pick(shuffle(by[c])));
+  CHEFS.forEach(function(ch){
+    if (!chefOn[ch.id]) return;
+    var pool = shuffle(fit.filter(function(it){ return it.chef===ch.id; }));
+    pool.slice(0, 2).forEach(function(it){ picked.push(it); });
   });
   var rest = shuffle(fit.filter(function(it){ return picked.indexOf(it)===-1; }));
   D.dealt = picked.concat(rest).slice(0, D.n);
@@ -842,14 +858,14 @@ function dealKitchen(D){
   var box = document.getElementById(D.el);
   box.classList.remove('hidden');
   box.innerHTML = '';
-  if (!D.dealt.length) box.innerHTML = '<div class="empty">这个条件下没抽到菜谱，换个天气或预算试试</div>';
+  if (!D.dealt.length) box.innerHTML = '<div class="empty">这个档口和条件下没抽到，换个师傅或预算试试</div>';
   D.dealt.forEach(function(it, i){
     var c = document.createElement('div');
     c.className = 'card kit';
     c.setAttribute('role','button'); c.setAttribute('tabindex','0');
-    var en = COURSE_EN[it.course] || 'Kitchen';
-    c.innerHTML = '<div class="cat">'+en+' · '+it.course+'</div><div class="t">'+it.t+'</div><div class="d">'+it.d+'</div>'+
-      '<div class="meta"><span>'+it.mins+' 分钟</span><span>'+it.diff+'</span></div>';
+    var ch = chefMeta(it.chef);
+    c.innerHTML = '<div class="cat">'+ch.en+' · '+ch.name+'</div><div class="t">'+it.t+'</div><div class="d">'+it.d+'</div>'+
+      '<div class="meta"><span>'+it.course+'</span><span>'+it.heat+'</span></div>';
     var toggle = function(){
       if (D.sel[i]) delete D.sel[i]; else D.sel[i] = true;
       c.classList.toggle('sel');
@@ -903,44 +919,44 @@ function hmAdd(h, m, add){
   return pad2(Math.floor(t/60)) + ':' + pad2(t%60);
 }
 function kitchenExtras(dishes){
-  var order = {饮:0, 冷盘:1, 汤:2, 面:3, 主菜:4, 宵夜:5, 甜品:6};
-  dishes = dishes.slice().sort(function(a,b){ return (order[a.course]||9) - (order[b.course]||9); });
-  var shop = [], seen = {};
-  dishes.forEach(function(it){
-    (it.shop||[]).forEach(function(s){
-      var key = s.replace(/\s+/g,'');
-      if (!seen[key]){ seen[key]=1; shop.push(s); }
+  var html = '<div class="shop"><div class="sh">Hamilton · 预订清单</div>';
+  CHEFS.forEach(function(ch){
+    var items = dishes.filter(function(it){ return it.chef===ch.id; });
+    if (!items.length) return;
+    html += '<div class="shop-chef">'+ch.stall+' · '+ch.name+'</div>';
+    items.forEach(function(it){
+      html += '<div class="shop-item" role="button" tabindex="0"><span class="box"></span><span>'+it.order+'</span></div>';
     });
   });
-  var maxMins = 0;
-  dishes.forEach(function(it){ if (it.mins > maxMins) maxMins = it.mins; });
-  var dinnerH = HOUR >= 19 ? Math.min(HOUR + 1, 22) : 19;
-  var dinnerM = 0;
-  var start = hmAdd(dinnerH, dinnerM, -(maxMins + 15));
-  var html = '';
-  if (shop.length){
-    html += '<div class="shop"><div class="sh">Market List · 采购单</div>' +
-      shop.map(function(s){ return '<div class="shop-item" role="button" tabindex="0"><span class="box"></span><span>'+s+'</span></div>'; }).join('') +
-      '</div>';
+  html += '</div>';
+  var tls;
+  if (HOUR < 16){
+    tls = [
+      {t:'15:00', d:'向三位师傅下单，坤怿对接'},
+      {t:'18:00', d:'Hamilton 自取：保温袋 + 蛋糕冰袋'},
+      {t:'18:40', d:'回家：锅贴回热、卤味摆盘、蛋糕回温'},
+      {t:'19:00', d:'点蜡烛，开桌'},
+      {t:'19:50', d:'一起洗碗。不许偷懒。'},
+    ];
+  } else if (HOUR < 20){
+    tls = [
+      {t:'现在', d:'尽快下单，坤怿对接三位师傅'},
+      {t: hmAdd(HOUR, now.getMinutes(), 45), d:'出发取餐 · Hamilton 自取'},
+      {t: hmAdd(HOUR, now.getMinutes(), 75), d:'回家回热、摆盘'},
+      {t: hmAdd(HOUR, now.getMinutes(), 90), d:'开桌'},
+      {t: hmAdd(HOUR, now.getMinutes(), 140), d:'一起洗碗。不许偷懒。'},
+    ];
+  } else {
+    tls = [
+      {t:'现在', d:'夜场：饺子和卤味还来得及，蛋糕看姐姐库存'},
+      {t: hmAdd(HOUR, now.getMinutes(), 40), d:'取餐回家'},
+      {t: hmAdd(HOUR, now.getMinutes(), 60), d:'开宵夜桌'},
+    ];
   }
-  var tls = [
-    {t: start, d: '洗手、放歌、把食材摆上台面'},
-  ];
-  dishes.forEach(function(it){
-    tls.push({t: hmAdd(dinnerH, dinnerM, -it.mins), d: '开始「'+it.t+'」· '+it.mins+' 分钟'});
-  });
-  tls.push({t: pad2(dinnerH)+':'+pad2(dinnerM), d: '摆盘、点蜡烛、开餐'});
-  tls.push({t: hmAdd(dinnerH, dinnerM, 50), d: '一起洗碗。不许偷懒。'});
-  tls.sort(function(a,b){ return a.t.localeCompare(b.t); });
-  var uniq = [], last = '';
-  tls.forEach(function(x){
-    var k = x.t + x.d;
-    if (k !== last){ uniq.push(x); last = k; }
-  });
-  html += '<div class="k-grid"><div class="k-box"><div class="sh">Service · 厨房时间表</div>' +
-    uniq.map(function(x){ return '<div class="tl"><span class="tm">'+x.t+'</span><span>'+x.d+'</span></div>'; }).join('') +
+  html += '<div class="k-grid"><div class="k-box"><div class="sh">Service · 取餐节奏</div>' +
+    tls.map(function(x){ return '<div class="tl"><span class="tm">'+x.t+'</span><span>'+x.d+'</span></div>'; }).join('') +
     '</div><div class="k-box"><div class="sh">Brigade · 今晚分工</div>' +
-    '<p>主厨 · 你 — 热菜与火候<br/>副厨 · 她 — 冷盘、甜品与摆盘<br/>洗碗 · 一起<br/>蜡烛 · 你来点<br/>歌单 · 她来选</p></div></div>';
+    '<p>下单对接 · 你<br/>取餐开车 · 你<br/>摆盘点蜡烛 · 她<br/>蛋糕第一刀 · 她<br/>洗碗 · 一起</p></div></div>';
   return html;
 }
 
@@ -961,10 +977,13 @@ document.getElementById('combine').onclick = function(){
     .concat(kitchens.map(function(it,i){ return {it:it, time:KIT_TIMES[i]}; }))
     .sort(function(x,y){ return x.time.localeCompare(y.time); });
   document.getElementById('m-date').textContent =
-    now.getFullYear()+' . '+(now.getMonth()+1)+' . '+now.getDate()+' — For the one and only';
+    now.getFullYear()+' . '+(now.getMonth()+1)+' . '+now.getDate() +
+    (kitchens.length ? ' — Hamilton, Ontario' : ' — For the one and only');
   var courseHtml = stops.map(function(s,i){
-    var extra = s.it.mins ? ' · 约 '+s.it.mins+' 分钟' : '';
-    var cat = s.it.course ? (COURSE_EN[s.it.course]+' · '+s.it.course) : CAT_EN[s.it.cat];
+    var extra = s.it.heat ? ' · '+s.it.heat : '';
+    var cat;
+    if (s.it.chef){ var ch = chefMeta(s.it.chef); cat = ch.en+' · '+ch.name; }
+    else cat = CAT_EN[s.it.cat];
     return '<div class="course"><div class="no">'+ROMAN[i]+' · '+cat+'</div>'+
     '<div class="row"><span class="t">'+s.it.t+'</span><span class="time">'+s.time+'</span></div>'+
     '<div class="d">'+s.it.d+extra+'</div></div>';
