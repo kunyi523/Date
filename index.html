@@ -93,6 +93,13 @@
     color:var(--ink); background:var(--gold-bright); padding:2px 7px; border-radius:2px;
   }
   .empty{grid-column:1/-1; text-align:center; font-size:13px; color:var(--ink-soft); padding:14px 0}
+  .k-lead{font-size:13px; color:var(--ink-soft); line-height:1.75; margin:12px 2px 0}
+  .card.kit .cat{color:var(--gold-bright)}
+  .card .meta{display:flex; gap:6px; flex-wrap:wrap; margin-top:9px}
+  .card .meta span{
+    font-size:10px; letter-spacing:.4px; color:var(--gold-bright);
+    border:1px solid rgba(201,169,106,.35); padding:2px 6px; border-radius:2px;
+  }
 
   .final{
     width:100%; margin-top:36px; padding:17px 0; border-radius:3px; border:none;
@@ -120,6 +127,28 @@
   .course .d{font-size:12.5px; color:rgba(240,232,220,.6); line-height:1.65; margin-top:3px}
   .m-note{border-top:1px solid rgba(240,232,220,.14); margin-top:2px; padding-top:14px; text-align:center; font-size:12.5px; line-height:1.8; color:rgba(240,232,220,.7)}
   .m-note .sig{font-family:var(--serif); font-weight:600; font-size:13.5px; color:var(--gold-bright); margin-top:6px}
+  .shop{margin-top:16px; padding-top:14px; border-top:1px solid rgba(240,232,220,.14)}
+  .shop .sh, .k-box .sh{
+    font-family:var(--latin); font-size:12px; letter-spacing:3px;
+    color:var(--gold-bright); text-transform:uppercase; margin-bottom:8px
+  }
+  .shop-item{
+    display:flex; align-items:center; gap:9px; padding:8px 2px;
+    border-bottom:1px solid rgba(240,232,220,.08); font-size:13px; cursor:pointer;
+    color:rgba(240,232,220,.88);
+  }
+  .shop-item .box{
+    width:14px; height:14px; border:1px solid rgba(201,169,106,.55);
+    border-radius:2px; flex-shrink:0;
+  }
+  .shop-item.done{opacity:.4; text-decoration:line-through}
+  .shop-item.done .box{background:var(--gold-bright); border-color:var(--gold-bright)}
+  .k-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:14px}
+  .k-box{border:1px solid rgba(201,169,106,.25); border-radius:4px; padding:12px 10px}
+  .k-box p{margin:0; font-size:12.5px; line-height:1.8; color:rgba(240,232,220,.75)}
+  .tl{padding:5px 0; display:flex; gap:10px; font-size:12.5px; color:rgba(240,232,220,.8)}
+  .tl .tm{font-family:var(--latin); color:var(--gold-bright); width:44px; flex-shrink:0}
+  @media (max-width:360px){ .k-grid{grid-template-columns:1fr} }
 
   .sweet-btn{width:100%; margin-top:32px; padding:13px 0; border-radius:3px; border:1px dashed var(--gold); background:transparent; color:var(--gold); font-size:14px; letter-spacing:3px; cursor:pointer; font-family:inherit}
   .sweet{margin-top:14px; text-align:center; font-family:var(--serif); font-weight:600; font-size:16.5px; line-height:1.8; animation:rise .4s ease both; min-height:1em}
@@ -295,11 +324,18 @@
     <div class="deck hidden" id="deckB"></div>
   </div>
 
+  <div class="part">
+    <div class="part-head"><span class="t">今日私厨</span><span class="en">The Kitchen</span></div>
+    <div class="k-lead" id="kLead">不出门也可以很心动。抽一套今晚的菜，采购单和时间表一并给你。</div>
+    <button class="deal" id="dealK">抽 取 菜 谱</button>
+    <div class="deck hidden" id="deckK"></div>
+  </div>
+
   <button class="final" id="combine" disabled>生 成 最 终 计 划</button>
 
   <div class="menu hidden" id="menu">
-    <div class="m-eyebrow">Menu du jour</div>
-    <h2>最终约会计划</h2>
+    <div class="m-eyebrow" id="m-eyebrow">Menu du jour</div>
+    <h2 id="m-title">最终约会计划</h2>
     <div class="m-date" id="m-date"></div>
     <div id="m-courses"></div>
     <div class="m-note" id="m-note"></div>
@@ -582,6 +618,7 @@ function renderChips(id, items, key, allowOff){
     b.onclick = function(){
       state[key] = (allowOff && state[key]===v) ? null : v;
       renderChips(id, items, key, allowOff);
+      updateKLead();
     };
     box.appendChild(b);
   });
@@ -616,6 +653,7 @@ document.getElementById('tempBtn').onclick = function(){
         state.weather = w; state.temp = band;
         renderChips('weathers', WEATHER_OPTS, 'weather');
         renderChips('temps', TEMP_OPTS, 'temp', true);
+        updateKLead();
         read.innerHTML = t + '°C · ' + w.slice(3) + '<b>已自动选好，不对可手动改</b>';
       })
       .catch(function(){ read.textContent = '天气获取失败，手动选吧'; });
@@ -628,6 +666,8 @@ var POOL = [
   {cat:'游', t:'球场投篮', d:'进一球兑换一个愿望', w:'晴', loc:[NEAR], b:0, noHot:1, tw:[9,19]},
   {cat:'行', t:'遛弯到便利店', d:'各买一样新品，互相打分', w:'皆', loc:[NEAR], b:0, tw:[10,22]},
   {cat:'彩蛋', t:'超市大采购', d:'零食自由，今天上不封顶', w:'皆', loc:[NEAR], b:0, tw:[10,21]},
+  {cat:'行', t:'私厨备料采购', d:'按菜单买齐，不许临时加一车零食。可以加一束花。', w:'皆', loc:[NEAR,CITY], b:0, tw:[10,20]},
+  {cat:'彩蛋', t:'布置餐桌', d:'蜡烛、纸巾折叠、手机倒扣。私厨的开场仪式。', w:'皆', loc:[NEAR], b:0, tw:[16,22]},
   {cat:'游', t:'桌游杀两局', d:'输的人答应赢的人一件事', w:'雨', loc:[NEAR,CITY], b:0, tw:[12,21]},
   {cat:'游', t:'在家电影马拉松', d:'片单一人选一部，不许嫌弃', w:'雨', loc:[NEAR], b:0, tw:[13,22]},
   {cat:'彩蛋', t:'窗边拍立得', d:'听雨，拍一张今天的我们', w:'雨', loc:[NEAR], b:0},
@@ -666,7 +706,50 @@ var POOL = [
   {cat:'食', t:'服务区小吃巡礼', d:'出逃路上的仪式感', w:'皆', loc:[FAR], b:0, tw:[9,20]},
   {cat:'食', t:'带上野餐篮', d:'三明治 + 她爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15]},
 ];
-var CAT_EN = { '行':'Stroll', '游':'Play', '食':'Taste', '彩蛋':'Surprise' };
+var CAT_EN = { '行':'Stroll', '游':'Play', '食':'Taste', '彩蛋':'Surprise', '厨':'Kitchen' };
+var COURSE_EN = { '冷盘':'Hors d\'oeuvre', '汤':'Soup', '主菜':'Main', '面':'Noodles', '甜品':'Dessert', '饮':'Digestif', '宵夜':'Late bite' };
+var KITCHEN = [
+  {course:'冷盘', t:'拍黄瓜', d:'蒜要多，醋要香。她负责拍，你负责吃第一口。', shop:['黄瓜 2 根','蒜','陈醋','香油','小米辣'], mins:8, diff:'易', w:'皆', b:0},
+  {course:'冷盘', t:'番茄芝士沙拉', d:'红的绿的叠起来，像一盘夏天。', shop:['圣女果','新鲜沙拉叶','马苏里拉','橄榄油','黑胡椒'], mins:10, diff:'易', w:'晴', b:0, noCold:1},
+  {course:'冷盘', t:'牛油果虾沙拉', d:'摆成一颗心也行，歪了就叫抽象派。', shop:['牛油果 1 个','虾仁 200g','柠檬','沙拉叶','橄榄油'], mins:15, diff:'易', w:'皆', b:1, noCold:1},
+  {course:'汤', t:'番茄蛋花汤', d:'雨天的开场白。胡椒多转两圈。', shop:['番茄 2 个','鸡蛋 2 个','葱','胡椒'], mins:15, diff:'易', w:'雨', b:0, tw:[11,22]},
+  {course:'汤', t:'奶油蘑菇汤', d:'用面包蘸到见底为止，才算喝完。', shop:['蘑菇','洋葱','淡奶油','黄油','吐司'], mins:25, diff:'中', w:'雨', b:1, tw:[16,21]},
+  {course:'汤', t:'味噌汤', d:'豆腐切小块，海苔最后撒。安静的一碗。', shop:['味噌酱','嫩豆腐','海苔','葱'], mins:12, diff:'易', w:'皆', b:0},
+  {course:'主菜', t:'番茄炒蛋', d:'家常菜的天花板。糖少许，她说了算。', shop:['番茄 3 个','鸡蛋 4 个','葱','糖'], mins:15, diff:'易', w:'皆', b:0, tw:[10,21]},
+  {course:'面', t:'葱油拌面', d:'葱油浇下去的那一声，就是开餐铃。', shop:['面条','小葱','生抽','糖','油'], mins:20, diff:'易', w:'皆', b:0, tw:[11,22]},
+  {course:'主菜', t:'可乐鸡翅', d:'收汁收到发亮。第一块归她。', shop:['鸡翅 8 只','可乐 1 罐','姜','酱油'], mins:30, diff:'易', w:'皆', b:0, tw:[16,20]},
+  {course:'主菜', t:'蒜蓉西兰花', d:'绿的要脆，蒜要金。配白饭刚刚好。', shop:['西兰花 1 棵','蒜','盐','白饭米'], mins:15, diff:'易', w:'皆', b:0, tw:[11,21]},
+  {course:'主菜', t:'红烧豆腐', d:'嫩豆腐小心翻。酱汁请自行偷喝。', shop:['嫩豆腐 1 盒','酱油','糖','葱姜','淀粉'], mins:20, diff:'易', w:'皆', b:0, tw:[11,21]},
+  {course:'主菜', t:'黄油蒜香虾', d:'她负责剥虾，你负责颠锅。蒜要多到犯规。', shop:['大虾 300g','蒜头 1 头','黄油','欧芹','柠檬'], mins:20, diff:'易', w:'皆', b:1, tw:[17,21]},
+  {course:'面', t:'奶油蘑菇意面', d:'面要咬过，酱要挂住。两个人分一盘也行。', shop:['意面','蘑菇','淡奶油','蒜','帕玛森'], mins:25, diff:'中', w:'皆', b:1, tw:[17,21]},
+  {course:'主菜', t:'黑椒牛排', d:'七分熟。煎的时候不许翻太勤，也不许玩手机。', shop:['牛排 2 块','黑胡椒','黄油','蒜','迷迭香'], mins:20, diff:'中', w:'皆', b:1, tw:[17,21]},
+  {course:'主菜', t:'三文鱼配时蔬', d:'皮要脆，心要嫩。柠檬挤在她那份上。', shop:['三文鱼排 2 块','西兰花','柠檬','橄榄油','黑胡椒'], mins:25, diff:'中', w:'皆', b:1, tw:[17,21]},
+  {course:'主菜', t:'日式寿喜烧', d:'一个锅，两双筷子。肉跟豆腐一起涮。', shop:['肥牛片','豆腐','大葱','香菇','寿喜烧酱','米饭'], mins:35, diff:'中', w:'雨', b:1, noHot:1, tw:[17,21]},
+  {course:'主菜', t:'麻辣香锅两人份', d:'辣度以她的意见为准。这是厨房宪法。', shop:['莲藕','午餐肉','虾','西兰花','香锅底料'], mins:35, diff:'中', w:'皆', b:1, noHot:1, tw:[17,21]},
+  {course:'主菜', t:'韩式部队锅', d:'泡面最后下。芝士拉丝的那一下要拍下来。', shop:['火腿肠','泡菜','泡面','午餐肉','芝士片','年糕'], mins:30, diff:'易', w:'雨', b:1, noHot:1, tw:[17,22]},
+  {course:'主菜', t:'战斧牛排', d:'豪华版开张。她切第一刀，你负责鼓掌。', shop:['战斧牛排 1 块','海盐','黑胡椒','黄油','迷迭香'], mins:30, diff:'中', w:'皆', b:2, tw:[17,20]},
+  {course:'面', t:'龙虾意面', d:'壳归你拆，酱归她拌。今晚的海鲜要配酒。', shop:['龙虾或鳌虾','意面','蒜','黄油','白葡萄酒','欧芹'], mins:35, diff:'难', w:'皆', b:2, tw:[17,20]},
+  {course:'主菜', t:'红酒炖牛腩', d:'慢才是浪漫。下午就开始炖，晚上刚好软。', shop:['牛腩 500g','红酒 1 瓶','胡萝卜','洋葱','迷迭香'], mins:90, diff:'中', w:'雨', b:2, noHot:1, tw:[14,18]},
+  {course:'甜品', t:'香蕉煎船', d:'配一球冰淇淋。焦糖化的那面朝上给她。', shop:['香蕉 2 根','黄油','糖','冰淇淋'], mins:10, diff:'易', w:'皆', b:0, tw:[18,23]},
+  {course:'甜品', t:'草莓优格蜜', d:'五分钟甜品。红的归她，白的搅拌权归你。', shop:['草莓 1 盒','原味优格','蜂蜜'], mins:5, diff:'易', w:'皆', b:0, noCold:1},
+  {course:'甜品', t:'巧克力熔岩杯', d:'切开要流心。勺子递给她，看她眼睛。', shop:['黑巧克力','黄油','鸡蛋 2 个','低筋面粉','糖'], mins:20, diff:'中', w:'皆', b:1, tw:[18,22]},
+  {course:'甜品', t:'提拉米苏杯', d:'不用烤。冰箱里躺一会儿，心动多一会儿。', shop:['马斯卡彭','手指饼干','咖啡','可可粉','鸡蛋'], mins:15, diff:'中', w:'皆', b:1, tw:[14,21]},
+  {course:'甜品', t:'舒芙蕾', d:'豪华版的心跳。塌了也要一起吃，塌叫酥芙。', shop:['鸡蛋 3 个','牛奶','糖','黄油','低筋面粉'], mins:30, diff:'难', w:'皆', b:2, tw:[18,21]},
+  {course:'饮', t:'手冲咖啡', d:'水温、绕圈、她爱的那点甜。', shop:['咖啡豆或挂耳','热水','糖或牛奶'], mins:8, diff:'易', w:'皆', b:0},
+  {course:'饮', t:'柠檬蜂蜜气泡', d:'冰要满，薄荷要拍香。夏天的私厨标配。', shop:['柠檬 2 个','蜂蜜','苏打水','薄荷','冰块'], mins:5, diff:'易', w:'晴', b:0, noCold:1},
+  {course:'饮', t:'热红酒', d:'橙片、肉桂、慢热。外面越冷，杯子越要捧着。', shop:['红酒','橙子','肉桂棒','蜂蜜','八角'], mins:15, diff:'易', w:'雨', b:1, noHot:1, tw:[17,23]},
+  {course:'饮', t:'气泡酒配草莓', d:'酒先冰，草莓洗好。碰杯的时候看她，别看杯子。', shop:['气泡酒 1 瓶','草莓 1 盒'], mins:5, diff:'易', w:'皆', b:1, tw:[18,22]},
+  {course:'饮', t:'香槟', d:'豪华版收尾。只倒半杯，剩下的话慢慢说。', shop:['香槟 1 瓶','两只高脚杯'], mins:3, diff:'易', w:'皆', b:2, tw:[18,22]},
+  {course:'宵夜', t:'煎饺配醋', d:'深夜厨房。金边焦了才算熟。醋碟两人各一份。', shop:['冷冻饺子','醋','蒜','小米辣'], mins:12, diff:'易', w:'皆', b:0, tw:[20,23]},
+  {course:'宵夜', t:'一碗细面', d:'汤要热，葱花最后撒。宵夜界的标准答案。', shop:['细面','鸡蛋','小白菜','葱','酱油'], mins:15, diff:'易', w:'雨', b:0, tw:[20,23]},
+];
+var KITCHEN_ENDINGS = [
+  '今晚的米其林，就两个人。',
+  '灶台可以很小，菜单可以很长。',
+  '洗完碗，才算约会结束。',
+  '私厨打烊，拥抱营业。',
+  '这顿饭的评分权，全权交给她。',
+];
 var BUDGET_RANK = { '穷开心':0, '小奢侈':1, '豪华版':2 };
 var BUDGET_NOTE = {
   '穷开心':'本日计划走心不走钱包，快乐照常供应。',
@@ -702,19 +785,88 @@ function fits(it){
 })();
 
 var decks = {
-  A: { dealt:[], sel:{}, el:'deckA', btn:'dealA', isFood:false, n:6 },
-  B: { dealt:[], sel:{}, el:'deckB', btn:'dealB', isFood:true, n:4 },
+  A: { dealt:[], sel:{}, el:'deckA', btn:'dealA', kind:'play', n:6 },
+  B: { dealt:[], sel:{}, el:'deckB', btn:'dealB', kind:'food', n:4 },
+  K: { dealt:[], sel:{}, el:'deckK', btn:'dealK', kind:'kitchen', n:6 },
 };
 function selCount(D){ return Object.keys(D.sel).length; }
+function updateKLead(){
+  var el = document.getElementById('kLead');
+  if (!el) return;
+  var w = state.weather || '', t = state.temp || '', loc = state.loc || '';
+  var msg = '不出门也可以很心动。抽一套今晚的菜，采购单和时间表一并给你。';
+  if (w.indexOf('雨')>-1) msg = '雨天最适合开私厨。世界在窗外，厨房里是你们的。';
+  else if (w.indexOf('雪')>-1) msg = '外面在下雪。灶上热着，今晚私厨营业。';
+  else if (t.indexOf('炎热')>-1) msg = '天太热就少开火。凉拌、冰镇、她负责尝。';
+  else if (t.indexOf('寒冷')>-1) msg = '外面冷，锅要热。今晚用一顿热的把她暖住。';
+  else if (loc.indexOf('家附近')>-1) msg = '今晚哪也不去。私厨的座位只有两个，都留给你们。';
+  el.textContent = msg;
+}
+updateKLead();
 function updateFinalBtn(){
   var btn = document.getElementById('combine');
-  var a = selCount(decks.A), b = selCount(decks.B);
-  btn.disabled = !(a>=1 && b>=1);
-  btn.textContent = btn.disabled ? '生 成 最 终 计 划' : '生成最终计划（玩'+a+' · 食'+b+'）';
+  var a = selCount(decks.A), b = selCount(decks.B), k = selCount(decks.K);
+  btn.disabled = !((a>=1 && b>=1) || k>=1);
+  if (btn.disabled){ btn.textContent = '生 成 最 终 计 划'; return; }
+  var bits = [];
+  if (a) bits.push('玩'+a);
+  if (b) bits.push('食'+b);
+  if (k) bits.push('厨'+k);
+  btn.textContent = (k && !a && !b ? '生成私厨菜单' : '生成最终计划') + '（' + bits.join(' · ') + '）';
+}
+function fitsKitchen(it){
+  var w = (state.weather.indexOf('晴')>-1 || state.weather.indexOf('阴')>-1) ? '晴' : '雨';
+  if (!(it.w==='皆' || it.w===w)) return false;
+  if (BUDGET_RANK[state.budget] < it.b) return false;
+  if (state.temp && state.temp.indexOf('炎热')>-1 && it.noHot) return false;
+  if (state.temp && state.temp.indexOf('寒冷')>-1 && it.noCold) return false;
+  if (it.tw && it.tw[1] < HOUR) return false;
+  if (HOUR >= 21 && it.mins > 30) return false;
+  if (HOUR >= 22 && it.course !== '宵夜' && it.course !== '饮' && it.course !== '甜品' && it.mins > 15) return false;
+  return true;
+}
+function dealKitchen(D){
+  var fit = KITCHEN.filter(fitsKitchen);
+  var by = {};
+  fit.forEach(function(it){ (by[it.course] = by[it.course] || []).push(it); });
+  var order = HOUR >= 21
+    ? ['宵夜','饮','甜品','面','主菜','汤','冷盘']
+    : ['冷盘','汤','主菜','面','甜品','饮','宵夜'];
+  var picked = [];
+  order.forEach(function(c){
+    if (by[c] && by[c].length) picked.push(pick(shuffle(by[c])));
+  });
+  var rest = shuffle(fit.filter(function(it){ return picked.indexOf(it)===-1; }));
+  D.dealt = picked.concat(rest).slice(0, D.n);
+  D.sel = {};
+  var box = document.getElementById(D.el);
+  box.classList.remove('hidden');
+  box.innerHTML = '';
+  if (!D.dealt.length) box.innerHTML = '<div class="empty">这个条件下没抽到菜谱，换个天气或预算试试</div>';
+  D.dealt.forEach(function(it, i){
+    var c = document.createElement('div');
+    c.className = 'card kit';
+    c.setAttribute('role','button'); c.setAttribute('tabindex','0');
+    var en = COURSE_EN[it.course] || 'Kitchen';
+    c.innerHTML = '<div class="cat">'+en+' · '+it.course+'</div><div class="t">'+it.t+'</div><div class="d">'+it.d+'</div>'+
+      '<div class="meta"><span>'+it.mins+' 分钟</span><span>'+it.diff+'</span></div>';
+    var toggle = function(){
+      if (D.sel[i]) delete D.sel[i]; else D.sel[i] = true;
+      c.classList.toggle('sel');
+      updateFinalBtn();
+    };
+    c.onclick = toggle;
+    c.onkeydown = function(e){ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } };
+    box.appendChild(c);
+  });
+  document.getElementById(D.btn).textContent = '换 一 批';
+  document.getElementById('menu').classList.add('hidden');
+  updateFinalBtn();
 }
 function deal(k){
   var D = decks[k];
-  var fit = POOL.filter(function(it){ return (it.cat==='食')===D.isFood && fits(it); });
+  if (D.kind === 'kitchen'){ dealKitchen(D); return; }
+  var fit = POOL.filter(function(it){ return (it.cat==='食')===(D.kind==='food') && fits(it); });
   D.dealt = shuffle(fit).slice(0, D.n);
   D.sel = {};
   var box = document.getElementById(D.el);
@@ -741,30 +893,103 @@ function deal(k){
 }
 document.getElementById('dealA').onclick = function(){ deal('A'); };
 document.getElementById('dealB').onclick = function(){ deal('B'); };
+document.getElementById('dealK').onclick = function(){ deal('K'); };
+
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function hmAdd(h, m, add){
+  var t = h*60 + m + add;
+  if (t < 0) t += 24*60;
+  t = t % (24*60);
+  return pad2(Math.floor(t/60)) + ':' + pad2(t%60);
+}
+function kitchenExtras(dishes){
+  var order = {饮:0, 冷盘:1, 汤:2, 面:3, 主菜:4, 宵夜:5, 甜品:6};
+  dishes = dishes.slice().sort(function(a,b){ return (order[a.course]||9) - (order[b.course]||9); });
+  var shop = [], seen = {};
+  dishes.forEach(function(it){
+    (it.shop||[]).forEach(function(s){
+      var key = s.replace(/\s+/g,'');
+      if (!seen[key]){ seen[key]=1; shop.push(s); }
+    });
+  });
+  var maxMins = 0;
+  dishes.forEach(function(it){ if (it.mins > maxMins) maxMins = it.mins; });
+  var dinnerH = HOUR >= 19 ? Math.min(HOUR + 1, 22) : 19;
+  var dinnerM = 0;
+  var start = hmAdd(dinnerH, dinnerM, -(maxMins + 15));
+  var html = '';
+  if (shop.length){
+    html += '<div class="shop"><div class="sh">Market List · 采购单</div>' +
+      shop.map(function(s){ return '<div class="shop-item" role="button" tabindex="0"><span class="box"></span><span>'+s+'</span></div>'; }).join('') +
+      '</div>';
+  }
+  var tls = [
+    {t: start, d: '洗手、放歌、把食材摆上台面'},
+  ];
+  dishes.forEach(function(it){
+    tls.push({t: hmAdd(dinnerH, dinnerM, -it.mins), d: '开始「'+it.t+'」· '+it.mins+' 分钟'});
+  });
+  tls.push({t: pad2(dinnerH)+':'+pad2(dinnerM), d: '摆盘、点蜡烛、开餐'});
+  tls.push({t: hmAdd(dinnerH, dinnerM, 50), d: '一起洗碗。不许偷懒。'});
+  tls.sort(function(a,b){ return a.t.localeCompare(b.t); });
+  var uniq = [], last = '';
+  tls.forEach(function(x){
+    var k = x.t + x.d;
+    if (k !== last){ uniq.push(x); last = k; }
+  });
+  html += '<div class="k-grid"><div class="k-box"><div class="sh">Service · 厨房时间表</div>' +
+    uniq.map(function(x){ return '<div class="tl"><span class="tm">'+x.t+'</span><span>'+x.d+'</span></div>'; }).join('') +
+    '</div><div class="k-box"><div class="sh">Brigade · 今晚分工</div>' +
+    '<p>主厨 · 你 — 热菜与火候<br/>副厨 · 她 — 冷盘、甜品与摆盘<br/>洗碗 · 一起<br/>蜡烛 · 你来点<br/>歌单 · 她来选</p></div></div>';
+  return html;
+}
 
 var NIGHT = HOUR >= 18;
 var PLAY_TIMES = NIGHT ? ['19:30','21:00','22:30','23:30'] : ['14:00','16:00','20:30','22:00'];
 var FOOD_TIMES = NIGHT ? ['20:15','21:45','23:00'] : ['18:30','21:30','12:30'];
-var ROMAN = ['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ⅵ'];
+var KIT_TIMES = NIGHT ? ['20:00','20:20','20:45','21:15'] : ['18:30','18:50','19:20','19:50'];
+var ROMAN = ['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ⅵ','Ⅶ','Ⅷ','Ⅸ','Ⅹ','Ⅺ','Ⅻ'];
 document.getElementById('combine').onclick = function(){
   var plays = Object.keys(decks.A.sel).map(Number).sort(function(a,b){return a-b;}).map(function(i){return decks.A.dealt[i];}).slice(0,4);
   var foods = Object.keys(decks.B.sel).map(Number).sort(function(a,b){return a-b;}).map(function(i){return decks.B.dealt[i];}).slice(0,3);
+  var kitchens = Object.keys(decks.K.sel).map(Number).sort(function(a,b){return a-b;}).map(function(i){return decks.K.dealt[i];}).slice(0,4);
+  var kitOnly = kitchens.length && !plays.length && !foods.length;
+  document.getElementById('m-eyebrow').textContent = kitOnly ? 'Menu privé' : 'Menu du jour';
+  document.getElementById('m-title').textContent = kitOnly ? '今晚私厨' : '最终约会计划';
   var stops = plays.map(function(it,i){ return {it:it, time:PLAY_TIMES[i]}; })
     .concat(foods.map(function(it,i){ return {it:it, time:FOOD_TIMES[i]}; }))
+    .concat(kitchens.map(function(it,i){ return {it:it, time:KIT_TIMES[i]}; }))
     .sort(function(x,y){ return x.time.localeCompare(y.time); });
   document.getElementById('m-date').textContent =
     now.getFullYear()+' . '+(now.getMonth()+1)+' . '+now.getDate()+' — For the one and only';
-  document.getElementById('m-courses').innerHTML = stops.map(function(s,i){
-    return '<div class="course"><div class="no">'+ROMAN[i]+' · '+CAT_EN[s.it.cat]+'</div>'+
+  var courseHtml = stops.map(function(s,i){
+    var extra = s.it.mins ? ' · 约 '+s.it.mins+' 分钟' : '';
+    var cat = s.it.course ? (COURSE_EN[s.it.course]+' · '+s.it.course) : CAT_EN[s.it.cat];
+    return '<div class="course"><div class="no">'+ROMAN[i]+' · '+cat+'</div>'+
     '<div class="row"><span class="t">'+s.it.t+'</span><span class="time">'+s.time+'</span></div>'+
-    '<div class="d">'+s.it.d+'</div></div>';
+    '<div class="d">'+s.it.d+extra+'</div></div>';
   }).join('');
+  if (kitchens.length) courseHtml += kitchenExtras(kitchens);
+  document.getElementById('m-courses').innerHTML = courseHtml;
+  var ending = kitchens.length ? pick(KITCHEN_ENDINGS) : pick(ENDINGS);
   document.getElementById('m-note').innerHTML =
-    BUDGET_NOTE[state.budget] + '<div class="sig">'+pick(ENDINGS)+'</div>';
+    BUDGET_NOTE[state.budget] + '<div class="sig">'+ending+'</div>';
   var menu = document.getElementById('menu');
   menu.classList.remove('hidden');
   menu.scrollIntoView({behavior:'smooth', block:'nearest'});
 };
+document.getElementById('menu').addEventListener('click', function(e){
+  var it = e.target.closest ? e.target.closest('.shop-item') : null;
+  if (!it) return;
+  it.classList.toggle('done');
+});
+document.getElementById('menu').addEventListener('keydown', function(e){
+  if (e.key!=='Enter' && e.key!==' ') return;
+  var it = e.target.closest ? e.target.closest('.shop-item') : null;
+  if (!it) return;
+  e.preventDefault();
+  it.classList.toggle('done');
+});
 
 // ====== 彩蛋：初衷 ======
 (function(){
