@@ -1957,14 +1957,14 @@ var POI_KIND = {
   ice_cream: { cat:'食', u:35, tw:[11,21], d:'一份两勺，第一口让她先尝' },
   museum:    { cat:'游', u:90, tw:[9,16],  d:'各挑一件最喜欢的，讲给对方听' },
   gallery:   { cat:'游', u:80, tw:[10,17], d:'看不懂就一起编，反正没人考' },
-  attraction:{ cat:'行', u:75, tw:[9,17],  d:'先合一张影，再慢慢逛' },
-  viewpoint: { cat:'行', u:50, tw:[9,19],  d:'等天色沉下来再走' },
-  zoo:       { cat:'游', u:140, tw:[9,16], d:'在最喜欢的那只面前多站一会儿' },
+  attraction:{ cat:'行', u:75, tw:[9,17],  d:'先合一张影，再慢慢逛' , sun:1},
+  viewpoint: { cat:'行', u:50, tw:[9,19],  d:'等天色沉下来再走' , sun:1},
+  zoo:       { cat:'游', u:140, tw:[9,16], d:'在最喜欢的那只面前多站一会儿' , sun:1},
   aquarium:  { cat:'游', u:110, tw:[10,17],d:'在水母缸前多站一会儿' },
-  theme_park:{ cat:'游', u:180, tw:[10,16],d:'排最长的那个队，值得' },
-  park:      { cat:'行', u:70, tw:[7,19],  d:'沿着走一圈，不赶时间' },
-  garden:    { cat:'行', u:60, tw:[8,18],  d:'挑一朵今天最好看的，拍给{ta}' },
-  water_park:{ cat:'游', u:150, tw:[10,17],d:'谁先把谁弄湿都不许生气' },
+  theme_park:{ cat:'游', u:180, tw:[10,16],d:'排最长的那个队，值得' , sun:1},
+  park:      { cat:'行', u:70, tw:[7,19],  d:'沿着走一圈，不赶时间' , sun:1},
+  garden:    { cat:'行', u:60, tw:[8,18],  d:'挑一朵今天最好看的，拍给{ta}', sun:1 },
+  water_park:{ cat:'游', u:150, tw:[10,17],d:'谁先把谁弄湿都不许生气' , sun:1},
   cinema:    { cat:'游', u:130, tw:[10,21],d:'她挑片，我买爆米花和靠后排' },
   theatre:   { cat:'游', u:130, tw:[14,20],d:'散场之后走一段再打车' }
 };
@@ -2715,7 +2715,7 @@ $('tempBtn').onclick = function(){
 /* ---------- 6 卡池与文案 ---------- */
 // tw:[最早开始, 最晚开始]（小时）；u:大概要多久（分钟，默认玩 90 / 吃 75 / 彩蛋 30）
 var POOL = [
-  {cat:'游', t:'球场投篮', d:'进一球兑换一个愿望', w:'晴', loc:[NEAR], b:0, noHot:1, tw:[9,19], u:75},
+  {cat:'游', t:'球场投篮', d:'进一球兑换一个愿望', w:'晴', loc:[NEAR], b:0, noHot:1, tw:[9,19], u:75, sun:1},
   {cat:'行', t:'遛弯到便利店', d:'各买一样新品，互相打分', w:'皆', loc:[NEAR], b:0, tw:[10,22], u:45},
   {cat:'彩蛋', t:'超市大采购', d:'零食自由，今天上不封顶', w:'皆', loc:[NEAR], b:0, tw:[10,21], u:50},
   {cat:'游', t:'桌游杀两局', d:'输的人答应赢的人一件事', w:'雨', loc:[NEAR,CITY], b:0, tw:[12,21], u:90},
@@ -2726,8 +2726,8 @@ var POOL = [
   {cat:'彩蛋', t:'翻旧照片', d:'从最早那张开始，讲当天发生了什么', w:'雨', loc:[NEAR], b:0, u:40},
   {cat:'游', t:'美术馆看展', d:'各选一幅最喜欢的，讲给对方听', w:'皆', loc:[CITY], b:0, tw:[10,16], u:90},
   {cat:'游', t:'唱片店淘歌', d:'给对方挑一首"这就是你"的歌', w:'皆', loc:[CITY], b:0, tw:[11,20], u:60},
-  {cat:'行', t:'老街区漫步', d:'专挑没走过的巷子钻', w:'晴', loc:[CITY], b:0, tw:[10,20], u:80},
-  {cat:'行', t:'长堤走走', d:'风替我说想你', w:'晴', loc:[CITY], b:0, noCold:1, tw:[9,19], u:60},
+  {cat:'行', t:'老街区漫步', d:'专挑没走过的巷子钻', w:'晴', loc:[CITY], b:0, tw:[10,20], u:80, sun:1},
+  {cat:'行', t:'长堤走走', d:'风替我说想你', w:'晴', loc:[CITY], b:0, noCold:1, tw:[9,19], u:60, sun:1},
   {cat:'游', t:'游船夜航', d:'上层甲板风大，外套先给{ta}', w:'晴', loc:[CITY], b:1, noCold:1, tw:[18,21], u:80},
   {cat:'彩蛋', t:'大头贴合影', d:'认真拍一版，再拍最丑一版', w:'皆', loc:[CITY], b:0, tw:[11,21], u:25},
   {cat:'彩蛋', t:'顺手买束花', d:'不为节日，就是今天想送', w:'皆', loc:[CITY], b:1, tw:[10,20], u:20},
@@ -2737,10 +2737,10 @@ var POOL = [
   {cat:'游', t:'水族馆散步', d:'在水母缸前多站一会儿', w:'雨', loc:[CITY], b:1, tw:[10,17], u:110},
   {cat:'游', t:'KTV 小包', d:'专属点歌权移交给{ta}', w:'雨', loc:[CITY], b:0, tw:[13,22], u:120},
   {cat:'游', t:'看一场电影', d:'{ta}挑片，我买爆米花和靠后排', w:'皆', loc:[CITY], b:0, tw:[11,21], u:130},
-  {cat:'行', t:'山径轻徒步', d:'走到观景台就算登顶成功', w:'晴', loc:[FAR], b:0, noHot:1, tw:[8,14], u:150},
-  {cat:'游', t:'果园采摘', d:'摘满一小篮才准下班', w:'晴', loc:[FAR], b:0, tw:[9,15], u:110},
-  {cat:'游', t:'花田风车打卡', d:'照片配额：{ta}九张我一张', w:'晴', loc:[FAR], b:0, tw:[9,16], u:90},
-  {cat:'彩蛋', t:'夜观星空', d:'认不出星座就现场编一个', w:'晴', loc:[FAR], b:0, noCold:1, tw:[20,23], u:60},
+  {cat:'行', t:'山径轻徒步', d:'走到观景台就算登顶成功', w:'晴', loc:[FAR], b:0, noHot:1, tw:[8,14], u:150, sun:1},
+  {cat:'游', t:'果园采摘', d:'摘满一小篮才准下班', w:'晴', loc:[FAR], b:0, tw:[9,15], u:110, sun:1},
+  {cat:'游', t:'花田风车打卡', d:'照片配额：{ta}九张我一张', w:'晴', loc:[FAR], b:0, tw:[9,16], u:90, sun:1},
+  {cat:'彩蛋', t:'夜观星空', d:'认不出星座就现场编一个', w:'晴', loc:[FAR], b:0, noCold:1, tw:[20,23], u:60, dark:1},
   {cat:'游', t:'温泉半日', d:'泡到手指起皱为止', w:'皆', loc:[FAR], b:1, tw:[10,20], u:150},
   {cat:'游', t:'民宿发呆', d:'什么都不安排也是一种安排', w:'雨', loc:[FAR], b:2, tw:[12,20], u:180},
   {cat:'彩蛋', t:'共撑一把伞', d:'伞记得往{ta}那边偏', w:'雨', loc:[NEAR,CITY,FAR], b:0, u:20},
@@ -2755,14 +2755,14 @@ var POOL = [
   {cat:'食', t:'火锅暖场', d:'辣度以{ta}的意见为准', w:'雨', loc:[NEAR,CITY], b:0, tw:[11,21], u:110},
   {cat:'食', t:'老字号小馆', d:'点一道{ta}没吃过的招牌菜', w:'皆', loc:[CITY], b:0, tw:[11,19], u:80},
   {cat:'食', t:'甜品二人份', d:'一份两勺，第一口让{ta}先尝', w:'皆', loc:[NEAR,CITY], b:0, tw:[13,21], u:45},
-  {cat:'食', t:'水边咖啡座', d:'一直坐到夕阳收工', w:'晴', loc:[CITY], b:0, tw:[13,17], u:70},
+  {cat:'食', t:'水边咖啡座', d:'一直坐到夕阳收工', w:'晴', loc:[CITY], b:0, tw:[13,17], u:70, sun:1},
   {cat:'食', t:'临水小酒馆', d:'一杯就好，微醺刚刚好', w:'雨', loc:[CITY], b:1, tw:[19,22], u:90},
   {cat:'食', t:'高层景观餐厅', d:'订靠窗位，卡着日落入座', w:'皆', loc:[CITY], b:2, tw:[17,20], u:110},
   {cat:'食', t:'早茶慢慢吃', d:'点到桌子放不下为止', w:'皆', loc:[CITY], b:1, tw:[8,11], u:90},
   {cat:'食', t:'农家菜午餐', d:'现摘现炒，白饭管够', w:'晴', loc:[FAR], b:0, tw:[11,13], u:80},
   {cat:'食', t:'山脚小馆', d:'招牌是什么就吃什么', w:'皆', loc:[FAR], b:0, tw:[11,19], u:80},
   {cat:'食', t:'服务区小吃巡礼', d:'出逃路上的仪式感', w:'皆', loc:[FAR], b:0, tw:[9,20], u:40},
-  {cat:'食', t:'带上野餐篮', d:'三明治 + {ta}爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15], u:90}
+  {cat:'食', t:'带上野餐篮', d:'三明治 + {ta}爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15], u:90, sun:1}
 ];
 // 偏好词 → 在卡片文字里找什么。宁可宽松一点，命中就加分，不命中也不排除
 var TASTE_OPTS = ['辣','清淡','甜品','咖啡','烧烤','火锅','日料','海鲜','面食','小酒'];
@@ -2925,9 +2925,70 @@ function scoreCard(it){
 function avoidList(){
   return (cfg.avoid || '').split(/[,，、\s]+/).filter(function(x){ return x.length > 0; });
 }
+/**
+ * 日出日落。NOAA 那套简化算法，不联网、不要 key，全年误差几分钟。
+ * 十一月的汉密尔顿 16:57 天就黑了，而卡片上的营业窗口是写死的小时数——
+ * 不算这一下，「球场投篮」窗口 [9,19] 会把人排到 18:00 去一个看不见篮筐的球场。
+ * 返回当地时钟的分钟数；极圈内的极昼极夜返回 NaN，调用方当作"不知道"。
+ */
+function sunTimes(lat, lon, date){
+  var rad = Math.PI/180, J2000 = 2451545, J1970 = 2440588;
+  var sin = Math.sin, cos = Math.cos;
+  var lw = rad * -lon, phi = rad * lat, e = rad * 23.4397;
+  // 基准取当天的当地正午，免得时区把日期算偏一天
+  var noon = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 12, 0, 0);
+  var d = noon.valueOf()/86400000 - 0.5 + J1970 - J2000;
+  var M = rad * (357.5291 + 0.98560028 * d);
+  var C = rad * (1.9148*sin(M) + 0.02*sin(2*M) + 0.0003*sin(3*M));
+  var L = M + C + rad*102.9372 + Math.PI;
+  var dec = Math.asin(sin(e) * sin(L));
+  var n = Math.round(d - 0.0009 - lw/(2*Math.PI));
+  var trans = 0.0009 + lw/(2*Math.PI) + n;
+  function toMin(J){
+    if (isNaN(J)) return NaN;
+    var t = new Date((J + 0.5 - J1970) * 86400000);
+    return t.getHours()*60 + t.getMinutes();
+  }
+  var w = Math.acos((sin(rad * -0.833) - sin(phi)*sin(dec)) / (cos(phi)*cos(dec)));
+  if (isNaN(w)) return { rise: NaN, set: NaN };
+  var corr = 0.0053*sin(M) - 0.0069*sin(2*L);
+  var jnoon = J2000 + trans + corr;
+  var jset  = J2000 + (0.0009 + (w + lw)/(2*Math.PI) + n) + corr;
+  return { rise: toMin(jnoon - (jset - jnoon)), set: toMin(jset) };
+}
+// 今天这个地点的日照，一天里只算一次
+var _sunCache = null;
+function sunToday(){
+  var key = ymd(planDate()) + '|' + (state.lat||0).toFixed(2) + ',' + (state.lon||0).toFixed(2);
+  if (_sunCache && _sunCache.k === key) return _sunCache.v;
+  var v = (typeof state.lat === 'number' && typeof state.lon === 'number')
+    ? sunTimes(state.lat, state.lon, planDate()) : { rise: NaN, set: NaN };
+  _sunCache = { k: key, v: v };
+  return v;
+}
+/**
+ * 把卡片的时段和今天的日照取交集。
+ *   sun:1  —— 要看得见（球场、山径、采摘、长堤）
+ *   dark:1 —— 要天黑（看星星）
+ * 交集空了就返回 null，让调用方把这张卡丢掉。
+ */
+function daylit(it){
+  if (!it || (!it.sun && !it.dark)) return it;
+  var s = sunToday();
+  if (isNaN(s.set)) return it;                 // 不知道就不管，别自作聪明
+  var lo = it.tw ? it.tw[0]*60 : 0, hi = it.tw ? it.tw[1]*60 : LAST_END;
+  if (it.sun){ lo = Math.max(lo, s.rise); hi = Math.min(hi, s.set); }
+  else { lo = Math.max(lo, s.set); }
+  if (hi - lo < 30) return null;               // 剩不到半小时，等于没有
+  var d = {}, k;
+  for (k in it) if (it.hasOwnProperty(k)) d[k] = it[k];
+  d.tw = [lo/60, hi/60];
+  return d;
+}
 function candidates(isFood){
   var bad = avoidList();
-  var fit = CARDS.filter(function(it){
+  var fit = CARDS.map(daylit).filter(function(it){
+    if (!it) return false;                     // 天已经黑了 / 还没黑
     if ((it.cat==='食') !== isFood) return false;
     if (!fits(it)) return false;
     if (bad.length && hitAny(bad, cardText(it))) return false;
@@ -4666,10 +4727,11 @@ $('mineBtn').onclick = function(){
     nearby.city = '';
     toast('正在看这附近有什么…');
     fetchNearby(true);
-    // 附近数据一到就排（fetchNearby 完成时会回调 _shopBuild）。
-    // 这个定时器只是兜底：宁可多等两秒也别把真实地点等丢了——
-    // 店里的网慢，3 秒常常不够。
-    setTimeout(build, 6000);
+    // 附近数据一到就排（fetchNearby 完成时会回调 _shopBuild），
+    // 实测典型 1–3 秒。这个定时器只是兜底，取值按实测的长尾定：
+    // 五次里有一次 8.1 秒，卡在 6 秒就会把最有价值的那一站白白丢掉，
+    // 退化成一整张手写卡的计划。等的时候有"正在看这附近有什么…"顶着。
+    setTimeout(build, 10000);
   };
   var built = false;
   function build(){
@@ -4708,7 +4770,7 @@ $('mineBtn').onclick = function(){
     function doorless(list){
       return list.filter(function(c){
         if (typeof c.la === 'number') return false;
-        return !/家|做饭|沙发|阳台|客厅|床|楼下|冰箱/.test((c.t || '') + (c.d || ''));
+        return !/家|做饭|做顿饭|下厨|沙发|阳台|客厅|床|楼下|冰箱/.test((c.t || '') + (c.d || ''));
       });
     }
     var ps = split(candidates(false)), fs = split(candidates(true));
@@ -4716,22 +4778,49 @@ $('mineBtn').onclick = function(){
     // 从她桌上扫出来的计划把人送到一扇关着的门前，情侣怪的是她的店。
     var pool = weave(ps[0], fs[0])
       .concat(weave(doorless(candidates(false)), doorless(candidates(true))));
-    var i;
     if (!pool.length){ toast('这附近这个点没什么开着的，晚点再试'); return; }
     // 起点卡已经是一家奶茶店了，后面两站再来两顿饭，那不叫计划。
     // 所以先只挑没出现过的类别；一轮下来凑不够两站，才放开重复。
     // 换句话说：一个"营业时间要打电话确认"的玩，好过第三顿饭。
+    // 类别字段在两处不一样：手写卡和 POI 用 cat，起点卡用 c。
+    // 上一版我只看了 cat，起点卡的"食"从来没记进去，于是"先挑没出现过的类别"
+    // 整个空转——三站全是饭就是这么来的。
+    // 类别字段在两处不一样：手写卡和 POI 用 cat，起点卡用 c。
+    // 上一版我只看了 cat，起点卡那个"食"从来没记进去。
+    function catOf(x){ return x && (x.cat || x.c); }
     var start = startCard();
-    var stops = [], used = {}, cats = {}, r, pass, tryList;
-    if (start && start.cat) cats[start.cat] = 1;
-    for (pass = 0; pass < 2 && stops.length < 2; pass++){
-      for (i = 0; i < pool.length && stops.length < 2; i++){
-        if (used[pool[i].t]) continue;
-        if (!pass && cats[pool[i].cat]) continue;
-        tryList = stops.concat([pool[i]]);
-        r = scheduleStops(tryList.slice());
-        if (r.stops.length > stops.length){
-          used[pool[i].t] = 1; cats[pool[i].cat] = 1; stops = tryList;
+    var stops = [], r, i, j;
+
+    // 这一路要的形状是"一个真实的地方 + 一件别的事"：
+    // 光按池子顺序往后挑不行——先挑中一家开到 21:20 的餐厅，
+    // 所有走走看看的卡窗口都已经关了，只剩再来一顿饭。
+    // 所以两种顺序都试，谁排得上用谁。
+    var reals = pool.filter(function(c){ return typeof c.la === 'number'; });
+    var gens  = pool.filter(function(c){ return typeof c.la !== 'number'; });
+    function pair(a, b){
+      var x = scheduleStops([a, b]);
+      return x.stops.length === 2 ? [a, b] : null;
+    }
+    // 真实地点一共十来个，全试。只试前几个的话，"开到很晚"那家常常不在里面
+    // （candidates 每次随机洗牌），配不上就退回手写卡，白丢了最有价值的一站。
+    for (i = 0; i < reals.length && !stops.length; i++){
+      for (j = 0; j < gens.length && !stops.length; j++){
+        if (catOf(gens[j]) === catOf(reals[i])) continue;      // 两站别同类
+        stops = pair(gens[j], reals[i]) || pair(reals[i], gens[j]) || [];
+      }
+    }
+    // 配不出来就退回逐个凑：先只挑没出现过的类别，还凑不够两站才放开重复
+    if (!stops.length){
+      var used = {}, cats = {}, pass, tryList;
+      for (pass = 0; pass < 2 && stops.length < 2; pass++){
+        for (i = 0; i < pool.length && stops.length < 2; i++){
+          if (used[pool[i].t]) continue;
+          if (!pass && cats[catOf(pool[i])]) continue;
+          tryList = stops.concat([pool[i]]);
+          r = scheduleStops(tryList.slice());
+          if (r.stops.length > stops.length){
+            used[pool[i].t] = 1; cats[catOf(pool[i])] = 1; stops = tryList;
+          }
         }
       }
     }
