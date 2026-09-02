@@ -435,6 +435,13 @@
 
   /* ————— 足迹地图 ————— */
   .fp-stat{margin-top:12px; font-size:var(--text-body-sm); color:var(--ink-soft); line-height:1.8}
+  .back-then{
+    margin-top:12px; padding:13px 15px; border-radius:var(--radius-sm);
+    background:var(--card-ivory); border:1px solid var(--gold-line);
+    font-size:var(--text-body-sm); line-height:1.9; cursor:pointer;
+  }
+  .back-then b{font-family:var(--serif); color:var(--gold); font-weight:600}
+  .back-then span{display:block; margin-top:2px; font-size:var(--text-caption); color:var(--ink-soft)}
   .fp-warn{margin-top:8px; font-size:var(--text-caption); line-height:1.9; color:var(--rose)}
   .fp-warn button{margin-left:8px; min-height:32px; padding:0 12px; border-radius:var(--radius-sm);
     border:1px solid var(--rose); background:transparent; color:var(--rose);
@@ -999,6 +1006,7 @@
 
     <div class="memo" id="memo">
       <div class="part-head"><span class="t">足迹</span><span class="en" id="memoCount"></span></div>
+      <div class="back-then hidden" id="backThen"></div>
       <div class="fp-stat" id="fpStat"></div>
       <div class="fp-warn" id="fpWarn"></div>
 
@@ -1609,6 +1617,10 @@ function saveCfgLocal(){
   try{ localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); return true; }catch(e){ return false; }
 }
 function baseUrl(){ return location.origin + location.pathname; }
+// 印在海报上的网址：去掉协议和末尾斜杠，短一点好认
+function siteLabel(){
+  return (location.host + location.pathname).replace(/\/+$/, '');
+}
 
 /* 称呼进标题 */
 (function(){
@@ -3594,7 +3606,7 @@ function drawPoster(plan){
 
   // 先按和下面完全一样的步长量一遍高度
   var y = 0, blocks = [];
-  y += 78 + 62 + 46 + 34;                    // eyebrow / 标题 / 日期
+  y += 62 + 46 + 34;                         // 标题 / 日期
   if (plan.note){
     mc.font = F_N;
     var nl = wrapLines(mc, '「'+plan.note+'」', INNER);
@@ -3607,7 +3619,7 @@ function drawPoster(plan){
     blocks.push({k:'stop', i:i, lines:dl});
     y += 30 + 42 + 40 + dl.length*36 + 4 + (plan.s[i].x ? 32 : 0);
   }
-  y += 44 + 46 + 40 + 56;                    // 结尾 / 署名 / 出处 / 底部留白
+  y += 44 + 46 + 40 + 30 + 56;               // 结尾 / 署名 / 站名 / 网址 / 底部留白
   var H = Math.round(y);
 
   var c = document.createElement('canvas');
@@ -3620,16 +3632,13 @@ function drawPoster(plan){
   x.strokeRect(22, 22, W-44, H-44);
 
   var cy = 0;
-  cy += 78;
-  x.fillStyle = '#C9A96A'; x.font = '500 22px ' + CV_LATIN;
-  spacedCenter(x, 'MENU DU JOUR', W/2, cy, 7);
   cy += 62;
   var label = dayLabel(plan.ymd);
   x.textAlign = 'center'; x.fillStyle = '#F3EBE0'; x.font = '900 44px ' + CV_SERIF;
   x.fillText(plan.to ? ('给 '+plan.to+' 的'+label) : (label+'的约会计划'), W/2, cy);
   cy += 46;
   x.fillStyle = 'rgba(240,232,220,.55)'; x.font = 'italic 500 26px ' + CV_LATIN;
-  x.fillText(cnDate(plan.ymd) + '  ·  ' + (plan.s.length) + ' stops', W/2, cy);
+  x.fillText(cnDate(plan.ymd) + '  ·  ' + (plan.s.length) + ' 站', W/2, cy);
   cy += 34;
 
   for (var bi=0; bi<blocks.length; bi++){
@@ -3646,7 +3655,7 @@ function drawPoster(plan){
     x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
     x.beginPath(); x.moveTo(PAD, cy - 22); x.lineTo(W-PAD, cy - 22); x.stroke();
     x.textAlign = 'left'; x.fillStyle = '#C9A96A'; x.font = '500 22px ' + CV_LATIN;
-    x.fillText((ROMAN[b.i]||(b.i+1)) + '  ' + (CAT_EN[s.c]||'STOP').toUpperCase(), PAD, cy);
+    x.fillText((ROMAN[b.i]||(b.i+1)) + '   ' + (s.c || ''), PAD, cy);
     cy += 42;
     x.fillStyle = '#F3EBE0'; x.font = F_T;
     x.fillText(fill(s.t), PAD, cy);
@@ -3671,8 +3680,13 @@ function drawPoster(plan){
   x.fillStyle = 'rgba(240,232,220,.5)'; x.font = '400 22px ' + CV_SANS;
   x.fillText(plan.from ? ('—— ' + plan.from) : '—— 今天想见你的人', W/2, cy);
   cy += 40;
-  x.fillStyle = 'rgba(201,169,106,.5)'; x.font = '500 18px ' + CV_LATIN;
+  x.fillStyle = 'rgba(201,169,106,.55)'; x.font = '500 19px ' + CV_LATIN;
   spacedCenter(x, '今天，怎么心动？', W/2, cy, 4);
+  cy += 30;
+  // 网址一定要留在图上：图片是最容易被转的一种分享，没有它这一路就是白送
+  x.textAlign = 'center';
+  x.fillStyle = 'rgba(240,232,220,.42)'; x.font = '400 18px ' + CV_SANS;
+  x.fillText(siteLabel(), W/2, cy);
   return c;
 }
 function showPoster(){
@@ -4193,12 +4207,44 @@ function nagBackup(){
   }, 2800);
 }
 
+// 同一天、去过的地方 —— 纪念日那天自己提一句"回到你们第一次去的那家"。
+// 这件事只能在手机里做（打卡记录不出这台设备），所以它恰好是别人给不了商家的东西。
+function renderBackThen(){
+  var el = $('backThen');
+  if (!el) return;
+  var md = (now.getMonth()+1) + '-' + now.getDate();
+  var hit = null;
+  logRead().forEach(function(rec){
+    if (!rec.checks || !rec.plan) return;
+    var d = parseDate(rec.ymd);
+    if ((d.getMonth()+1) + '-' + d.getDate() !== md) return;
+    if (d.getFullYear() >= now.getFullYear()) return;      // 今年的今天不算"那年"
+    var been = [];
+    for (var k in rec.checks){
+      if (rec.checks.hasOwnProperty(k) && rec.plan.s[k]) been.push(rec.plan.s[k].t);
+    }
+    if (been.length && (!hit || d > parseDate(hit.rec.ymd))) hit = { rec:rec, been:been, y:now.getFullYear()-d.getFullYear() };
+  });
+  if (!hit){ el.classList.add('hidden'); return; }
+  var ago = hit.y === 1 ? '去年今天' : (hit.y + ' 年前的今天');
+  el.innerHTML = ago + '，你们在 <b>' + esc(fill(hit.been[0])) + '</b>' +
+    (hit.been.length > 1 ? ('，还去了' + esc(fill(hit.been[1]))) : '') +
+    '<span>要不要再去一次？点这里看那天的计划</span>';
+  el.classList.remove('hidden');
+  el.onclick = function(){
+    renderPlan(hit.rec.plan, null);
+    $('ownerActs').classList.remove('hidden');
+    $('menu').scrollIntoView({behavior:'smooth', block:'start'});
+  };
+}
+
 function renderFootprints(){
   if (isGuest) return;
   // 一次都没生成过计划、也没打过卡：整块先不出现。空格子比没有更伤
   var virgin = !logRead().length && !checkTotal();
   $('memo').classList.toggle('hidden', virgin);
   if (virgin) return;
+  renderBackThen();
   var pins = collectPins();
   var uniq = distinctPlaces(pins);
   var shots = pins.filter(function(p){ return p.ph; });
