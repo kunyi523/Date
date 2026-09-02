@@ -204,19 +204,21 @@
   .temp-read b{font-family:var(--serif); font-size:var(--text-caption); color:var(--rose); font-weight:600; margin-left:4px}
 
   /* ————— 花枝 ————— */
-  .orn{display:block; margin:var(--space-7) auto; color:var(--gold); opacity:.55}
-  .orn.sm{width:96px; height:24px; opacity:.45}
-  .orn.md{width:132px; height:32px}
-  .orn.lg{width:158px; height:38px}
+  /* 晨光显示山茶/茉莉，夜色显示玫瑰/蔷薇——两套都在 DOM 里，纯 CSS 切 */
+  html[data-theme="day"] .fn, html[data-theme="night"] .fd{display:none}
+  .orn{display:block; margin:var(--space-7) auto; color:var(--gold); opacity:.6}
+  .orn.sm{width:112px; height:29px; opacity:.5}
+  .orn.md{width:150px; height:39px}
+  .orn.lg{width:176px; height:46px}
   /* 抬头背后那朵：极低透明度，缓慢自转，纯 transform 不占布局 */
-  .hero-wrap{position:relative}
+  .hero-wrap{position:relative; overflow:hidden}
   .hero-bloom{
     position:absolute; right:-22px; top:16px; width:126px; height:126px;
     color:var(--gold); opacity:.085; pointer-events:none; transform:rotate(-12deg);
   }
-  .menu .m-orn{display:block; margin:8px auto 12px; width:120px; height:28px; color:var(--gold-bright); opacity:.6}
+  .menu .m-orn{display:block; margin:8px auto 12px; width:138px; height:36px; color:var(--gold-bright); opacity:.6}
   .love-note .ln-orn{display:block; margin:0 auto 10px; width:26px; height:26px; color:var(--gold); opacity:.75}
-  #invite .i-orn{width:150px; height:36px; color:var(--gold); opacity:.6; margin-bottom:18px}
+  #invite .i-orn{width:168px; height:44px; color:var(--gold); opacity:.6; margin-bottom:18px}
 
   /* ————— 一键 ————— */
   .quick{
@@ -639,7 +641,7 @@
     background:radial-gradient(circle at 50% 50%, var(--glow-a), transparent 68%)}
   .orbs span:nth-child(2){top:34%; left:-34%;
     background:radial-gradient(circle at 50% 50%, var(--glow-b), transparent 68%)}
-  #petals{position:fixed; inset:0; z-index:-1; pointer-events:none}
+  #petals{position:fixed; inset:0; z-index:-1; width:100%; height:100%; pointer-events:none}
 
   .reveal{opacity:0; transform:translate3d(0,18px,0); transition:opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease)}
   .reveal.in{opacity:1; transform:none}
@@ -699,30 +701,103 @@
 </style>
 </head>
 <body>
-<!-- 线条花枝：茶花五瓣 + 两片叶子，只描边不填色，跟着 currentColor 换主题 -->
+<!-- 线条花：晨光用山茶 + 茉莉，夜色用玫瑰 + 蔷薇。
+     只描边不填色，跟着 currentColor 换主题；哪一套显示由下面的 CSS 按 data-theme 决定。 -->
 <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
-  <symbol id="bloom" viewBox="-16 -16 32 32">
+  <!-- 山茶：六片宽圆带缺口的花瓣 + 内层三片 + 一簇花蕊 -->
+  <symbol id="camellia" viewBox="-20 -20 40 40">
     <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z"/>
-      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(72)"/>
-      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(144)"/>
-      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(216)"/>
-      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(288)"/>
-      <circle cx="0" cy="0" r="2.1"/>
+      <g id="cam-o"><path d="M0 -4 C -6.6 -8.4 -7.4 -15.4 -2.2 -18.2 C -0.8 -17.2 0.8 -17.2 2.2 -18.2 C 7.4 -15.4 6.6 -8.4 0 -4 Z"/></g>
+      <use href="#cam-o" transform="rotate(60)"/><use href="#cam-o" transform="rotate(120)"/>
+      <use href="#cam-o" transform="rotate(180)"/><use href="#cam-o" transform="rotate(240)"/>
+      <use href="#cam-o" transform="rotate(300)"/>
+      <g id="cam-i"><path d="M0 -2.6 C -3.6 -5 -4 -9.2 -1 -10.8 C -0.4 -10.2 0.4 -10.2 1 -10.8 C 4 -9.2 3.6 -5 0 -2.6 Z"/></g>
+      <use href="#cam-i" transform="rotate(120)"/><use href="#cam-i" transform="rotate(240)"/>
+      <circle cx="0" cy="0" r="2.4"/>
+      <path d="M0 0 L 0 -3.6 M0 0 L 3.2 -1.8 M0 0 L 3.2 1.8 M0 0 L 0 3.6 M0 0 L -3.2 1.8 M0 0 L -3.2 -1.8" stroke-width=".8" opacity=".8"/>
     </g>
   </symbol>
-  <symbol id="sprig" viewBox="0 0 148 36">
-    <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
-      <path d="M2 21 C 24 21 42 16 60 15"/>
-      <path d="M146 21 C 124 21 106 16 88 15"/>
-      <path d="M28 20.4 C 32 13.6 41 12.4 45.5 15.6 C 41 20 32.5 23 28 20.4 Z"/>
-      <path d="M33 18.6 C 37 17.4 41.5 16.2 45 15.7"/>
-      <path d="M120 20.4 C 116 13.6 107 12.4 102.5 15.6 C 107 20 115.5 23 120 20.4 Z"/>
-      <path d="M115 18.6 C 111 17.4 106.5 16.2 103 15.7"/>
-      <path d="M60 15 C 66 15 68 11 74 11"/>
-      <path d="M88 15 C 82 15 80 11 74 11"/>
+
+  <!-- 茉莉：六片窄尖花瓣，小而清亮 -->
+  <symbol id="jasmine" viewBox="-20 -20 40 40">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <g id="jas-p"><path d="M0 -3 C -2.8 -7 -3 -13.6 0 -17 C 3 -13.6 2.8 -7 0 -3 Z"/></g>
+      <use href="#jas-p" transform="rotate(60)"/><use href="#jas-p" transform="rotate(120)"/>
+      <use href="#jas-p" transform="rotate(180)"/><use href="#jas-p" transform="rotate(240)"/>
+      <use href="#jas-p" transform="rotate(300)"/>
+      <circle cx="0" cy="0" r="2"/>
     </g>
-    <use href="#bloom" x="59" y="-4" width="30" height="30"/>
+  </symbol>
+
+  <!-- 玫瑰：五片包裹的弧 + 内层三片 + 中心一圈螺旋，从上往下看的层叠感 -->
+  <symbol id="rose" viewBox="-20 -20 40 40">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <g id="ro-a"><path d="M0 -14.6 C 7.6 -14.6 13.4 -9 13.4 -2.2 C 13.4 3.6 9 7.6 3.6 7.6"/></g>
+      <use href="#ro-a" transform="rotate(72)"/><use href="#ro-a" transform="rotate(144)"/>
+      <use href="#ro-a" transform="rotate(216)"/><use href="#ro-a" transform="rotate(288)"/>
+      <g id="ro-b"><path d="M0 -8.2 C 4.4 -8.2 7.6 -5 7.6 -1.2 C 7.6 2 5.2 4.2 2.2 4.2"/></g>
+      <use href="#ro-b" transform="rotate(120)"/><use href="#ro-b" transform="rotate(240)"/>
+      <path d="M0 -3.4 C 2.2 -3.4 3.6 -1.8 3.4 0.2 C 3.2 2 1.4 3 -0.4 2.4 C -2.4 1.7 -3 -0.6 -1.6 -2.2"/>
+    </g>
+  </symbol>
+
+  <!-- 蔷薇：五片平开、瓣尖带缺口，中间花蕊点 -->
+  <symbol id="briar" viewBox="-20 -20 40 40">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <g id="bri-p"><path d="M0 -3.4 C -7.2 -6.6 -8.6 -14 -3.4 -17.4 C -1.8 -16 -1 -14.6 0 -14.6 C 1 -14.6 1.8 -16 3.4 -17.4 C 8.6 -14 7.2 -6.6 0 -3.4 Z"/></g>
+      <use href="#bri-p" transform="rotate(72)"/><use href="#bri-p" transform="rotate(144)"/>
+      <use href="#bri-p" transform="rotate(216)"/><use href="#bri-p" transform="rotate(288)"/>
+      <circle cx="0" cy="0" r="2.2"/>
+      <g stroke-width=".85" opacity=".85">
+        <path d="M0 -2.2 L 0 -5.6 M1.9 -1.1 L 4.8 -2.8 M1.9 1.1 L 4.8 2.8 M0 2.2 L 0 5.6 M-1.9 1.1 L -4.8 2.8 M-1.9 -1.1 L -4.8 -2.8"/>
+      </g>
+      <circle cx="0" cy="-6" r=".7"/><circle cx="5.2" cy="-3" r=".7"/><circle cx="5.2" cy="3" r=".7"/>
+      <circle cx="0" cy="6" r=".7"/><circle cx="-5.2" cy="3" r=".7"/><circle cx="-5.2" cy="-3" r=".7"/>
+    </g>
+  </symbol>
+
+  <!-- 花苞：小尺寸下比整朵花清楚 -->
+  <symbol id="bud" viewBox="-11 -12 22 24">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M-4.4 -1.4 C -5.6 -6.6 -2.8 -10.2 0 -10.2 C 2.8 -10.2 5.6 -6.6 4.4 -1.4 C 3.4 2.6 -3.4 2.6 -4.4 -1.4 Z"/>
+      <path d="M-4.4 -1.4 C -2.2 -3.8 -1.2 -6.4 0 -10.2"/>
+      <path d="M4.4 -1.4 C 2.2 -3.8 1.2 -6.4 0 -10.2"/>
+      <path d="M-4 0.4 C -7.4 1.4 -8.8 3.8 -8 5.6 C -5.6 5 -4.2 3.2 -4 0.4"/>
+      <path d="M4 0.4 C 7.4 1.4 8.8 3.8 8 5.6 C 5.6 5 4.2 3.2 4 0.4"/>
+      <path d="M0 2.4 L 0 10.6"/>
+    </g>
+  </symbol>
+
+  <!-- 花枝：叶 + 侧花 + 主花。两套只差花的种类 -->
+  <symbol id="sprigDay" viewBox="0 0 200 52">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 34 C 30 34 52 30 70 27"/>
+      <path d="M196 34 C 170 34 148 30 130 27"/>
+      <path d="M28 33 C 32 25.6 42 24 47.6 27.6 C 42 32.6 33 35.8 28 33 Z"/>
+      <path d="M34 31.2 C 38.4 29.6 43 28.4 47.2 27.8"/>
+      <path d="M172 33 C 168 25.6 158 24 152.4 27.6 C 158 32.6 167 35.8 172 33 Z"/>
+      <path d="M166 31.2 C 161.6 29.6 157 28.4 152.8 27.8"/>
+      <path d="M70 27 C 76 25 80 22 84 20.5"/>
+      <path d="M130 27 C 124 25 120 22 116 20.5"/>
+    </g>
+    <use href="#jasmine" x="55" y="11" width="26" height="26"/>
+    <use href="#jasmine" x="119" y="11" width="26" height="26"/>
+    <use href="#camellia" x="80" y="2" width="40" height="40"/>
+  </symbol>
+  <symbol id="sprigNight" viewBox="0 0 200 52">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M4 34 C 30 34 52 30 70 27"/>
+      <path d="M196 34 C 170 34 148 30 130 27"/>
+      <path d="M28 33 C 32 25.6 42 24 47.6 27.6 C 42 32.6 33 35.8 28 33 Z"/>
+      <path d="M34 31.2 C 38.4 29.6 43 28.4 47.2 27.8"/>
+      <path d="M172 33 C 168 25.6 158 24 152.4 27.6 C 158 32.6 167 35.8 172 33 Z"/>
+      <path d="M166 31.2 C 161.6 29.6 157 28.4 152.8 27.8"/>
+      <path d="M70 27 C 76 25 80 22 84 20.5"/>
+      <path d="M130 27 C 124 25 120 22 116 20.5"/>
+    </g>
+    <use href="#briar" x="55" y="11" width="26" height="26"/>
+    <use href="#briar" x="119" y="11" width="26" height="26"/>
+    <use href="#rose" x="80" y="2" width="40" height="40"/>
   </symbol>
 </svg>
 
@@ -741,12 +816,12 @@
 
 <!-- 她点开分享链接时看到的信封 -->
 <div id="invite" class="hidden">
-  <svg class="i-orn" aria-hidden="true"><use href="#sprig"/></svg>
+  <svg class="i-orn" aria-hidden="true"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
   <div class="i-eyebrow">A surprise for you</div>
   <h2 id="iTitle">有人为你准备了今天</h2>
   <div class="i-meta" id="iMeta"></div>
   <button class="seal" id="sealBtn" aria-label="拆开今天">
-    <svg class="seal-bloom" aria-hidden="true"><use href="#bloom"/></svg>
+    <svg class="seal-bloom" aria-hidden="true"><use class="fd" href="#camellia"/><use class="fn" href="#rose"/></svg>
     <span id="sealChar">♥</span>
   </button>
   <div class="i-hint">轻点封蜡，拆开今天</div>
@@ -768,12 +843,12 @@
     </header>
 
     <div class="hero-wrap">
-      <svg class="hero-bloom" aria-hidden="true"><use href="#bloom"/></svg>
+      <svg class="hero-bloom" aria-hidden="true"><use class="fd" href="#camellia"/><use class="fn" href="#rose"/></svg>
       <div class="hero-stat"><small>在 一 起</small><div class="num"><i>第</i><span id="days">—</span><i>天</i></div></div>
       <div class="mstones" id="mstones"></div>
     </div>
 
-    <svg class="orn md" aria-hidden="true"><use href="#sprig"/></svg>
+    <svg class="orn md" aria-hidden="true"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
 
     <button class="quick" id="quickBtn">
       <span class="qt">一 键 定 今 天</span>
@@ -870,7 +945,7 @@
     </div>
 
     <div class="love-note hidden" id="loveNote">
-      <svg class="ln-orn" aria-hidden="true"><use href="#bloom"/></svg>
+      <svg class="ln-orn" aria-hidden="true"><use class="fd" href="#jasmine"/><use class="fn" href="#briar"/></svg>
       <div class="ln-e">A word for you</div>
       <div class="ln-b" id="lnBody"></div>
       <div class="ln-s" id="lnSign"></div>
@@ -878,7 +953,7 @@
 
     <div class="menu hidden" id="menu">
       <div class="m-eyebrow">Menu du jour</div>
-      <svg class="m-orn" aria-hidden="true"><use href="#sprig"/></svg>
+      <svg class="m-orn" aria-hidden="true"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
       <h2 id="m-title">最终约会计划</h2>
       <div class="m-date" id="m-date"></div>
       <div class="m-progress" id="m-progress"></div>
@@ -926,7 +1001,7 @@
     </div>
   </div>
 
-  <svg class="orn sm" aria-hidden="true" style="margin-top:var(--space-9)"><use href="#sprig"/></svg>
+  <svg class="orn sm" aria-hidden="true" style="margin-top:var(--space-9)"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
   <footer id="origin">Handcrafted with love · Est. 2026</footer>
 </div>
 
@@ -1304,13 +1379,19 @@ var Petals = (function(){
     var s = getComputedStyle(document.documentElement);
     return (i ? s.getPropertyValue('--rose') : s.getPropertyValue('--gold-bright')).trim() || '#C9A96A';
   }
-  // 窄一点、尖一点，才像花瓣不像圆点
+  // 花瓣的轮廓跟着主题走：晨光是山茶/茉莉那种圆一点的瓣，夜色是玫瑰/蔷薇那种尖一点的
   function shape(c, s){
-    var w = s*0.52;
+    var night = document.documentElement.getAttribute('data-theme') === 'night';
+    var w = s * (night ? 0.46 : 0.62);
     c.beginPath();
     c.moveTo(0, -s);
-    c.bezierCurveTo(w, -s*0.42, w*0.86, s*0.66, 0, s);
-    c.bezierCurveTo(-w*0.86, s*0.66, -w, -s*0.42, 0, -s);
+    if (night){
+      c.bezierCurveTo(w, -s*0.34, w*0.8, s*0.7, 0, s);
+      c.bezierCurveTo(-w*0.8, s*0.7, -w, -s*0.34, 0, -s);
+    } else {
+      c.bezierCurveTo(w*1.05, -s*0.5, w*0.9, s*0.55, 0, s*0.86);
+      c.bezierCurveTo(-w*0.9, s*0.55, -w*1.05, -s*0.5, 0, -s);
+    }
     c.closePath();
   }
   // 每种颜色先离屏画一片，之后每帧只做 drawImage，比每帧算贝塞尔便宜得多
@@ -2402,6 +2483,7 @@ function renderWhen(){
 }
 function onConditionChange(){
   renderWhen();
+  if (window._foldSync) window._foldSync();
   if (state.lat) fetchNearby();
   // 条件变了，已经抽出来的卡就不作数了，免得生成一份和条件不符的计划
   ['A','B'].forEach(function(k){
@@ -2426,16 +2508,22 @@ renderChips('locs', [NEAR, CITY, FAR], 'loc');
 // 条件区折叠（默认展开；点过一键之后自动收起，越少选择越好）
 (function(){
   var btn = $('foldBtn'), box = $('setup'), caret = $('foldCaret');
-  function set(open){
+  var open = false;
+  function label(){
+    // 收起的时候把当前条件写在标题上：不展开也知道现在按什么在抽
+    return [state.day, state.start, state.budget, state.loc.replace(/^\S+\s/, '')].join(' · ');
+  }
+  function set(v){
+    open = v;
     box.classList.toggle('collapsed', !open);
     caret.textContent = open ? '▲' : '▼';
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    $('foldTxt').textContent = open
-      ? '今天的条件（预算 / 天气 / 距离 / 心情）'
-      : '想自己调条件？点这里展开';
+    $('foldTxt').textContent = open ? '今天的条件' : label();
   }
   btn.onclick = function(){ set(box.classList.contains('collapsed')); };
   window._setFold = set;
+  window._foldSync = function(){ if (!open) $('foldTxt').textContent = label(); };
+  set(false);          // 默认收起——绝大多数时候直接按"一键"就够了
 })();
 
 // 定位 → 天气 + 气温 + 附近真实的地方
@@ -4029,6 +4117,9 @@ function renderFootprints(){
     $('fpStat').textContent = '还没有打过卡。出门之后在计划里点一下每一站左边的圈。';
   }
 
+  // 一次都没打过卡的时候，地图和照片条先不出现——空着占半屏没有意义
+  $('mapWrap').classList.toggle('hidden', !pins.length);
+  $('shots').classList.toggle('hidden', !shots.length);
   $('mapEmpty').classList.toggle('hidden', pins.length > 0);
   if (pins.length && Atlas.has()){
     var withThumbs = 0;
