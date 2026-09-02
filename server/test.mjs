@@ -210,6 +210,70 @@ console.log('\n— 高分地点反哺卡池 —');
   eq('没给经纬度返回空', noCoords, []);
 }
 
+console.log('\n— 两个人共一张地图 —');
+{
+  const env = { DB: makeDB(), IP_SALT: 'test' };
+  const call = makeCall(env);
+  const COUPLE = 'c' + 'abc123def456ghi7';
+  const pin = (over = {}) => ({ sig: '2026-09-02|老街区漫步', i: 0, ymd: '2026-09-02', title: '老街区漫步', at: 1, lat: 30.66, lon: 104.06, ...over });
+
+  eq('couple id 不合格 → 400',
+    (await call('POST', '/couple', { couple: 'nope', by: 'devA1', pins: [pin()] })).status, 400);
+  eq('设备 id 不合格 → 400',
+    (await call('POST', '/couple', { couple: COUPLE, by: 'x', pins: [pin()] })).status, 400);
+
+  const up = await call('POST', '/couple', { couple: COUPLE, by: 'phoneA', pins: [pin(), pin({ i: 1, title: '水边咖啡座', lat: 30.67 })] });
+  ok('他那半张传上去了', up.data.ok === true, up.data);
+
+  const mineBack = await call('GET', `/couple?id=${COUPLE}&by=phoneA`);
+  eq('自己读不到自己（读的是对方）', mineBack.data.others.length, 0);
+
+  const hers = await call('GET', `/couple?id=${COUPLE}&by=phoneB`);
+  eq('她能读到他那两处', hers.data.others[0].pins.length, 2);
+  eq('标题对得上', hers.data.others[0].pins[0].title, '老街区漫步');
+
+  await call('POST', '/couple', { couple: COUPLE, by: 'phoneB', pins: [pin({ i: 0, title: '她打的那一站', lat: 31.1 })] });
+  const his = await call('GET', `/couple?id=${COUPLE}&by=phoneA`);
+  eq('他也能读到她那一处', his.data.others[0].pins[0].title, '她打的那一站');
+
+  // 幂等：同一台设备重传，还是一行，不会越传越多
+  await call('POST', '/couple', { couple: COUPLE, by: 'phoneA', pins: [pin()] });
+  await call('POST', '/couple', { couple: COUPLE, by: 'phoneA', pins: [pin()] });
+  const again = await call('GET', `/couple?id=${COUPLE}&by=phoneB`);
+  eq('重传只覆盖不追加', again.data.others.length, 1);
+  eq('覆盖成最新那一份', again.data.others[0].pins.length, 1);
+
+  // 别人的 couple id 猜不到，也就读不到
+  const other = await call('GET', '/couple?id=c0000000000000000&by=phoneZ');
+  eq('别的 couple 读到空', other.data.others, []);
+
+  console.log('  · 脏数据清洗');
+  await call('POST', '/couple', { couple: COUPLE, by: 'phoneC', pins: [
+    pin({ lat: 999, lon: 999 }),
+    pin({ i: 2, title: 'x'.repeat(200) }),
+    pin({ i: 3, ymd: '乱写', title: '日期乱写' }),
+    pin({ i: 4, title: '图床', thumb: 'https://evil.example/x.png' }),
+    pin({ i: 5, title: '正常缩略图', thumb: 'data:image/jpeg;base64,AAAA' }),
+    { title: '没有 sig 的' },
+  ]});
+  const cleaned = (await call('GET', `/couple?id=${COUPLE}&by=phoneB`)).data.others
+    .find((o) => o.by === 'phoneC').pins;
+  ok('越界经纬度被丢掉', cleaned[0].lat === undefined, cleaned[0]);
+  ok('标题被截断', cleaned[1].title.length === 60, cleaned[1].title.length);
+  eq('乱写的日期清空', cleaned[2].ymd, '');
+  ok('外链缩略图被拒', cleaned[3].thumb === undefined, cleaned[3]);
+  ok('data: 缩略图留下', cleaned[4].thumb === 'data:image/jpeg;base64,AAAA', cleaned[4]);
+  eq('没有 sig 的整条丢掉', cleaned.length, 5);
+
+  const big = await call('POST', '/couple', { couple: COUPLE, by: 'phoneD', pins: [
+    pin({ thumb: 'data:image/jpeg;base64,' + 'A'.repeat(110000) }),
+    pin({ i: 1, thumb: 'data:image/jpeg;base64,' + 'A'.repeat(110000) }),
+    pin({ i: 2, thumb: 'data:image/jpeg;base64,' + 'A'.repeat(110000) }),
+    pin({ i: 3, thumb: 'data:image/jpeg;base64,' + 'A'.repeat(110000) }),
+  ]});
+  eq('整份太大 → 413', big.status, 413);
+}
+
 console.log('\n— 下架 —');
 {
   const db = makeDB();

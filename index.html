@@ -997,6 +997,13 @@
       </div>
 
       <div class="group">
+        <div class="group-t">Together<b>共一张地图</b></div>
+        <div class="hint" id="coupleState" style="margin-bottom:8px"></div>
+        <button class="m-add" id="coupleLink">生成「连上同一张地图」的链接</button>
+        <input type="text" id="coupleOut" readonly placeholder="发给她，她点开再点「存到我手机」就连上了" style="margin-top:8px" />
+      </div>
+
+      <div class="group">
         <div class="group-t">Keep<b>备份</b></div>
         <div class="hint" style="margin-bottom:8px">打卡、照片、足迹都存在这台设备上。换手机、清缓存之前先导一份出来；新手机上再导进去，连照片一起回来。</div>
         <div class="acts" style="margin-top:0">
@@ -1220,7 +1227,8 @@ function copyText(text, okMsg){
   var done = false;
   try{
     if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text);
+      // 有些环境会拒绝写剪贴板，promise 一定要接住，不然冒一个未处理的 rejection
+      navigator.clipboard.writeText(text).catch(function(){});
       done = true;
     }
   }catch(e){}
@@ -1426,7 +1434,7 @@ function syncThemeIcon(pref){
 
 /* ---------- 2 设置与链接编码 ---------- */
 refreshNow();
-var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'' };
+var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'', couple:'' };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
 
@@ -1444,12 +1452,14 @@ function normCfg(c){
   if (c.theme !== 'day' && c.theme !== 'night') c.theme = 'auto';
   if (typeof c.mbtiA !== 'string') c.mbtiA = '';
   if (typeof c.mbtiB !== 'string') c.mbtiB = '';
+  if (typeof c.couple !== 'string' || !/^c[a-z0-9]{16,40}$/.test(c.couple)) c.couple = '';
   return c;
 }
 // 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑。
 // theme 要带上——她收到的应该是我调好的那一套明暗。
 function publicCfg(){
-  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to, theme:cfg.theme };
+  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to, theme:cfg.theme,
+           couple:Couple.ensure() };
 }
 // ?s= 是新版（可带整份计划），?c= / #c= 是老版（只有设置），两者都要认
 function readShare(){
@@ -2118,6 +2128,82 @@ function statBonus(it){
   if (st.match && st.match.n >= 3) base += (st.match.score - 3.6) * 0.75;
   return Math.max(-1.4, Math.min(2.4, base));
 }
+
+/* ---------- 3d2 两个人共一张足迹地图 ----------
+   打卡本来只存在打卡那台手机上，所以严格说是"各有一张地图"。
+   这里给一对情侣一个不可枚举的 couple id：存在设置里、跟着分享链接走，
+   她点「存到我手机」就自动连上了，不需要注册也不需要输入什么码。
+   每次同步是把"我这半张"整份上传（幂等，重传无副作用），读回来的是对方那半张，
+   缓存在本机，所以离线也能看到合起来的地图。照片只传缩略图，原图永远留在本机。 */
+var COUPLE_KEY = 'xindong_couple_v1';
+var Couple = (function(){
+  var pushing = false, pulling = false, lastPush = 0;
+  function cacheRead(){
+    try{ return JSON.parse(localStorage.getItem(COUPLE_KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function cacheWrite(o){ try{ localStorage.setItem(COUPLE_KEY, JSON.stringify(o)); }catch(e){} }
+  return {
+    id: function(){ return cfg.couple || ''; },
+    ensure: function(){
+      if (!cfg.couple){
+        cfg.couple = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12) +
+                     Math.random().toString(36).slice(2, 8);
+        if (!isGuest) saveCfgLocal();
+        // 刚拿到 id：把已经打过的卡立刻传一份上去，
+        // 不然对方点开链接看到的是一张空地图，还以为没连上
+        var self = this;
+        setTimeout(function(){ self.push(); }, 0);
+      }
+      return cfg.couple;
+    },
+    theirs: function(){ return cacheRead().pins || []; },
+    when: function(){ return cacheRead().at || 0; },
+    // 把我这半张整份传上去。缩略图按时间从新到旧塞，塞到快满就停
+    push: function(){
+      if (!API.base || !cfg.couple || pushing) return;
+      var mine = collectPins(true);
+      if (!mine.length) return;
+      var budget = 360 * 1024, pins = [];
+      for (var i = 0; i < mine.length && i < 400; i++){
+        var p = mine[i];
+        var one = { sig:p.sig, i:p.i, ymd:p.ymd, title:p.title, at:p.t };
+        if (typeof p.lat === 'number'){ one.lat = p.lat; one.lon = p.lon; }
+        if (p.thumb && p.thumb.length < budget - 4096){
+          one.thumb = p.thumb;
+          budget -= p.thumb.length;
+        }
+        pins.push(one);
+      }
+      pushing = true;
+      lastPush = Date.now();
+      jpost(API.base + '/couple', { couple:cfg.couple, by:anonId(), pins:pins }, function(){
+        pushing = false;
+      });
+    },
+    pull: function(cb){
+      cb = cb || function(){};
+      if (!API.base || !cfg.couple || pulling) return cb();
+      pulling = true;
+      jget(API.base + '/couple?id=' + encodeURIComponent(cfg.couple) + '&by=' + encodeURIComponent(anonId()),
+        function(err, data){
+          pulling = false;
+          if (err || !data || !data.others) return cb();
+          var pins = [];
+          data.others.forEach(function(o){
+            (o.pins || []).forEach(function(p){ p.by = o.by; pins.push(p); });
+          });
+          cacheWrite({ at: Date.now(), pins: pins });
+          cb(pins.length);
+        }, 12000);
+    },
+    sync: function(){
+      var self = this;
+      if (!API.base || !cfg.couple) return;
+      self.push();
+      self.pull(function(n){ if (n !== undefined) renderFootprints(); });
+    }
+  };
+})();
 
 /* ---------- 3e 让回忆活下来 ----------
    打卡、照片、足迹全在这台设备上。系统在存储紧张时是可以把它们清掉的，
@@ -3727,7 +3813,8 @@ var Atlas = (function(){
     var box = $('mapCard');
     if (i < 0){ box.classList.add('hidden'); schedule(); return; }
     var p = pins[i];
-    box.innerHTML = '<div class="mc-d">' + esc(cnDate(p.ymd)) + '</div>' +
+    box.innerHTML = '<div class="mc-d">' + esc(p.ymd ? cnDate(p.ymd) : '') +
+      (p.mine ? '' : ' · 对方打的') + '</div>' +
       '<div class="mc-t">' + esc(p.title) + '</div>' +
       (p.where ? '<div class="mc-w">' + esc(p.where) + '</div>' : '') +
       (p.thumb ? '<img src="' + p.thumb + '" alt="" />' : '');
@@ -3858,21 +3945,36 @@ function logUpsert(plan){
   renderMemo();
 }
 // 把所有打过卡的点收成地图上的钉子；同一个地方（约 150 米内）只算一处
-function collectPins(){
+// mineOnly=true 时只要这台设备打的卡（同步上传用），否则把对方那半张也并进来
+function collectPins(mineOnly){
   var a = logRead(), out = [];
   a.forEach(function(rec){
     var ch = rec.checks || {};
     for (var k in ch){
       if (!ch.hasOwnProperty(k)) continue;
       var mk = ch[k], stop = rec.plan && rec.plan.s && rec.plan.s[k];
-      if (!mk || typeof mk.lat !== 'number' || !stop) continue;
+      if (!mk || !stop) continue;
+      if (!mineOnly && typeof mk.lat !== 'number') continue;
       out.push({
+        sig: rec.sig, i: +k,
         lat: mk.lat, lon: mk.lon, ymd: rec.ymd, t: mk.t,
         title: stop.t, where: (rec.plan.w && rec.plan.w.name) || '',
-        ph: mk.ph || ''
+        ph: mk.ph || '', thumb: mk.ph ? (thumbCache[mk.ph] || '') : '', mine: 1
       });
     }
   });
+  if (!mineOnly){
+    var seen = {};
+    out.forEach(function(p){ seen[p.sig + '#' + p.i] = 1; });
+    Couple.theirs().forEach(function(p){
+      if (typeof p.lat !== 'number') return;
+      if (seen[p.sig + '#' + p.i]) return;      // 同一站两边都打了，只画一个
+      out.push({
+        sig: p.sig, i: p.i, lat: p.lat, lon: p.lon, ymd: p.ymd || '', t: p.at || 0,
+        title: p.title || '', where: '', ph: '', thumb: p.thumb || '', mine: 0
+      });
+    });
+  }
   out.sort(function(x, y){ return (y.t || 0) - (x.t || 0); });
   return out;
 }
@@ -3889,7 +3991,7 @@ function distinctPlaces(list){
 var fpFitted = false;
 // 打过的勾总数（包含没记到位置的）
 // 打卡状态一变，回忆本那一行和足迹地图都要跟着走
-function refreshLogViews(){ renderMemo(); renderFootprints(); }
+function refreshLogViews(){ renderMemo(); renderFootprints(); Couple.sync(); }
 function checkTotal(){
   var a = logRead(), n = 0;
   a.forEach(function(rec){
@@ -3905,9 +4007,14 @@ function renderFootprints(){
   var shots = pins.filter(function(p){ return p.ph; });
   var plans = logRead().length, all = checkTotal();
 
+  var theirs = pins.filter(function(p){ return !p.mine; }).length;
   if (pins.length){
-    $('fpStat').innerHTML = '已经点亮 <b>' + uniq.length + '</b> 个地方 · 打卡 <b>' + all +
-      '</b> 次 · 照片 <b>' + shots.length + '</b> 张 · 计划 <b>' + plans + '</b> 份';
+    $('fpStat').innerHTML = '已经点亮 <b>' + uniq.length + '</b> 个地方 · ' +
+      (theirs ? ('你打卡 <b>' + all + '</b> 次 · 对方 <b>' + theirs + '</b> 次')
+              : ('打卡 <b>' + all + '</b> 次')) +
+      ' · 照片 <b>' + shots.length + '</b> 张 · 计划 <b>' + plans + '</b> 份' +
+      (theirs ? '<br/>两边已经合在同一张地图上了'
+              : (API.base && Couple.when() ? '<br/>对方那边还没有打过卡' : ''));
   } else if (all){
     $('fpStat').innerHTML = '打卡 <b>' + all + '</b> 次，但都没记到位置。' +
       '下次打勾时允许一次定位，这些地方就会亮在地图上。';
@@ -4234,6 +4341,7 @@ function openPanel(){
   renderPanelChips('cfgTaste', TASTE_OPTS, 'taste');
   renderPanelChips('cfgLove', LOVE_OPTS, 'love');
   renderThemeChips();
+  renderCoupleState();
   if (window._showStore) window._showStore();
   var list = $('mList');
   list.innerHTML = '';
@@ -4309,6 +4417,35 @@ $('resetCfg').onclick = function(){
   panel.classList.remove('show');
   toast('已恢复默认');
 };
+/* 共一张地图：说清楚现在是什么状态，再给一个链接 */
+function renderCoupleState(){
+  var el = $('coupleState');
+  if (!el) return;
+  var linked = !!cfg.couple, theirs = Couple.theirs().length;
+  if (!API.base){
+    el.innerHTML = '打的卡现在只存在各自手机上，所以是两张地图。' +
+      '要合成一张需要先把后台跑起来（<b>server/</b> 里有，一条命令），之后这里会自动连上。';
+    return;
+  }
+  if (!linked){
+    el.textContent = '还没连。点下面生成链接发给她，她点开再点「存到我手机」就连上了。';
+    return;
+  }
+  el.innerHTML = '已经连上（' + esc(cfg.couple.slice(0, 7)) + '…）。' +
+    (theirs ? ('对方那边有 <b>' + theirs + '</b> 处打卡，已经在同一张地图上了。')
+            : '对方那边还没打过卡，或者还没点开你发的链接。');
+}
+$('coupleLink').onclick = function(){
+  collectCfg();
+  Couple.ensure();
+  saveCfgLocal();
+  var url = baseUrl() + '?s=' + b64e({ k:'cfg', c:cfg });
+  $('coupleOut').value = url;
+  try{ $('coupleOut').setSelectionRange(0, url.length); }catch(e){}
+  copyText(url, '链接已复制。她点开之后要点一下「存到我手机」');
+  renderCoupleState();
+};
+
 /* 备份：导出成一个文件，导入整体覆盖 */
 $('cfgExport').onclick = function(){
   collectCfg();
@@ -4435,6 +4572,7 @@ paintTheme(cfg.theme, false);
 
 rebuildCards();
 Reviews.flush();      // 上次没交上去的评分，这次补交
+Couple.sync();        // 把两个人的足迹合到一张地图上
 // 卡池：如果配了 ?api=，开局就去拿一次，拿不到静默用本地
 Sources.cards({ budget:state.budget, loc:state.loc, lat:state.lat, lon:state.lon }, function(err, list){
   if (list && list.length > POOL.length){
