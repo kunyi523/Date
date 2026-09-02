@@ -1,33 +1,99 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="day">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="color-scheme" content="light dark" />
-<meta name="theme-color" content="#1D1620" />
+<meta name="theme-color" content="#140F19" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#F8F3EA" media="(prefers-color-scheme: light)" />
+<script>
+/* 先把主题定下来再让 CSS 上色，否则会闪一下另一套配色。
+   顺序：分享链接里带的 > 本机存的 > 跟随系统。 */
+(function(){
+  var t = 'auto';
+  try{
+    var c = JSON.parse(localStorage.getItem('xindong_cfg_v1') || '{}');
+    if (c && c.theme) t = c.theme;
+  }catch(e){}
+  try{
+    var m = location.search.match(/[?&][sc]=([^&]+)/);
+    if (m){
+      var raw = decodeURIComponent(m[1]).replace(/-/g,'+').replace(/_/g,'/');
+      while (raw.length % 4) raw += '=';
+      var box = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      var shared = box && (box.c || box);
+      if (shared && shared.theme) t = shared.theme;
+    }
+  }catch(e){}
+  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var night = t === 'night' || (t !== 'day' && dark);
+  document.documentElement.setAttribute('data-theme', night ? 'night' : 'day');
+})();
+</script>
 <title>今天，怎么心动？</title>
 <meta name="description" content="情侣今日约会计划：选好预算、天气和想跑多远，一键抽出今天的玩乐与美食，再把整份计划封进一个链接，送给你想见的那个人。" />
 <meta property="og:type" content="website" />
 <meta property="og:title" content="今天，怎么心动？" />
 <meta property="og:description" content="有人把今天的约会计划封在了这个链接里。点开看看。" />
 <meta name="twitter:card" content="summary" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="怎么心动" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231D1620'/%3E%3Cpath d='M16 25.5s-8.4-5.3-8.4-11.2a4.7 4.7 0 0 1 8.4-2.9 4.7 4.7 0 0 1 8.4 2.9c0 5.9-8.4 11.2-8.4 11.2z' fill='%23C9A96A'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" />
 <style>
   /* ───────── 设计令牌（改样式请先改这里，别在组件里写死数值）
      完整说明见 DESIGN.md。写法参考 brands-design-md 的 DESIGN.md 约定。 */
-  :root{
-    /* 颜色 */
-    --paper:#F5F0E6; --paper2:#EFE8DA;
-    --ink:#2B2130; --ink-soft:rgba(43,33,48,.62);
-    --gold:#A9853F; --gold-bright:#C9A96A; --rose:#9C6B76;
-    --card:#251C29; --card-top:#33283A; --card-ivory:#FBF7EE;
-    --on-dark:#F0E8DC; --on-dark-soft:rgba(240,232,220,.6); --on-dark-line:rgba(240,232,220,.14);
-    --line:rgba(43,33,48,.16); --gold-line:rgba(201,169,106,.4);
+  /* ── 两套配色。html[data-theme] 由脚本按「跟随系统 / 晨光 / 夜色」写入 ── */
+  /* 晨光：暖象牙 + 香槟金 + 一点胭脂，发丝线更细、阴影更散 */
+  html[data-theme="day"]{
+    --paper:#F8F3EA; --paper2:#F1EADD;
+    --ink:#34293B; --ink-soft:rgba(52,41,59,.58);
+    --gold:#A98446; --gold-bright:#C9A96A; --gold-soft:rgba(169,132,70,.5);
+    --rose:#A4737E; --rose-soft:rgba(164,115,126,.14);
+    --card:#2A2130; --card-top:#392C40; --card-ivory:#FDFAF4;
+    --on-dark:#F2EBE1; --on-dark-soft:rgba(242,235,225,.62); --on-dark-line:rgba(242,235,225,.13);
+    --line:rgba(52,41,59,.12); --gold-line:rgba(201,169,106,.42);
+    --glow-a:rgba(201,169,106,.20); --glow-b:rgba(164,115,126,.13);
+    --shadow-flat:0 1px 3px rgba(52,41,59,.05), 0 4px 12px rgba(52,41,59,.04);
+    --shadow-card:0 2px 6px rgba(52,41,59,.08), 0 14px 34px rgba(52,41,59,.16);
+    --shadow-raised:0 2px 8px rgba(52,41,59,.10), 0 18px 44px rgba(52,41,59,.20);
+    --shadow-overlay:0 8px 24px rgba(52,41,59,.14), 0 28px 64px rgba(52,41,59,.26);
+    --shadow-pressed:inset 0 3px 10px rgba(0,0,0,.42), 0 1px 3px rgba(52,41,59,.10);
+    --shadow-inset:inset 0 2px 6px rgba(0,0,0,.28);
+    --shadow-seal:0 10px 26px rgba(52,41,59,.24), inset 0 -5px 12px rgba(0,0,0,.22), inset 0 3px 9px rgba(255,255,255,.34);
+  }
+  /* 夜色：近黑丝绒紫 + 更亮一档的金，让金在黑上有光泽 */
+  html[data-theme="night"]{
+    --paper:#140F19; --paper2:#1D1622;
+    --ink:#F4ECE2; --ink-soft:rgba(244,236,226,.56);
+    --gold:#CBAB6E; --gold-bright:#DFC591; --gold-soft:rgba(203,171,110,.45);
+    --rose:#B98C97; --rose-soft:rgba(185,140,151,.12);
+    --card:#211A27; --card-top:#2E2436; --card-ivory:#241C2B;
+    --on-dark:#F4ECE2; --on-dark-soft:rgba(244,236,226,.6); --on-dark-line:rgba(244,236,226,.12);
+    --line:rgba(244,236,226,.11); --gold-line:rgba(203,171,110,.42);
+    --glow-a:rgba(203,171,110,.16); --glow-b:rgba(185,140,151,.10);
+    --shadow-flat:0 1px 3px rgba(0,0,0,.34), 0 4px 14px rgba(0,0,0,.22);
+    --shadow-card:0 2px 8px rgba(0,0,0,.40), 0 16px 38px rgba(0,0,0,.34);
+    --shadow-raised:0 2px 10px rgba(0,0,0,.44), 0 20px 48px rgba(0,0,0,.40);
+    --shadow-overlay:0 10px 28px rgba(0,0,0,.48), 0 30px 70px rgba(0,0,0,.46);
+    --shadow-pressed:inset 0 3px 12px rgba(0,0,0,.62), 0 1px 3px rgba(0,0,0,.3);
+    --shadow-inset:inset 0 2px 7px rgba(0,0,0,.5);
+    --shadow-seal:0 12px 30px rgba(0,0,0,.5), inset 0 -5px 12px rgba(0,0,0,.34), inset 0 3px 9px rgba(255,255,255,.26);
+  }
 
-    /* 字体 */
-    --serif:'Noto Serif SC',serif; --latin:'Cormorant Garamond',serif;
-    --sans:'Noto Sans SC',-apple-system,sans-serif;
+  :root{
+    /* 字体。Google 字体在国内经常拉不到，所以后面的降级不是摆设：
+       中文衬线退到系统的宋体（iOS 的 Songti SC / 鸿蒙的 Noto Serif CJK），
+       西文退到 Didot / Georgia 这一路，气质最接近 Cormorant。 */
+    --serif:'Noto Serif SC','Songti SC','Source Han Serif SC','Noto Serif CJK SC',
+            STSong,'SimSun',serif;
+    --latin:'Cormorant Garamond',Didot,'Hoefler Text','Times New Roman',Georgia,serif;
+    --sans:'Noto Sans SC','PingFang SC','HarmonyOS Sans SC','Source Han Sans SC',
+           'Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
 
     /* 字号：12 级，别再往里塞 .5px 的中间档 */
     --text-hero:34px;      /* 在一起第 N 天的大数字 */
@@ -42,6 +108,7 @@
     --text-body-sm:13.5px;
     --text-caption:12.5px;
     --text-micro:11.5px;
+    --text-input:16px;     /* 低于 16px，iOS 一点输入框就会把整页放大 */
 
     /* 字距：西文小标一律拉开，中文正文不拉 */
     --track-eyebrow:5px; --track-label:4px; --track-tag:3px;
@@ -54,51 +121,70 @@
 
     /* 圆角：这个牌子是"活字印刷"的气质，除了封蜡和抽屉都接近直角 */
     --radius-sm:3px; --radius-md:6px; --radius-lg:8px;
-    --radius-sheet:16px; --radius-full:999px;
+    --radius-sheet:20px; --radius-full:999px;
 
-    /* 阴影 */
-    --shadow-flat:0 2px 5px rgba(43,33,48,.08);
-    --shadow-card:0 12px 22px rgba(43,33,48,.30), 0 3px 6px rgba(43,33,48,.18);
-    --shadow-raised:0 12px 24px rgba(43,33,48,.34), 0 3px 6px rgba(43,33,48,.2);
-    --shadow-overlay:0 18px 36px rgba(43,33,48,.4);
-    --shadow-pressed:inset 0 4px 12px rgba(0,0,0,.55), 0 2px 5px rgba(43,33,48,.18);
-    --shadow-inset:inset 0 2px 6px rgba(0,0,0,.4);
-    --shadow-seal:0 14px 30px rgba(43,33,48,.38), inset 0 -5px 12px rgba(0,0,0,.28), inset 0 3px 8px rgba(255,255,255,.3);
-
-    /* 动效：只用这三档 */
-    --dur-fast:.16s; --dur-base:.25s; --dur-slow:.7s;
-    --ease:ease;
+    /* 动效：只用这几档，曲线只用一条 */
+    --dur-fast:.16s; --dur-base:.25s; --dur-slow:.7s; --dur-veil:.42s;
+    --ease:cubic-bezier(.22,.61,.36,1);
 
     /* 触摸目标下限 */
     --tap:44px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  /* 去掉 iOS 上点按的 300ms 等待，手感差别很明显 */
+  button, .chip, .card, .swap, label{touch-action:manipulation}
+  button{-webkit-appearance:none; appearance:none}
   body{
     margin:0; min-height:100vh; color:var(--ink);
     background:
       radial-gradient(900px 500px at 85% -5%, rgba(201,169,106,.16), transparent 60%),
       radial-gradient(700px 500px at -10% 30%, rgba(156,107,118,.10), transparent 60%),
       var(--paper);
-    font-family:'Noto Sans SC',-apple-system,sans-serif; font-weight:400;
+    font-family:var(--sans); font-weight:400;
     display:flex; justify-content:center; padding-bottom:64px;
   }
-  .app{width:100%; max-width:430px; padding:30px 22px 0}
+  .app{
+    width:100%; max-width:430px;
+    padding:calc(30px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) 0
+            calc(22px + env(safe-area-inset-left));
+  }
 
-  .topbar{display:flex; justify-content:space-between; align-items:flex-start}
+  .topbar{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+  .top-acts{display:flex; gap:8px; flex:none}
+  .gear.icon{min-width:var(--tap); padding:7px 0; font-size:var(--text-body); text-align:center; color:var(--gold)}
+  /* 换主题时用一层同色的幕布过一下，比让几十个元素各自过渡颜色便宜得多 */
+  #veil{position:fixed; inset:0; z-index:95; background:var(--paper); opacity:0;
+    pointer-events:none; transition:opacity var(--dur-veil) var(--ease)}
+  #veil.on{opacity:1}
   .eyebrow{font-family:var(--latin); font-size:var(--text-body-sm); letter-spacing:5px; color:var(--gold); text-transform:uppercase; margin-bottom:8px}
   .gear{border:1px solid var(--line); background:var(--card-ivory); color:var(--ink-soft); font-size:var(--text-caption);
     min-height:var(--tap); padding:7px 13px; border-radius:var(--radius-sm); cursor:pointer; font-family:inherit}
   h1{font-family:var(--serif); font-weight:900; font-size:var(--text-display-xl); line-height:1.25; margin:0 0 6px}
   .sub{font-size:var(--text-body-sm); color:var(--rose); margin-bottom:26px}
 
-  .hero-stat{border-top:1px solid var(--ink); border-bottom:1px solid var(--line); padding:16px 2px; display:flex; align-items:baseline; justify-content:space-between}
+  .rule-fade{
+    background-image:linear-gradient(90deg, transparent, var(--gold-soft) 14%, var(--gold-soft) 86%, transparent);
+    background-repeat:no-repeat; background-size:100% 1px;
+  }
+  .hero-stat{
+    border-bottom:1px solid var(--line); padding:17px 2px 16px;
+    display:flex; align-items:baseline; justify-content:space-between;
+    background-image:linear-gradient(90deg, transparent, var(--gold-soft) 14%, var(--gold-soft) 86%, transparent);
+    background-repeat:no-repeat; background-size:100% 1px; background-position:top;
+  }
   .hero-stat small{font-size:var(--text-caption); letter-spacing:3px; color:var(--ink-soft)}
-  .hero-stat .num{font-family:var(--serif); font-weight:900; font-size:var(--text-hero); color:var(--gold)}
+  .hero-stat .num{position:relative; font-family:var(--serif); font-weight:900; font-size:var(--text-hero); color:var(--gold)}
+  .hero-stat .num::before{
+    content:""; position:absolute; inset:-20px -30px; border-radius:var(--radius-full);
+    background:radial-gradient(circle, var(--glow-a), transparent 70%);
+    pointer-events:none; animation:breathe 7s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{opacity:.3; transform:scale(.94)}50%{opacity:.8; transform:scale(1.06)}}
   .hero-stat .num i{font-style:normal; font-size:var(--text-body); font-weight:600; color:var(--ink); opacity:.65; margin:0 4px}
   .mstones{margin-bottom:10px}
   .mstone{display:flex; justify-content:space-between; align-items:baseline; padding:11px 2px; border-bottom:1px solid var(--line); font-size:var(--text-body-sm)}
   .mstone .val{font-family:var(--latin); font-weight:600; font-size:var(--text-display-sm); color:var(--gold)}
-  .mstone .val em{font-style:normal; font-family:'Noto Sans SC'; font-size:var(--text-micro); font-weight:400; color:var(--ink-soft); margin-left:4px}
+  .mstone .val em{font-style:normal; font-family:var(--sans); font-size:var(--text-micro); font-weight:400; color:var(--ink-soft); margin-left:4px}
 
   .label{font-family:var(--latin); font-size:var(--text-caption); letter-spacing:4px; color:var(--gold); text-transform:uppercase; margin:20px 0 10px}
   .label b{font-family:var(--serif); font-size:var(--text-body-sm); letter-spacing:2px; color:var(--ink); font-weight:600; margin-left:8px}
@@ -109,11 +195,28 @@
     cursor:pointer; transition:all var(--dur-fast) var(--ease); font-family:inherit; letter-spacing:.5px;
     box-shadow:var(--shadow-flat);
   }
-  .chip.on{background:var(--ink); border-color:var(--gold); color:var(--gold-bright); box-shadow:var(--shadow-inset)}
+  .chip.on{background:linear-gradient(160deg, var(--card-top), var(--card)); border-color:var(--gold); color:var(--gold-bright); box-shadow:var(--shadow-inset)}
+  .chip:active{transform:scale(.97)}
+  .deal:active, .m-add:active, .act:active, .sweet-btn:active{transform:scale(.99)}
   .temp-row{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
   .temp-btn{padding:8px 13px; border-radius:var(--radius-sm); border:1px dashed var(--gold); background:transparent; color:var(--gold); font-size:var(--text-body-sm); cursor:pointer; font-family:inherit}
   .temp-read{font-size:var(--text-body-sm); color:var(--ink); min-height:1em; line-height:1.7}
   .temp-read b{font-family:var(--serif); font-size:var(--text-caption); color:var(--rose); font-weight:600; margin-left:4px}
+
+  /* ————— 花枝 ————— */
+  .orn{display:block; margin:var(--space-7) auto; color:var(--gold); opacity:.55}
+  .orn.sm{width:96px; height:24px; opacity:.45}
+  .orn.md{width:132px; height:32px}
+  .orn.lg{width:158px; height:38px}
+  /* 抬头背后那朵：极低透明度，缓慢自转，纯 transform 不占布局 */
+  .hero-wrap{position:relative}
+  .hero-bloom{
+    position:absolute; right:-22px; top:16px; width:126px; height:126px;
+    color:var(--gold); opacity:.085; pointer-events:none; transform:rotate(-12deg);
+  }
+  .menu .m-orn{display:block; margin:8px auto 12px; width:120px; height:28px; color:var(--gold-bright); opacity:.6}
+  .love-note .ln-orn{display:block; margin:0 auto 10px; width:26px; height:26px; color:var(--gold); opacity:.75}
+  #invite .i-orn{width:150px; height:36px; color:var(--gold); opacity:.6; margin-bottom:18px}
 
   /* ————— 一键 ————— */
   .quick{
@@ -125,11 +228,6 @@
   }
   .quick .qt{font-family:var(--serif); font-size:var(--text-title-lg); font-weight:600; letter-spacing:3px; display:block}
   .quick .qd{font-size:var(--text-caption); color:rgba(240,232,220,.55); letter-spacing:.5px; margin-top:4px; display:block}
-  .quick::before{
-    content:""; position:absolute; top:0; bottom:0; width:55%;
-    background:linear-gradient(115deg, transparent, rgba(255,255,255,.13), transparent);
-    left:-60%; animation:sheen 3.6s ease-in-out infinite;
-  }
   .fold{display:flex; align-items:center; justify-content:space-between; width:100%; margin-top:16px; padding:11px 0;
     border:none; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:transparent;
     color:var(--ink-soft); font-size:var(--text-body-sm); font-family:inherit; cursor:pointer; letter-spacing:1px}
@@ -138,7 +236,11 @@
   .setup.collapsed{display:none}
 
   .part{margin-top:34px}
-  .part-head{display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--ink); padding-bottom:8px}
+  .part-head{
+    display:flex; align-items:baseline; justify-content:space-between; padding-bottom:9px;
+    background-image:linear-gradient(90deg, transparent, var(--gold-soft) 10%, var(--gold-soft) 90%, transparent);
+    background-repeat:no-repeat; background-size:100% 1px; background-position:bottom;
+  }
   .part-head .t{font-family:var(--serif); font-weight:900; font-size:var(--text-display-sm)}
   .part-head .en{font-family:var(--latin); font-size:var(--text-caption); letter-spacing:4px; color:var(--gold); text-transform:uppercase}
   .deal{
@@ -155,12 +257,14 @@
     border:1px solid rgba(201,169,106,.25); border-top-color:rgba(255,255,255,.14);
     box-shadow:var(--shadow-card);
     transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
-    opacity:0; transform:translateY(16px); animation:dealIn .45s ease forwards;
+    animation:dealIn .5s var(--ease) both;
   }
-  .card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
-  .card:nth-child(4){animation-delay:.18s}.card:nth-child(5){animation-delay:.24s}
-  .card:nth-child(6){animation-delay:.3s}
-  @keyframes dealIn{to{opacity:1; transform:translateY(0)}}
+  .card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}
+  .card:nth-child(4){animation-delay:.15s}.card:nth-child(5){animation-delay:.2s}
+  .card:nth-child(6){animation-delay:.25s}
+  /* 初始状态写在 keyframes 里，不写在 .card 上：开了「减少动态效果」之后动画被禁用，
+     写在 .card 上的 opacity:0 会让卡片永远不出现。 */
+  @keyframes dealIn{from{opacity:0; transform:translate3d(0,18px,0)}to{opacity:1; transform:none}}
   .card .cat{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:3px; color:var(--rose); text-transform:uppercase}
   .card .cat.own{color:var(--gold-bright)}
   .card .t{font-family:var(--serif); font-weight:600; font-size:var(--text-title); margin:6px 0 5px}
@@ -189,6 +293,29 @@
   }
   .final:disabled{opacity:.4; cursor:not-allowed}
 
+  /* ————— 自己加一站 ————— */
+  .own-add{margin-top:var(--space-6)}
+  .own-body{padding-bottom:var(--space-5)}
+  .own-row{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center}
+  .own-row select{min-width:112px}
+  .own-go{
+    min-height:var(--tap); padding:0 16px; border-radius:var(--radius-sm);
+    border:1px solid var(--gold); background:transparent; color:var(--gold);
+    font-size:var(--text-body-sm); letter-spacing:1px; cursor:pointer; font-family:inherit; white-space:nowrap;
+  }
+  .own-go.wide{padding:0 20px}
+  .own-go:active{transform:scale(.98)}
+  .own-hits{margin-top:8px}
+  .own-hit{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 12px; margin-bottom:6px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); background:var(--card-ivory); cursor:pointer;
+    min-height:var(--tap); text-align:left; width:100%; font-family:inherit;
+  }
+  .own-hit .oh-t{font-size:var(--text-body-sm); color:var(--ink)}
+  .own-hit .oh-d{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1px; color:var(--gold); white-space:nowrap}
+  .own-note{font-size:var(--text-caption); color:var(--ink-soft); line-height:1.8; padding:6px 0}
+
   /* ————— 她收到的那句话 ————— */
   .love-note{
     margin-top:26px; padding:22px 20px; border-radius:var(--radius-md); text-align:center;
@@ -209,7 +336,8 @@
   .menu .m-eyebrow{font-family:var(--latin); text-align:center; font-size:var(--text-caption); letter-spacing:5px; color:var(--gold-bright); text-transform:uppercase}
   .menu h2{font-family:var(--serif); font-weight:900; text-align:center; font-size:var(--text-display-md); margin:8px 0 2px}
   .menu .m-date{font-family:var(--latin); text-align:center; font-size:var(--text-body-sm); font-style:italic; color:rgba(240,232,220,.55); margin-bottom:18px}
-  .course{padding:14px 4px; border-top:1px solid rgba(240,232,220,.14)}
+  .course{padding:14px 4px; border-top:1px solid var(--on-dark-line); animation:courseIn .55s var(--ease) both}
+  @keyframes courseIn{from{opacity:0; transform:translate3d(0,12px,0)}to{opacity:1; transform:none}}
   .course .no{font-family:var(--latin); font-size:var(--text-caption); letter-spacing:3px; color:var(--gold-bright)}
   .course .row{display:flex; justify-content:space-between; align-items:baseline; margin-top:3px; gap:10px}
   .course .t{font-family:var(--serif); font-weight:600; font-size:var(--text-title-lg)}
@@ -238,6 +366,100 @@
   .sweet-btn{width:100%; margin-top:32px; padding:13px 0; border-radius:var(--radius-sm); border:1px dashed var(--gold); background:transparent; color:var(--gold); font-size:var(--text-body); letter-spacing:3px; cursor:pointer; font-family:inherit}
   .sweet{margin-top:14px; text-align:center; font-family:var(--serif); font-weight:600; font-size:var(--text-title-lg); line-height:1.8; animation:rise .4s ease both; min-height:1em}
 
+  /* ————— 打卡 ————— */
+  .course{display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:start}
+  .tick{
+    flex:none; width:26px; height:26px; margin-top:14px; border-radius:var(--radius-full);
+    border:1px solid rgba(201,169,106,.5); background:transparent; color:var(--card);
+    font-size:var(--text-caption); line-height:1; cursor:pointer; font-family:inherit;
+    position:relative; transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  /* 视觉上是个小圈，点击区域撑到 44px */
+  .tick::after{content:""; position:absolute; left:50%; top:50%; width:var(--tap); height:var(--tap);
+    transform:translate(-50%,-50%)}
+  .tick:active{transform:scale(.92)}
+  .course.done .tick{background:var(--gold-bright); border-color:var(--gold-bright); font-weight:700}
+  .course.done .c-main .t{color:var(--gold-bright)}
+  .stamp{display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap}
+  .stamp-txt{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1px; color:var(--gold-bright)}
+  .stamp-thumb{width:52px; height:52px; object-fit:cover; border-radius:var(--radius-sm);
+    border:1px solid var(--gold-line); display:block}
+  .shot{border:1px dashed rgba(201,169,106,.5); background:transparent; color:var(--gold-bright);
+    border-radius:var(--radius-sm); padding:7px 11px; font-size:var(--text-micro); cursor:pointer;
+    font-family:inherit; min-height:34px}
+  .m-progress{
+    text-align:center; font-size:var(--text-micro); letter-spacing:1.5px;
+    color:var(--on-dark-soft); padding:2px 0 10px;
+  }
+  .m-progress.all{color:var(--gold-bright); font-family:var(--serif); font-size:var(--text-caption)}
+
+  /* ————— 评分 ————— */
+  .hearts{display:flex; gap:6px}
+  .hearts button{
+    min-width:var(--tap); min-height:var(--tap); border:none; background:transparent;
+    color:var(--line); font-size:var(--text-display-sm); cursor:pointer; padding:0;
+    transition:transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .hearts button.on{color:var(--gold-bright)}
+  .hearts button:active{transform:scale(.88)}
+  .rate-agg{
+    margin-top:var(--space-7); padding:12px 14px; border-radius:var(--radius-sm);
+    background:var(--card-ivory); border:1px solid var(--gold-line);
+    font-size:var(--text-caption); line-height:1.9; color:var(--ink-soft);
+  }
+  .rate-agg b{font-family:var(--serif); color:var(--gold); font-size:var(--text-body-sm)}
+  .rate-agg .q{display:block; margin-top:4px; color:var(--ink); font-style:italic}
+  .rate-btn{
+    border:1px dashed rgba(201,169,106,.5); background:transparent; color:var(--gold-bright);
+    border-radius:var(--radius-sm); padding:7px 11px; font-size:var(--text-micro);
+    cursor:pointer; font-family:inherit; min-height:34px;
+  }
+  .rate-btn.on{border-style:solid; background:rgba(201,169,106,.12)}
+  .card .rate{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:.8px;
+    color:var(--gold-bright); margin-top:5px; opacity:.95}
+
+  /* ————— 足迹地图 ————— */
+  .fp-stat{margin-top:12px; font-size:var(--text-body-sm); color:var(--ink-soft); line-height:1.8}
+  .fp-stat b{font-family:var(--serif); font-size:var(--text-title); color:var(--gold); font-weight:900}
+  .map-wrap{
+    position:relative; margin-top:14px; height:270px; border-radius:var(--radius-md);
+    overflow:hidden; border:1px solid var(--line); background:var(--paper2);
+    box-shadow:var(--shadow-flat);
+  }
+  .map-wrap.full{
+    position:fixed; inset:0; z-index:80; height:auto; margin:0;
+    border-radius:0; border:none;
+  }
+  #mapCanvas{display:block; width:100%; height:100%; touch-action:none; cursor:grab}
+  .map-ctl{position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:6px}
+  .map-ctl button{
+    min-width:36px; min-height:36px; padding:0 8px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); background:var(--card-ivory); color:var(--ink);
+    font-size:var(--text-caption); cursor:pointer; font-family:inherit; opacity:.92;
+  }
+  .map-ctl button:active{transform:scale(.94)}
+  .map-card{
+    position:absolute; left:10px; bottom:10px; max-width:58%; max-height:72%; overflow:hidden;
+    background:var(--card-ivory); border:1px solid var(--gold-line);
+    border-radius:var(--radius-sm); padding:10px 12px; box-shadow:var(--shadow-card);
+    animation:rise var(--dur-base) var(--ease) both;
+  }
+  .map-card .mc-d{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1.5px; color:var(--gold)}
+  .map-card .mc-t{font-family:var(--serif); font-weight:600; font-size:var(--text-body-sm); margin-top:2px}
+  .map-card .mc-w{font-size:var(--text-micro); color:var(--ink-soft); margin-top:2px}
+  .map-card img{width:auto; max-width:100%; max-height:84px; object-fit:cover; margin-top:8px;
+    border-radius:var(--radius-sm); display:block}
+  .map-empty{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:var(--text-caption); line-height:2; color:var(--ink-soft);
+    padding:20px; background:var(--paper2);
+  }
+  .shots{display:flex; gap:8px; overflow-x:auto; margin-top:12px; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none}
+  .shots::-webkit-scrollbar{display:none}
+  .shots img{width:72px; height:72px; flex:none; object-fit:cover; border-radius:var(--radius-sm);
+    border:1px solid var(--line); cursor:pointer; display:block}
+
   /* ————— 回忆本 ————— */
   .memo{margin-top:38px}
   .memo-list{margin-top:12px}
@@ -251,7 +473,7 @@
   .memo-row .mb.done{border-color:var(--gold); color:var(--gold)}
   .memo-empty{font-size:var(--text-body-sm); color:var(--ink-soft); padding:14px 0; line-height:1.8}
 
-  footer{margin-top:40px; text-align:center; font-family:var(--latin); font-size:var(--text-micro); letter-spacing:3px; color:rgba(43,33,48,.4); text-transform:uppercase}
+  footer{margin-top:22px; text-align:center; font-family:var(--latin); font-size:var(--text-micro); letter-spacing:3px; color:var(--ink-soft); opacity:.7; text-transform:uppercase}
   .hidden{display:none!important}
   button:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 
@@ -297,33 +519,67 @@
     text-shadow:0 1px 0 rgba(255,255,255,.25);
   }
   .seal::before{
-    content:""; position:absolute; inset:9px; border-radius:var(--radius-full);
-    border:1px solid rgba(58,42,22,.35); pointer-events:none;
+    content:""; position:absolute; inset:8px; border-radius:var(--radius-full);
+    border:1px solid rgba(58,42,22,.32); pointer-events:none;
   }
-  .seal::after{
-    content:""; position:absolute; inset:15px; border-radius:var(--radius-full);
-    border:1px dashed rgba(58,42,22,.22); pointer-events:none;
-  }
+  .seal-bloom{position:absolute; inset:13px; color:rgba(58,42,22,.42); pointer-events:none}
+  .seal #sealChar{position:relative; z-index:1}
   @keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.09)}28%{transform:scale(1)}42%{transform:scale(1.06)}}
   #invite .i-hint{font-size:var(--text-body-sm); color:var(--ink-soft); margin-top:22px; letter-spacing:2px}
-  #invite .i-skip{margin-top:26px; border:none; background:transparent; color:rgba(43,33,48,.4);
-    font-size:var(--text-caption); font-family:inherit; letter-spacing:1px; cursor:pointer; text-decoration:underline}
+  #invite .i-skip{margin-top:22px; min-height:var(--tap); border:none; background:transparent; color:var(--ink-soft);
+    font-size:var(--text-caption); font-family:inherit; letter-spacing:1px; cursor:pointer; text-decoration:underline;
+    text-underline-offset:4px}
 
   /* ————— 弹层通用 ————— */
-  .mask{position:fixed; inset:0; z-index:55; background:rgba(43,33,48,.55); display:none}
+  .mask{position:fixed; inset:0; z-index:55; background:rgba(16,11,20,.58); display:none}
   .mask.show{display:block}
   .mask.center{align-items:center; justify-content:center; padding:26px}
   .mask.center.show{display:flex}
+  /* 底部抽屉：iOS 上 vh 会被地址栏坑，所以优先用 dvh；内层滚动要 contain，
+     不然一滚到底就把整页带着一起滚。 */
   .panel-card{
-    position:absolute; left:0; right:0; bottom:0; max-height:88vh; overflow:auto;
-    background:var(--paper); border-radius:var(--radius-sheet) var(--radius-sheet) 0 0; padding:22px 20px 34px;
+    position:absolute; left:0; right:0; bottom:0;
+    max-height:90vh; max-height:90dvh;
+    display:flex; flex-direction:column;
+    background:var(--paper); border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;
+    box-shadow:var(--shadow-overlay);
+    animation:sheetUp var(--dur-base) var(--ease) both;
   }
-  .panel-card h3{font-family:var(--serif); font-weight:900; font-size:var(--text-display-sm); margin:0 0 4px}
+  @keyframes sheetUp{from{transform:translate3d(0,26px,0)}to{transform:none}}
+  .sheet-head{
+    position:relative; flex:none; display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:20px 20px 12px; border-bottom:1px solid var(--line); background:var(--paper);
+    border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;
+  }
+  .sheet-head .grip{position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    width:38px; height:4px; border-radius:var(--radius-full); background:var(--line)}
+  .sheet-close{flex:none; min-width:var(--tap); min-height:var(--tap); border:1px solid var(--line);
+    background:transparent; color:var(--ink-soft); border-radius:var(--radius-sm);
+    font-size:var(--text-body); cursor:pointer; font-family:inherit}
+  .sheet-body{
+    flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain; padding:4px 20px 20px;
+  }
+  .sheet-foot{
+    flex:none; display:flex; gap:10px; padding:12px 20px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:var(--paper);
+  }
+  .panel-card h3{font-family:var(--serif); font-weight:900; font-size:var(--text-display-sm); margin:0 0 2px}
   .panel-card .hint{font-size:var(--text-caption); color:var(--ink-soft); margin-bottom:18px; line-height:1.7}
-  .f-label{font-size:var(--text-caption); font-weight:700; margin:16px 0 7px; letter-spacing:1px}
+  .group{margin-top:var(--space-7)}
+  .group:first-child{margin-top:var(--space-5)}
+  .group-t{display:flex; align-items:center; gap:10px; margin-bottom:2px;
+    font-family:var(--latin); font-size:var(--text-caption); letter-spacing:var(--track-label);
+    color:var(--gold); text-transform:uppercase}
+  .group-t::after{content:""; flex:1; height:1px; background:var(--line)}
+  .group-t b{font-family:var(--serif); font-size:var(--text-body-sm); letter-spacing:1px;
+    color:var(--ink); font-weight:600}
+  .f-label{font-size:var(--text-caption); font-weight:700; margin:14px 0 7px; letter-spacing:1px}
   input[type=date], input[type=text], select, textarea{
-    width:100%; padding:10px 11px; border-radius:var(--radius-sm); border:1px solid rgba(43,33,48,.3);
-    background:var(--card-ivory); color:var(--ink); font-size:var(--text-body); font-family:inherit;
+    width:100%; padding:11px 12px; border-radius:var(--radius-sm); border:1px solid rgba(43,33,48,.26);
+    background:var(--card-ivory); color:var(--ink); font-size:var(--text-input); font-family:inherit;
+    min-height:var(--tap);
   }
   textarea{resize:none; line-height:1.7}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
@@ -363,47 +619,41 @@
 
   /* ————— 夜间：深丝绒紫黑 + 香槟金 + 象牙白 ————— */
   html{color-scheme:light dark}
-  @media (prefers-color-scheme: dark){
-    :root{
-      --paper:#1D1620; --paper2:#261E2A;
-      --ink:#F2EAE0; --ink-soft:rgba(242,234,224,.6);
-      --gold:#C9A96A; --line:rgba(242,234,224,.14);
-      --card-ivory:#2A2130;
-    }
-    .chip{border-color:rgba(242,234,224,.25); box-shadow:var(--shadow-flat)}
-    .chip.on{background:rgba(201,169,106,.14); border-color:var(--gold-bright); color:var(--gold-bright); box-shadow:var(--shadow-inset)}
-    .gear{color:var(--ink-soft)}
-    .hero-stat{border-top-color:var(--gold)}
-    .part-head{border-bottom-color:rgba(242,234,224,.4)}
-    .p-save{background:#3A2E42; color:var(--gold-bright)}
-    input[type=date], input[type=text], select, textarea{border-color:rgba(242,234,224,.25)}
-    .m-row{background:rgba(42,33,48,.5)}
-    #noBtn{border-color:rgba(242,234,224,.3)}
-    .love-note{background:rgba(42,33,48,.75)}
-    footer{color:rgba(242,234,224,.35)}
-  }
+  html[data-theme="night"] .chip{border-color:rgba(244,236,226,.2)}
+  html[data-theme="night"] .chip.on{background:rgba(203,171,110,.13); border-color:var(--gold-bright); color:var(--gold-bright)}
+  html[data-theme="night"] .p-save{background:#3A2E42; color:var(--gold-bright)}
+  html[data-theme="night"] input[type=date], html[data-theme="night"] input[type=text],
+  html[data-theme="night"] select, html[data-theme="night"] textarea{border-color:rgba(244,236,226,.2)}
+  html[data-theme="night"] .m-row{background:rgba(45,35,52,.5)}
+  html[data-theme="night"] #noBtn{border-color:rgba(244,236,226,.24)}
+  html[data-theme="night"] .love-note{background:rgba(45,35,52,.7)}
+  html[data-theme="night"] footer{color:rgba(244,236,226,.32)}
+  html[data-theme="night"] .seal{color:#1B1420}
 
-  /* ————— 动态氛围 ————— */
-  .orbs{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none}
-  .orbs span{
-    position:absolute; width:340px; height:340px; border-radius:var(--radius-full);
-    filter:blur(70px); opacity:.5;
-  }
-  .orbs span:nth-child(1){background:rgba(201,169,106,.28); top:-12%; right:-14%; animation:drift1 16s ease-in-out infinite alternate}
-  .orbs span:nth-child(2){background:rgba(156,107,118,.22); top:36%; left:-20%; animation:drift2 20s ease-in-out infinite alternate}
-  @keyframes drift1{to{transform:translate(-50px, 70px) scale(1.15)}}
-  @keyframes drift2{to{transform:translate(70px, -50px) scale(1.1)}}
+  /* ————— 动态氛围 —————
+     光斑原来用 filter:blur(70px) 做，两个 340px 的模糊层在手机上一直在重绘；
+     现在改成两团纯渐变（不用 filter），飘的花瓣交给一张 canvas，只有一个合成层。 */
+  .orbs{position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none}
+  .orbs span{position:absolute; width:min(120vw,620px); height:min(120vw,620px); border-radius:var(--radius-full)}
+  .orbs span:nth-child(1){top:-32%; right:-26%;
+    background:radial-gradient(circle at 50% 50%, var(--glow-a), transparent 68%)}
+  .orbs span:nth-child(2){top:34%; left:-34%;
+    background:radial-gradient(circle at 50% 50%, var(--glow-b), transparent 68%)}
+  #petals{position:fixed; inset:0; z-index:-1; pointer-events:none}
 
-  .reveal{opacity:0; transform:translateY(18px); transition:opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease)}
+  .reveal{opacity:0; transform:translate3d(0,18px,0); transition:opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease)}
   .reveal.in{opacity:1; transform:none}
 
-  .final, .act.primary{position:relative; overflow:hidden}
-  .final::before{
-    content:""; position:absolute; top:0; bottom:0; width:55%;
-    background:linear-gradient(115deg, transparent, rgba(255,255,255,.14), transparent);
-    left:-60%; animation:sheen 3.4s ease-in-out infinite;
+  /* 高光扫过原来动的是 left，会每帧触发一次布局（静置 3 秒 75 次）。
+     改成动 transform，交给合成器，布局次数归零。 */
+  .final, .act.primary, .quick{position:relative; overflow:hidden}
+  .final::before, .quick::before{
+    content:""; position:absolute; top:0; bottom:0; left:0; width:55%;
+    background:linear-gradient(115deg, transparent, rgba(255,255,255,.11), transparent);
+    transform:translate3d(-160%,0,0); will-change:transform;
+    animation:sheen 5.6s var(--ease) infinite;
   }
-  @keyframes sheen{0%,55%{left:-60%}85%,100%{left:120%}}
+  @keyframes sheen{0%,58%{transform:translate3d(-160%,0,0)}88%,100%{transform:translate3d(320%,0,0)}}
 
   /* ————— 彩蛋：初衷 ————— */
   #origin{cursor:pointer; user-select:none}
@@ -449,7 +699,35 @@
 </style>
 </head>
 <body>
+<!-- 线条花枝：茶花五瓣 + 两片叶子，只描边不填色，跟着 currentColor 换主题 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="bloom" viewBox="-16 -16 32 32">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(72)"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(144)"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(216)"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(288)"/>
+      <circle cx="0" cy="0" r="2.1"/>
+    </g>
+  </symbol>
+  <symbol id="sprig" viewBox="0 0 148 36">
+    <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 21 C 24 21 42 16 60 15"/>
+      <path d="M146 21 C 124 21 106 16 88 15"/>
+      <path d="M28 20.4 C 32 13.6 41 12.4 45.5 15.6 C 41 20 32.5 23 28 20.4 Z"/>
+      <path d="M33 18.6 C 37 17.4 41.5 16.2 45 15.7"/>
+      <path d="M120 20.4 C 116 13.6 107 12.4 102.5 15.6 C 107 20 115.5 23 120 20.4 Z"/>
+      <path d="M115 18.6 C 111 17.4 106.5 16.2 103 15.7"/>
+      <path d="M60 15 C 66 15 68 11 74 11"/>
+      <path d="M88 15 C 82 15 80 11 74 11"/>
+    </g>
+    <use href="#bloom" x="59" y="-4" width="30" height="30"/>
+  </symbol>
+</svg>
+
 <div class="orbs"><span></span><span></span></div>
+<canvas id="petals" aria-hidden="true"></canvas>
 
 <!-- 开场互动（自己打开时） -->
 <div id="gate" class="hidden">
@@ -463,10 +741,14 @@
 
 <!-- 她点开分享链接时看到的信封 -->
 <div id="invite" class="hidden">
+  <svg class="i-orn" aria-hidden="true"><use href="#sprig"/></svg>
   <div class="i-eyebrow">A surprise for you</div>
   <h2 id="iTitle">有人为你准备了今天</h2>
   <div class="i-meta" id="iMeta"></div>
-  <button class="seal" id="sealBtn" aria-label="拆开今天">♥</button>
+  <button class="seal" id="sealBtn" aria-label="拆开今天">
+    <svg class="seal-bloom" aria-hidden="true"><use href="#bloom"/></svg>
+    <span id="sealChar">♥</span>
+  </button>
   <div class="i-hint">轻点封蜡，拆开今天</div>
   <button class="i-skip" id="iSkip">直接看计划</button>
 </div>
@@ -476,14 +758,22 @@
     <header>
       <div class="topbar">
         <div class="eyebrow">Private Reserve</div>
-        <button class="gear" id="gearBtn">⚙︎ 设置</button>
+        <div class="top-acts">
+          <button class="gear icon" id="themeBtn" aria-label="切换晨光/夜色"><span id="themeIcon">☾</span></button>
+          <button class="gear" id="gearBtn">⚙︎ 设置</button>
+        </div>
       </div>
       <h1 id="h1">今天，怎么心动？</h1>
       <div class="sub" id="sub">为你一人定制的心动菜单</div>
     </header>
 
-    <div class="hero-stat"><small>在 一 起</small><div class="num"><i>第</i><span id="days">—</span><i>天</i></div></div>
-    <div class="mstones" id="mstones"></div>
+    <div class="hero-wrap">
+      <svg class="hero-bloom" aria-hidden="true"><use href="#bloom"/></svg>
+      <div class="hero-stat"><small>在 一 起</small><div class="num"><i>第</i><span id="days">—</span><i>天</i></div></div>
+      <div class="mstones" id="mstones"></div>
+    </div>
+
+    <svg class="orn md" aria-hidden="true"><use href="#sprig"/></svg>
 
     <button class="quick" id="quickBtn">
       <span class="qt">一 键 定 今 天</span>
@@ -540,7 +830,47 @@
 
     <button class="final" id="combine" disabled>生 成 最 终 计 划</button>
 
+    <!-- 卡池里没有的，自己写一站 / 搜一个具体地点 -->
+    <div class="own-add">
+      <button class="fold" id="ownFold" aria-expanded="false">
+        <span>想去的地方卡池里没有？自己加一站</span>
+        <span class="caret" id="ownCaret">▼</span>
+      </button>
+      <div class="own-body hidden" id="ownBody">
+        <div class="f-label">搜一个具体的地方</div>
+        <div class="own-row">
+          <input type="text" id="ownSearch" placeholder="店名或地名，如：鹤鸣茶社" />
+          <button class="own-go" id="ownSearchGo">搜</button>
+        </div>
+        <div class="own-hits" id="ownHits"></div>
+
+        <div class="f-label">或者直接写一站</div>
+        <input type="text" id="ownName" maxlength="20" placeholder="这一站叫什么，如：去她家楼下等她" />
+        <div class="own-row" style="margin-top:8px">
+          <input type="text" id="ownNote" maxlength="24" placeholder="一句说明（可留空）" />
+          <select id="ownKind">
+            <option value="游">玩乐</option>
+            <option value="食">美食</option>
+            <option value="行">走走</option>
+            <option value="彩蛋">彩蛋</option>
+          </select>
+        </div>
+        <div class="own-row" style="margin-top:8px">
+          <select id="ownDur">
+            <option value="30">约半小时</option>
+            <option value="60">约一小时</option>
+            <option value="90" selected>约一个半小时</option>
+            <option value="120">约两小时</option>
+            <option value="180">约三小时</option>
+          </select>
+          <button class="own-go wide" id="ownAdd">加进今天</button>
+        </div>
+        <div class="hint" style="margin-top:8px">加进来的站会直接排进时间轴，也能像别的站一样打卡、拍照、评分。</div>
+      </div>
+    </div>
+
     <div class="love-note hidden" id="loveNote">
+      <svg class="ln-orn" aria-hidden="true"><use href="#bloom"/></svg>
       <div class="ln-e">A word for you</div>
       <div class="ln-b" id="lnBody"></div>
       <div class="ln-s" id="lnSign"></div>
@@ -548,8 +878,10 @@
 
     <div class="menu hidden" id="menu">
       <div class="m-eyebrow">Menu du jour</div>
+      <svg class="m-orn" aria-hidden="true"><use href="#sprig"/></svg>
       <h2 id="m-title">最终约会计划</h2>
       <div class="m-date" id="m-date"></div>
+      <div class="m-progress" id="m-progress"></div>
       <div id="m-courses"></div>
       <div class="m-note" id="m-note"></div>
     </div>
@@ -572,59 +904,124 @@
     <div class="sweet" id="sweet"></div>
 
     <div class="memo" id="memo">
-      <div class="part-head"><span class="t">回忆本</span><span class="en" id="memoCount">Our Days</span></div>
+      <div class="part-head"><span class="t">足迹</span><span class="en" id="memoCount">Our Days</span></div>
+      <div class="fp-stat" id="fpStat"></div>
+
+      <div class="map-wrap" id="mapWrap">
+        <canvas id="mapCanvas"></canvas>
+        <div class="map-ctl">
+          <button id="mapIn" aria-label="放大">＋</button>
+          <button id="mapOut" aria-label="缩小">－</button>
+          <button id="mapFit" aria-label="全部装进来">全部</button>
+          <button id="mapFull" aria-label="全屏看">⤢</button>
+        </div>
+        <div class="map-card hidden" id="mapCard"></div>
+        <div class="map-empty" id="mapEmpty">
+          出门之后，在计划里给每一站打个勾。<br/>打过的地方会亮在这张地图上。
+        </div>
+      </div>
+
+      <div class="shots" id="shots"></div>
       <div class="memo-list" id="memoList"></div>
     </div>
   </div>
 
+  <svg class="orn sm" aria-hidden="true" style="margin-top:var(--space-9)"><use href="#sprig"/></svg>
   <footer id="origin">Handcrafted with love · Est. 2026</footer>
 </div>
 
 <!-- 设置面板 -->
 <div id="panel" class="mask">
   <div class="panel-card">
-    <h3>设置</h3>
-    <div class="hint">名字、日期、纪念日都在这里改。保存后只存在<b>你自己这台手机</b>里，别人打开链接看到的是他们自己的设置，互不干扰。</div>
-
-    <div class="f-label">怎么称呼你们</div>
-    <div class="grid2">
-      <input type="text" id="cfgFrom" maxlength="8" placeholder="你（署名）" />
-      <input type="text" id="cfgTo" maxlength="8" placeholder="她 / 他（称呼）" />
+    <div class="sheet-head">
+      <span class="grip"></span>
+      <div>
+        <h3>设置</h3>
+        <div class="hint" style="margin:2px 0 0">只存在你这台手机里，填一次就够了</div>
+      </div>
+      <button class="sheet-close" id="panelClose" aria-label="关闭设置">✕</button>
     </div>
 
-    <div class="f-label">在一起的日子（大数字从这天开始算）</div>
-    <input type="date" id="cfgAnni" />
+    <div class="sheet-body">
+      <div class="group">
+        <div class="group-t">Us<b>你们</b></div>
+        <div class="f-label">怎么称呼</div>
+        <div class="grid2">
+          <input type="text" id="cfgFrom" maxlength="8" placeholder="你（署名）" />
+          <input type="text" id="cfgTo" maxlength="8" placeholder="她 / 他（称呼）" />
+        </div>
+      </div>
 
-    <div class="f-label">口味（可多选，抽卡会往这边偏）</div>
-    <div class="chips" id="cfgTaste"></div>
+      <div class="group">
+        <div class="group-t">Days<b>日子</b></div>
+        <div class="f-label">在一起的日子（大数字从这天开始算）</div>
+        <input type="date" id="cfgAnni" />
+        <div class="f-label">纪念日</div>
+        <div id="mList"></div>
+        <button class="m-add" id="addMile">＋ 添加一条纪念日</button>
+      </div>
 
-    <div class="f-label">喜欢的场景（可多选）</div>
-    <div class="chips" id="cfgLove"></div>
+      <div class="group">
+        <div class="group-t">Taste<b>口味与喜好</b></div>
+        <div class="f-label">口味（可多选，抽卡会往这边偏）</div>
+        <div class="chips" id="cfgTaste"></div>
+        <div class="f-label">喜欢的场景（可多选）</div>
+        <div class="chips" id="cfgLove"></div>
+        <div class="f-label">你们俩的 MBTI（可留空）</div>
+        <div class="grid2">
+          <select id="cfgMbtiA"></select>
+          <select id="cfgMbtiB"></select>
+        </div>
+        <div class="hint" style="margin:6px 0 0">填了之后：抽卡会往你们这一型偏，别的情侣的评分里也会单独算一份"和你们 MBTI 接近的"分数。</div>
 
-    <div class="f-label">不想碰的</div>
-    <input type="text" id="cfgAvoid" placeholder="逗号分开，如：香菜, 排队, 太吵" />
-    <div class="hint" style="margin:6px 0 0">写在这里的词，出现在卡片上就不会被抽到。</div>
+        <div class="f-label">不想碰的</div>
+        <input type="text" id="cfgAvoid" placeholder="逗号分开，如：香菜, 排队, 太吵" />
+        <div class="hint" style="margin:6px 0 0">写在这里的词，出现在卡片上就不会被抽到。</div>
+      </div>
 
-    <div class="f-label">你们的私藏地点</div>
-    <div class="hint" style="margin-bottom:8px">写进来的地方会变成卡片跟着一起抽，而且优先抽到。比如"城南那家烧烤"、"她第一次说喜欢我的那家咖啡馆"。</div>
-    <div id="sList"></div>
-    <button class="m-add" id="addSpot">＋ 添加一个私藏</button>
+      <div class="group">
+        <div class="group-t">Ours<b>私藏地点</b></div>
+        <div class="hint" style="margin-bottom:8px">写进来的地方会变成卡片跟着一起抽，而且优先抽到。比如"城南那家烧烤"、"她第一次说喜欢我的那家咖啡馆"。</div>
+        <div id="sList"></div>
+        <button class="m-add" id="addSpot">＋ 添加一个私藏</button>
+      </div>
 
-    <div class="f-label">纪念日列表</div>
-    <div id="mList"></div>
-    <button class="m-add" id="addMile">＋ 添加一条纪念日</button>
+      <div class="group">
+        <div class="group-t">Mood<b>明暗与开场</b></div>
+        <div class="f-label">这个网站的明暗</div>
+        <div class="chips" id="cfgTheme"></div>
+        <label class="switch-row" for="cfgGate">
+          <span>开场互动（"您愿意和我约会吗"）</span>
+          <input type="checkbox" id="cfgGate" class="switch" />
+        </label>
+      </div>
 
-    <label class="switch-row" for="cfgGate">
-      <span>开场互动（"您愿意和我约会吗"）</span>
-      <input type="checkbox" id="cfgGate" class="switch" />
-    </label>
+      <div class="group">
+        <div class="group-t">Together<b>共一张地图</b></div>
+        <div class="hint" id="coupleState" style="margin-bottom:8px"></div>
+        <button class="m-add" id="coupleLink">生成「连上同一张地图」的链接</button>
+        <input type="text" id="coupleOut" readonly placeholder="发给她，她点开再点「存到我手机」就连上了" style="margin-top:8px" />
+      </div>
 
-    <div class="f-label" style="margin-top:20px">🔗 只把设置带给她</div>
-    <div class="hint" style="margin-bottom:8px">这个链接只带名字和日期，不含计划。她每次点开看到的都是这一份，谁也改不了。想送计划的话，先生成计划，再点「把今天送给她」。</div>
-    <button class="m-add" id="shareBtn">生成设置链接</button>
-    <input type="text" id="shareOut" readonly placeholder="链接会出现在这里，长按全选复制" style="margin-top:8px; font-size:12px" />
+      <div class="group">
+        <div class="group-t">Keep<b>备份</b></div>
+        <div class="hint" style="margin-bottom:8px">打卡、照片、足迹都存在这台设备上。换手机、清缓存之前先导一份出来；新手机上再导进去，连照片一起回来。</div>
+        <div class="acts" style="margin-top:0">
+          <button class="act" id="cfgExport">导 出 备 份</button>
+          <button class="act" id="cfgImport">导 入 备 份</button>
+        </div>
+        <div class="hint" id="storeState" style="margin-top:8px"></div>
+      </div>
 
-    <div class="panel-actions">
+      <div class="group">
+        <div class="group-t">Share<b>只把设置带给她</b></div>
+        <div class="hint" style="margin-bottom:8px">这个链接只带名字、日期和明暗，不含计划。想送计划的话，先生成计划，再点「把今天送给她」。</div>
+        <button class="m-add" id="shareBtn">生成设置链接</button>
+        <input type="text" id="shareOut" readonly placeholder="链接会出现在这里，长按全选复制" style="margin-top:8px" />
+      </div>
+    </div>
+
+    <div class="sheet-foot">
       <button class="p-save" id="saveCfg">保 存</button>
       <button class="p-reset" id="resetCfg">恢复默认</button>
     </div>
@@ -634,9 +1031,15 @@
 <!-- 分享计划面板 -->
 <div id="sheet" class="mask">
   <div class="panel-card">
-    <h3>把今天送给她</h3>
-    <div class="hint">生成的链接会把这份计划整个封在里面。她点开先看到一个信封，拆开才是你排好的今天——她那边改不了，也不需要装任何东西。</div>
-
+    <div class="sheet-head">
+      <span class="grip"></span>
+      <div>
+        <h3>把今天送给她</h3>
+        <div class="hint" style="margin:2px 0 0">她点开先看到一个封蜡，拆开才是你排好的今天</div>
+      </div>
+      <button class="sheet-close" id="sheetClose2" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
     <div class="f-label">署名</div>
     <input type="text" id="shFrom" maxlength="8" placeholder="留空就是「有人」" />
 
@@ -645,17 +1048,54 @@
     <div class="row3" id="noteTpl"></div>
 
     <button class="m-add" id="shMake" style="margin-top:14px">生成惊喜链接</button>
-    <input type="text" id="shOut" readonly placeholder="链接会出现在这里" style="margin-top:8px; font-size:12px" />
+    <input type="text" id="shOut" readonly placeholder="链接会出现在这里" style="margin-top:8px" />
 
     <div class="acts" style="margin-top:10px">
       <button class="act" id="shCopy">复 制 链 接</button>
       <button class="act" id="shSys">系 统 分 享</button>
     </div>
     <button class="m-add" id="shPreview" style="margin-top:10px">预览她点开会看到什么</button>
+    </div>
 
-    <div class="panel-actions">
+    <div class="sheet-foot">
       <button class="p-save" id="shPoster">存 成 图 片</button>
       <button class="p-reset" id="shClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 给地点打分（情侣标准） -->
+<div id="rateSheet" class="mask">
+  <div class="panel-card">
+    <div class="sheet-head">
+      <span class="grip"></span>
+      <div>
+        <h3 id="rateTitle">给这儿打个分</h3>
+        <div class="hint" style="margin:2px 0 0">按情侣的标准，不是按好不好吃</div>
+      </div>
+      <button class="sheet-close" id="rateClose" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="f-label">总体</div>
+      <div class="hearts" id="rateHearts"></div>
+
+      <div class="f-label">对上的就点亮</div>
+      <div class="chips" id="rateDims"></div>
+
+      <div class="f-label">适合</div>
+      <div class="chips" id="rateFit"></div>
+
+      <div class="f-label">花费</div>
+      <div class="chips" id="rateCost"></div>
+
+      <div class="f-label">想说一句（会给别的情侣看，可留空）</div>
+      <textarea id="rateText" rows="2" maxlength="60" placeholder="靠窗那一桌可以坐很久"></textarea>
+
+      <div class="rate-agg hidden" id="rateAgg"></div>
+    </div>
+    <div class="sheet-foot">
+      <button class="p-save" id="rateSave">提 交</button>
+      <button class="p-reset" id="rateDel">删掉我的评分</button>
     </div>
   </div>
 </div>
@@ -664,7 +1104,7 @@
 <div id="posterMask" class="mask center">
   <div class="poster-card">
     <img id="posterImg" alt="今天的约会计划" />
-    <div class="pc-hint">长按图片保存，发给她就行</div>
+    <div class="pc-hint" id="posterHint">长按图片保存，发给她就行</div>
     <button class="pc-close" id="posterClose">关闭</button>
   </div>
 </div>
@@ -700,6 +1140,7 @@
   </div>
 </div>
 
+<div id="veil" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -786,7 +1227,8 @@ function copyText(text, okMsg){
   var done = false;
   try{
     if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text);
+      // 有些环境会拒绝写剪贴板，promise 一定要接住，不然冒一个未处理的 rejection
+      navigator.clipboard.writeText(text).catch(function(){});
       done = true;
     }
   }catch(e){}
@@ -805,6 +1247,7 @@ function copyText(text, okMsg){
   return done;
 }
 function hearts(n){
+  if (window.Petals) Petals.burst(Math.round((n || 14) * 1.6));
   for (var i=0;i<(n||14);i++){
     var h = document.createElement('span');
     h.className = 'heart'; h.textContent = '♥';
@@ -822,9 +1265,176 @@ function param(name){
   return m ? m[1] : null;
 }
 
+/* ---------- 1b 花瓣：一整块 canvas，一个合成层 ----------
+   原来的氛围是两个 filter:blur(70px) 的光斑，手机上一直在重绘。
+   现在飘的东西都画在这一张画布上：常驻十几片慢慢落，拆信封/出计划时再撒一把。 */
+var Petals = (function(){
+  var cv, ctx, W = 0, H = 0, dpr = 1, list = [], raf = null, still = false;
+  var AMBIENT = 10, sprite = [], SPRITE = 48, last = 0, STEP = 1000/30;
+
+  function reduced(){
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  function rand(a, b){ return a + Math.random()*(b-a); }
+  function make(burst){
+    return {
+      x: rand(0, W),
+      y: burst ? rand(-0.15, 0.35)*H : rand(-0.2, 1)*H,
+      s: burst ? rand(4, 8) : rand(3.4, 7.5),
+      vy: burst ? rand(1.1, 2.6) : rand(0.14, 0.4),
+      vx: burst ? rand(-1.4, 1.4) : rand(-0.14, 0.14),
+      sway: rand(0.4, 1.3),
+      phase: rand(0, Math.PI*2),
+      rot: rand(0, Math.PI*2),
+      vr: rand(-0.012, 0.012),
+      a: burst ? rand(.42, .8) : rand(.06, .17),
+      fade: burst ? rand(0.0016, 0.004) : 0,
+      tone: Math.random() < .62 ? 0 : 1
+    };
+  }
+  function size(){
+    if (!cv) return;
+    // 花瓣是柔和的色块，1.5 倍已经够，2 倍只是多烧一半的像素
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function tone(i){
+    var s = getComputedStyle(document.documentElement);
+    return (i ? s.getPropertyValue('--rose') : s.getPropertyValue('--gold-bright')).trim() || '#C9A96A';
+  }
+  // 窄一点、尖一点，才像花瓣不像圆点
+  function shape(c, s){
+    var w = s*0.52;
+    c.beginPath();
+    c.moveTo(0, -s);
+    c.bezierCurveTo(w, -s*0.42, w*0.86, s*0.66, 0, s);
+    c.bezierCurveTo(-w*0.86, s*0.66, -w, -s*0.42, 0, -s);
+    c.closePath();
+  }
+  // 每种颜色先离屏画一片，之后每帧只做 drawImage，比每帧算贝塞尔便宜得多
+  function refreshColors(){
+    var cols = [tone(0), tone(1)];
+    sprite = cols.map(function(col){
+      var off = document.createElement('canvas');
+      off.width = off.height = SPRITE;
+      var c = off.getContext('2d');
+      c.translate(SPRITE/2, SPRITE/2);
+      c.fillStyle = col;
+      shape(c, SPRITE/2 - 2);
+      c.fill();
+      return off;
+    });
+  }
+  function frame(ts){
+    raf = null;
+    if (still || document.hidden) return;
+    if (ts - last < STEP){ raf = requestAnimationFrame(frame); return; }   // 压到 30fps
+    last = ts;
+    ctx.clearRect(0, 0, W, H);
+    for (var i = list.length - 1; i >= 0; i--){
+      var p = list[i];
+      p.phase += 0.024;
+      p.y += p.vy*2;
+      p.x += (p.vx + Math.sin(p.phase)*p.sway*0.5)*2;
+      p.rot += p.vr*2;
+      if (p.fade){
+        p.a -= p.fade*2;
+        if (p.a <= 0 || p.y > H + 40){ list.splice(i, 1); continue; }
+      } else if (p.y > H + 30){
+        p.y = -30; p.x = rand(0, W);
+      }
+      var img = sprite[p.tone];
+      if (!img) continue;
+      var d = p.s*2;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.max(0, p.a);
+      ctx.drawImage(img, -d/2, -d/2, d, d);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    raf = requestAnimationFrame(frame);
+  }
+  function kick(){ if (!raf && !still && cv) raf = requestAnimationFrame(frame); }
+
+  return {
+    init: function(){
+      cv = document.getElementById('petals');
+      if (!cv || !cv.getContext) return;
+      ctx = cv.getContext('2d');
+      size();
+      refreshColors();
+      if (reduced()){ still = true; return; }
+      for (var i = 0; i < AMBIENT; i++) list.push(make(false));
+      kick();
+      var t;
+      window.addEventListener('resize', function(){
+        clearTimeout(t);
+        t = setTimeout(function(){ size(); }, 200);
+      }, { passive: true });
+      document.addEventListener('visibilitychange', function(){
+        if (!document.hidden) kick();
+      });
+    },
+    theme: refreshColors,
+    burst: function(n){
+      if (!cv || still) return;
+      for (var i = 0; i < (n || 22); i++) list.push(make(true));
+      kick();
+    }
+  };
+})();
+
+/* ---------- 1c 主题：晨光 / 夜色 / 跟随系统 ---------- */
+var THEME_OPTS = ['跟随系统','晨光','夜色'];
+var THEME_KEY = { '跟随系统':'auto', '晨光':'day', '夜色':'night' };
+function themeLabel(v){
+  for (var k in THEME_KEY) if (THEME_KEY[k] === v) return k;
+  return '跟随系统';
+}
+function prefersDark(){
+  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+function resolvedTheme(pref){
+  return pref === 'night' || (pref !== 'day' && prefersDark()) ? 'night' : 'day';
+}
+function paintTheme(pref, animate){
+  var next = resolvedTheme(pref);
+  var root = document.documentElement;
+  if (root.getAttribute('data-theme') === next){ syncThemeIcon(pref); return; }
+  var icon = function(){
+    root.setAttribute('data-theme', next);
+    if (window.Petals) Petals.theme();
+    if (window.Atlas && Atlas.has()) Atlas.repaint();   // 底图跟着换明暗
+    syncThemeIcon(pref);
+  };
+  var veil = $('veil');
+  if (!animate || !veil){ icon(); return; }
+  // 用一层当前底色的幕布过渡，避免几十个元素各自做颜色动画
+  veil.style.background = getComputedStyle(root).getPropertyValue('--paper');
+  veil.classList.add('on');
+  setTimeout(function(){
+    icon();
+    veil.style.background = getComputedStyle(root).getPropertyValue('--paper');
+    setTimeout(function(){ veil.classList.remove('on'); }, 30);
+  }, 300);
+}
+function syncThemeIcon(pref){
+  var el = $('themeIcon');
+  if (!el) return;
+  var now = document.documentElement.getAttribute('data-theme');
+  el.textContent = now === 'night' ? '☾' : '☀';
+  var btn = $('themeBtn');
+  if (btn) btn.title = '现在是' + (now === 'night' ? '夜色' : '晨光') +
+    '（设置：' + themeLabel(pref) + '）';
+}
+
 /* ---------- 2 设置与链接编码 ---------- */
 refreshNow();
-var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[] };
+var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'', couple:'' };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
 
@@ -839,11 +1449,17 @@ function normCfg(c){
   if (typeof c.from !== 'string') c.from = '';
   if (typeof c.to !== 'string') c.to = '';
   if (typeof c.avoid !== 'string') c.avoid = '';
+  if (c.theme !== 'day' && c.theme !== 'night') c.theme = 'auto';
+  if (typeof c.mbtiA !== 'string') c.mbtiA = '';
+  if (typeof c.mbtiB !== 'string') c.mbtiB = '';
+  if (typeof c.couple !== 'string' || !/^c[a-z0-9]{16,40}$/.test(c.couple)) c.couple = '';
   return c;
 }
-// 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑
+// 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑。
+// theme 要带上——她收到的应该是我调好的那一套明暗。
 function publicCfg(){
-  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to };
+  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to, theme:cfg.theme,
+           couple:Couple.ensure() };
 }
 // ?s= 是新版（可带整份计划），?c= / #c= 是老版（只有设置），两者都要认
 function readShare(){
@@ -922,6 +1538,34 @@ function jget(url, cb, ms){
       } else finish(new Error('http '+x.status), null);
     };
     x.send();
+  }catch(e){ finish(e, null); }
+}
+function jpost(url, body, cb){
+  var done = false;
+  function finish(err, data){ if (!done){ done = true; cb(err, data); } }
+  setTimeout(function(){ finish(new Error('timeout'), null); }, API.timeout);
+  try{
+    if (window.fetch){
+      fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      }).then(function(r){
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json().catch(function(){ return {}; });
+      }).then(function(j){ finish(null, j); })
+        .catch(function(e){ finish(e, null); });
+      return;
+    }
+    var x = new XMLHttpRequest();
+    x.open('POST', url, true);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.onreadystatechange = function(){
+      if (x.readyState !== 4) return;
+      if (x.status >= 200 && x.status < 300) finish(null, {});
+      else finish(new Error('http ' + x.status), null);
+    };
+    x.send(JSON.stringify(body));
   }catch(e){ finish(e, null); }
 }
 // 远端卡片 → 本地字段。远端字段可缺省，缺的用默认值兜。
@@ -1004,7 +1648,7 @@ var OVERPASS_HOSTS = [
 ];
 var NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
 var POI_TTL = 7*24*3600*1000;
-var nearby = { key:'', loading:false, place:'', destKm:0 };
+var nearby = { key:'', loading:false, place:'', destKm:0, city:'', dest:null };
 
 function haversine(la1, lo1, la2, lo2){
   var R = 6371000, p = Math.PI/180;
@@ -1137,6 +1781,8 @@ function poiToCard(el, center, dow, drive){
     loc: [state.loc], b: 0, u: kind.u,
     tw: hours || kind.tw,
     meta: facts.join(' · '),
+    pid: 'osm:' + (el.type || 'node') + '/' + el.id,
+    la: c.lat, lo: c.lon,
     near: 1, dist: Math.round(m),
     rank: (tg.opening_hours ? 1 : 0) + (cui ? .6 : 0) + (tg.wikidata ? 1.2 : 0) - m/2500
   };
@@ -1180,12 +1826,12 @@ function addNearAgain(label){
   $('nearRead').appendChild(b);
 }
 // 出逃半日：不管那边地图上有没有店，"开车去某某镇"本身就是这一天的第一站
-function destCard(place, km){
+function destCard(place, km, la, lo){
   return {
     cat:'行', t:'开车去' + place, d:'路上放她的歌单，到了先找个地方停车',
     w:'皆', loc:[FAR], b:0, u:Math.max(30, Math.round(km/60*60)), tw:[7,16],
     meta:'约 ' + km + ' 公里 · 车程约 ' + Math.max(20, Math.round(km/60*60)) + ' 分钟',
-    near:1, dest:1, dist:km*1000, rank:9
+    la:la, lo:lo, near:1, dest:1, dist:km*1000, rank:9
   };
 }
 function applyNearby(cards, place, km){
@@ -1247,7 +1893,7 @@ function fetchNearby(force){
         if (c) cards.push(c);
       }
       cards = pickNearby(cards);
-      if (place) cards.unshift(destCard(place, km));
+      if (place) cards.unshift(destCard(place, km, lat, lon));
       nearby.key = key;
       cacheSet(key, { at:Date.now(), cards:cards, place:place, km:km });
       applyNearby(cards, place, km);
@@ -1278,10 +1924,355 @@ function fetchNearby(force){
     cand.sort(function(a,b){ return scoreTown(b, b.km, farKm()) - scoreTown(a, a.km, farKm()); });
     var top = cand.slice(0, 5);
     var dest = top[Math.floor(Math.random()*top.length)];
+    nearby.dest = [dest.lat, dest.lon];
     nearStatus('目的地选好了：' + dest.name + '（约 ' + Math.round(dest.km) + ' 公里），正在找那边的吃喝玩乐…', true);
     loadPOI(dest.lat, dest.lon, 3500, dest.name, Math.round(dest.km), true);
   });
 }
+
+/* ---------- 3c 照片：存在 IndexedDB 里 ----------
+   localStorage 只有 5MB，还要放设置和附近缓存，塞不下照片。
+   照片进 IndexedDB（原图 + 缩略图都先压过），元数据留在 localStorage。
+   浏览器不支持或者被拒绝，就只是没有照片，其他照常。 */
+var Photos = (function(){
+  var NAME = 'xindong_photos', STORE = 'p', VER = 1;
+  var dbp = null, broken = false;
+
+  function open(cb){
+    if (broken || !window.indexedDB) return cb(new Error('no idb'), null);
+    if (dbp) return cb(null, dbp);
+    try{
+      var req = indexedDB.open(NAME, VER);
+      req.onupgradeneeded = function(){
+        var db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath:'id' });
+      };
+      req.onsuccess = function(){ dbp = req.result; cb(null, dbp); };
+      req.onerror = function(){ broken = true; cb(req.error || new Error('idb'), null); };
+    }catch(e){ broken = true; cb(e, null); }
+  }
+  function tx(mode, cb){
+    open(function(err, db){
+      if (err) return cb(err, null);
+      try{ cb(null, db.transaction(STORE, mode).objectStore(STORE)); }
+      catch(e){ cb(e, null); }
+    });
+  }
+  // 长边压到 max，再转 JPEG。手机原图动辄 4MB，压完一般 80–150KB
+  function shrink(img, max, q){
+    var w = img.width, h = img.height;
+    var k = Math.min(1, max / Math.max(w, h));
+    var c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w*k));
+    c.height = Math.max(1, Math.round(h*k));
+    var x = c.getContext('2d');
+    x.drawImage(img, 0, 0, c.width, c.height);
+    return { url: c.toDataURL('image/jpeg', q), w: c.width, h: c.height };
+  }
+  return {
+    ready: function(){ return !broken && !!window.indexedDB; },
+    save: function(file, cb){
+      if (!file || !window.FileReader) return cb(new Error('no file'), null);
+      var fr = new FileReader();
+      fr.onload = function(){
+        var img = new Image();
+        img.onload = function(){
+          var full, thumb;
+          try{
+            full = shrink(img, 1100, .76);
+            thumb = shrink(img, 320, .7);
+          }catch(e){ return cb(e, null); }
+          var id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+          tx('readwrite', function(err, store){
+            if (err) return cb(err, null);
+            var r = store.put({ id:id, full:full.url, thumb:thumb.url, w:full.w, h:full.h });
+            r.onsuccess = function(){ cb(null, { id:id, thumb:thumb.url }); };
+            r.onerror = function(){ cb(r.error || new Error('put'), null); };
+          });
+        };
+        img.onerror = function(){ cb(new Error('bad image'), null); };
+        img.src = fr.result;
+      };
+      fr.onerror = function(){ cb(new Error('read fail'), null); };
+      fr.readAsDataURL(file);
+    },
+    get: function(id, cb){
+      if (!id) return cb(null, null);
+      tx('readonly', function(err, store){
+        if (err) return cb(err, null);
+        var r = store.get(id);
+        r.onsuccess = function(){ cb(null, r.result || null); };
+        r.onerror = function(){ cb(r.error, null); };
+      });
+    },
+    del: function(id){
+      if (!id) return;
+      tx('readwrite', function(err, store){ if (!err) store.delete(id); });
+    },
+    // 导入备份时把原样的记录写回去（不重新压缩，免得越导越糊）
+    put: function(id, rec, cb){
+      tx('readwrite', function(err, store){
+        if (err) return cb(err);
+        var r = store.put({ id:id, full:rec.full, thumb:rec.thumb, w:rec.w, h:rec.h });
+        r.onsuccess = function(){ cb(null); };
+        r.onerror = function(){ cb(r.error || new Error('put')); };
+      });
+    }
+  };
+})();
+var thumbCache = {};      // id -> dataURL，省得每次渲染都读一遍库
+function withThumb(id, cb){
+  if (!id) return cb('');
+  if (thumbCache[id] !== undefined) return cb(thumbCache[id]);
+  Photos.get(id, function(err, rec){
+    thumbCache[id] = (rec && rec.thumb) || '';
+    cb(thumbCache[id]);
+  });
+}
+
+/* ---------- 3d 情侣评分 + MBTI ----------
+   一个地点好不好，情侣看的和点评网站看的不是一回事：能不能安静说话、位置是不是
+   适合两个人并排坐、能不能久坐不赶人、拍照好不好看、要不要排队。所以这里不抄五星，
+   自己定一套维度。
+   评分先存在本机；配了 ?api= 就往后台交一份，由后台合并所有情侣的评分再发回来。
+   没有后台的时候不丢：排进 outbox，等后台上线自动补交。后台代码在 server/ 里。 */
+var REV_KEY = 'xindong_reviews_v1';
+var ANON_KEY = 'xindong_anon_v1';
+var DIMS = [
+  { k:'quiet',  label:'能安静说话' },
+  { k:'pair',   label:'位置适合两个人' },
+  { k:'linger', label:'可以久坐' },
+  { k:'photo',  label:'拍照好看' },
+  { k:'noqueue',label:'不用排队' }
+];
+var FIT_TAGS = ['第一次约会','纪念日','随便逛逛','深夜','带家人也行'];
+var COST_TAGS = ['穷开心','小奢侈','豪华版'];
+
+var MBTI_TYPES = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP',
+                  'ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'];
+// MBTI 的四个轴各自偏向哪些场景词。两个人的类型都算，不一致就各算一半。
+var MBTI_LEAN = {
+  E:['热闹','逛街'], I:['安静','自然'],
+  S:['运动','动物','逛街'], N:['展览','电影','夜景'],
+  T:['展览','运动'], F:['拍照','夜景','安静'],
+  J:[], P:[]
+};
+function anonId(){
+  try{
+    var v = localStorage.getItem(ANON_KEY);
+    if (!v){
+      v = 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem(ANON_KEY, v);
+    }
+    return v;
+  }catch(e){ return 'anon'; }
+}
+function mbtiPair(){
+  var a = (cfg.mbtiA || '').toUpperCase(), b = (cfg.mbtiB || '').toUpperCase();
+  if (!a && !b) return '';
+  return [a, b].filter(Boolean).sort().join('-');
+}
+// MBTI 给本地抽卡的加权：和口味偏好一个路子，只是权重轻一点
+function mbtiBoost(it){
+  var pair = [cfg.mbtiA, cfg.mbtiB].filter(Boolean);
+  if (!pair.length) return 0;
+  var text = cardText(it), s = 0;
+  var w = 1 / pair.length;
+  for (var p = 0; p < pair.length; p++){
+    var t = String(pair[p]).toUpperCase();
+    for (var i = 0; i < 4; i++){
+      var keys = MBTI_LEAN[t.charAt(i)];
+      if (keys && keys.length){
+        for (var j = 0; j < keys.length; j++){
+          if (hitAny(LOVE_KEY[keys[j]], text)){ s += 0.5 * w; break; }
+        }
+      }
+    }
+    // J 喜欢有明确时段能定下来的，P 喜欢随时都能去的
+    if (t.charAt(3) === 'J' && it.tw) s += 0.25 * w;
+    if (t.charAt(3) === 'P' && !it.tw) s += 0.25 * w;
+  }
+  return s;
+}
+function pidOf(it){
+  if (!it) return '';
+  return it.pid || ('act:' + (it.t || ''));
+}
+function revRead(){
+  try{ return JSON.parse(localStorage.getItem(REV_KEY) || '{}') || {}; }catch(e){ return {}; }
+}
+function revWrite(o){ try{ localStorage.setItem(REV_KEY, JSON.stringify(o)); }catch(e){} }
+function myReview(pid){ return revRead()[pid] || null; }
+
+/* 后台合并回来的分数：{ pid: {n, score, match:{n,score}, dims:{}, tags:[], quotes:[]} } */
+var PLACE_STATS = {};
+function statLine(pid){
+  var st = PLACE_STATS[pid];
+  if (!st || !st.n) return '';
+  var bits = ['情侣评分 ' + st.score.toFixed(1) + '（' + st.n + ' 对）'];
+  if (st.match && st.match.n >= 3) bits.push('和你们像的 ' + st.match.score.toFixed(1));
+  if (st.dims){
+    var best = null;
+    for (var i = 0; i < DIMS.length; i++){
+      var v = st.dims[DIMS[i].k];
+      if (typeof v === 'number' && (!best || v > best.v)) best = { v:v, label:DIMS[i].label };
+    }
+    if (best && best.v >= .6) bits.push(best.label);
+  }
+  return bits.join(' · ');
+}
+function statBonus(it){
+  var st = PLACE_STATS[pidOf(it)];
+  if (!st || !st.n) return 0;
+  var base = (st.score - 3.6) * 0.55;                 // 3.6 分算持平
+  if (st.match && st.match.n >= 3) base += (st.match.score - 3.6) * 0.75;
+  return Math.max(-1.4, Math.min(2.4, base));
+}
+
+/* ---------- 3d2 两个人共一张足迹地图 ----------
+   打卡本来只存在打卡那台手机上，所以严格说是"各有一张地图"。
+   这里给一对情侣一个不可枚举的 couple id：存在设置里、跟着分享链接走，
+   她点「存到我手机」就自动连上了，不需要注册也不需要输入什么码。
+   每次同步是把"我这半张"整份上传（幂等，重传无副作用），读回来的是对方那半张，
+   缓存在本机，所以离线也能看到合起来的地图。照片只传缩略图，原图永远留在本机。 */
+var COUPLE_KEY = 'xindong_couple_v1';
+var Couple = (function(){
+  var pushing = false, pulling = false, lastPush = 0;
+  function cacheRead(){
+    try{ return JSON.parse(localStorage.getItem(COUPLE_KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function cacheWrite(o){ try{ localStorage.setItem(COUPLE_KEY, JSON.stringify(o)); }catch(e){} }
+  return {
+    id: function(){ return cfg.couple || ''; },
+    ensure: function(){
+      if (!cfg.couple){
+        cfg.couple = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12) +
+                     Math.random().toString(36).slice(2, 8);
+        if (!isGuest) saveCfgLocal();
+        // 刚拿到 id：把已经打过的卡立刻传一份上去，
+        // 不然对方点开链接看到的是一张空地图，还以为没连上
+        var self = this;
+        setTimeout(function(){ self.push(); }, 0);
+      }
+      return cfg.couple;
+    },
+    theirs: function(){ return cacheRead().pins || []; },
+    when: function(){ return cacheRead().at || 0; },
+    // 把我这半张整份传上去。缩略图按时间从新到旧塞，塞到快满就停
+    push: function(){
+      if (!API.base || !cfg.couple || pushing) return;
+      var mine = collectPins(true);
+      if (!mine.length) return;
+      var budget = 360 * 1024, pins = [];
+      for (var i = 0; i < mine.length && i < 400; i++){
+        var p = mine[i];
+        var one = { sig:p.sig, i:p.i, ymd:p.ymd, title:p.title, at:p.t };
+        if (typeof p.lat === 'number'){ one.lat = p.lat; one.lon = p.lon; }
+        if (p.thumb && p.thumb.length < budget - 4096){
+          one.thumb = p.thumb;
+          budget -= p.thumb.length;
+        }
+        pins.push(one);
+      }
+      pushing = true;
+      lastPush = Date.now();
+      jpost(API.base + '/couple', { couple:cfg.couple, by:anonId(), pins:pins }, function(){
+        pushing = false;
+      });
+    },
+    pull: function(cb){
+      cb = cb || function(){};
+      if (!API.base || !cfg.couple || pulling) return cb();
+      pulling = true;
+      jget(API.base + '/couple?id=' + encodeURIComponent(cfg.couple) + '&by=' + encodeURIComponent(anonId()),
+        function(err, data){
+          pulling = false;
+          if (err || !data || !data.others) return cb();
+          var pins = [];
+          data.others.forEach(function(o){
+            (o.pins || []).forEach(function(p){ p.by = o.by; pins.push(p); });
+          });
+          cacheWrite({ at: Date.now(), pins: pins });
+          cb(pins.length);
+        }, 12000);
+    },
+    sync: function(){
+      var self = this;
+      if (!API.base || !cfg.couple) return;
+      self.push();
+      self.pull(function(n){ if (n !== undefined) renderFootprints(); });
+    }
+  };
+})();
+
+/* ---------- 3e 让回忆活下来 ----------
+   打卡、照片、足迹全在这台设备上。系统在存储紧张时是可以把它们清掉的，
+   而这些东西丢一次就没了。所以做两件事：
+     1. 申请持久化存储（浏览器答应了就不会被随手回收）
+     2. 一个"导出成一个文件"的备份口，换手机、清缓存之前自己存一份 */
+var Backup = (function(){
+  var VER = 1;
+  function askPersist(){
+    try{
+      if (!navigator.storage || !navigator.storage.persist) return;
+      if (navigator.storage.persisted){
+        navigator.storage.persisted().then(function(already){
+          if (!already) navigator.storage.persist();
+        }).catch(function(){});
+      } else navigator.storage.persist();
+    }catch(e){}
+  }
+  function collectPhotos(ids, cb){
+    var out = {}, left = ids.length;
+    if (!left) return cb(out);
+    ids.forEach(function(id){
+      Photos.get(id, function(err, rec){
+        if (rec) out[id] = { full:rec.full, thumb:rec.thumb, w:rec.w, h:rec.h };
+        if (--left <= 0) cb(out);
+      });
+    });
+  }
+  function photoIds(log){
+    var ids = [];
+    (log || []).forEach(function(rec){
+      var ch = rec.checks || {};
+      for (var k in ch) if (ch.hasOwnProperty(k) && ch[k].ph) ids.push(ch[k].ph);
+    });
+    return ids;
+  }
+  return {
+    init: askPersist,
+    // 导出：设置 + 计划 + 打卡 + 评分 + 照片，全在一个 .json 里
+    dump: function(cb){
+      var log = logRead();
+      collectPhotos(photoIds(log), function(photos){
+        cb({
+          app: 'xindong', v: VER, at: Date.now(),
+          cfg: cfg, log: log, reviews: revRead(), photos: photos
+        });
+      });
+    },
+    // 导入：整体覆盖。照片一张一张写回 IndexedDB
+    load: function(box, cb){
+      if (!box || box.app !== 'xindong') return cb(new Error('不是这个网站的备份'));
+      try{
+        if (box.cfg){ cfg = normCfg(box.cfg) || cfg; saveCfgLocal(); }
+        if (Array.isArray(box.log)) logWrite(box.log);
+        if (box.reviews) revWrite(box.reviews);
+      }catch(e){ return cb(e); }
+      var ids = Object.keys(box.photos || {});
+      if (!ids.length) return cb(null, 0);
+      var left = ids.length, n = 0;
+      ids.forEach(function(id){
+        Photos.put(id, box.photos[id], function(err){
+          if (!err) n++;
+          thumbCache[id] = box.photos[id].thumb || '';
+          if (--left <= 0) cb(null, n);
+        });
+      });
+    }
+  };
+})();
 
 /* ---------- 4 纪念数字 ---------- */
 function renderStats(){
@@ -1370,17 +2361,31 @@ function planDate(){
 }
 function isToday(){ return dayDiff(now, planDate()) === 0; }
 
+// 选中态只改 class，不重建整行 DOM——原来每点一下都要把一行按钮拆了重搭
+function syncChips(box, items, key){
+  for (var i=0;i<box.children.length;i++){
+    var on = state[key] === items[i];
+    box.children[i].classList.toggle('on', on);
+    box.children[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+}
 function renderChips(id, items, key, allowOff){
-  var box = $(id);
+  var box = $(id), i;
+  var same = box.children.length === items.length;
+  if (same) for (i=0;i<items.length;i++){
+    if (box.children[i].textContent !== items[i]){ same = false; break; }
+  }
+  if (same){ syncChips(box, items, key); return; }
   box.innerHTML = '';
   items.forEach(function(v){
     var b = document.createElement('button');
+    b.type = 'button';
     b.className = 'chip' + (state[key]===v ? ' on' : '');
     b.textContent = v;
     b.setAttribute('aria-pressed', state[key]===v ? 'true' : 'false');
     b.onclick = function(){
       state[key] = (allowOff && state[key]===v) ? null : v;
-      renderChips(id, items, key, allowOff);
+      syncChips(box, items, key);
       onConditionChange();
     };
     box.appendChild(b);
@@ -1671,6 +2676,8 @@ function scoreCard(it){
   if (pref && pref.indexOf(it.cat) > -1) s += 1;
   if (it.near) s += 0.8;                      // 附近真实地点比手写卡稍微优先
   if (it.dest) s += 5;                        // 出逃半日的那一站"开车去某某镇"必须领头
+  s += mbtiBoost(it);                         // 你们俩的 MBTI
+  s += statBonus(it);                         // 别的情侣给这儿打的分
   return s;
 }
 function avoidList(){
@@ -1695,6 +2702,7 @@ function cardHTML(it){
          '<div class="t">'+esc(it.t)+'</div>'+
          '<div class="d">'+esc(it.d)+'</div>'+
          '<div class="meta">'+esc(it.meta || ('约 '+durOf(it)+' 分钟'))+'</div>'+
+         (statLine(pidOf(it)) ? '<div class="rate">'+esc(statLine(pidOf(it)))+'</div>' : '')+
          (it.tip ? '<div class="tip">'+esc(it.tip)+'</div>' : '');
 }
 function deal(k){
@@ -1745,6 +2753,36 @@ function deal(k){
   $('menu').classList.add('hidden');
   $('ownerActs').classList.add('hidden');
   updateFinalBtn();
+  fetchDeckStats();
+}
+// 把这一手牌里的地点问一遍后台的合并评分，回来了只补那一行字，不重建卡片
+function fetchDeckStats(){
+  var pids = [];
+  ['A','B'].forEach(function(k){
+    decks[k].dealt.forEach(function(it){ var p = pidOf(it); if (p) pids.push(p); });
+  });
+  if (!pids.length) return;
+  Reviews.fetch(pids, refreshDeckStats);
+}
+function refreshDeckStats(){
+  ['A','B'].forEach(function(k){
+    var D = decks[k], box = $(D.el);
+    D.dealt.forEach(function(it, i){
+      var card = box.children[i];
+      if (!card || !card.classList || !card.classList.contains('card')) return;
+      var txt = statLine(pidOf(it));
+      var line = card.querySelector('.rate');
+      if (!txt){ if (line) line.remove(); return; }
+      if (!line){
+        line = document.createElement('div');
+        line.className = 'rate';
+        var meta = card.querySelector('.meta');
+        if (meta && meta.nextSibling) card.insertBefore(line, meta.nextSibling);
+        else card.appendChild(line);
+      }
+      line.textContent = txt;
+    });
+  });
 }
 $('dealA').onclick = function(){ deal('A'); };
 $('dealB').onclick = function(){ deal('B'); };
@@ -1774,7 +2812,10 @@ function scheduleStops(items){
     var facts = [];
     if (it.meta) facts.push(it.meta);
     if (it.tip) facts.push(it.tip);
-    out.push({ c:it.cat, t:it.t, d:it.d, m:s, u:u, x:facts.join(' · ') });
+    var stop = { c:it.cat, t:it.t, d:it.d, m:s, u:u, x:facts.join(' · ') };
+    if (typeof it.la === 'number'){ stop.la = it.la; stop.lo = it.lo; }
+    stop.p = pidOf(it);
+    out.push(stop);
     kept.push(it);
     t = s + u + GAP;
   }
@@ -1812,10 +2853,16 @@ function buildPlan(){
   refreshNow();
   var r = scheduleStops(selectedItems());
   reportDropped(r.dropped);
+  // 这份计划大致在哪儿：优先用挑好的目的地，其次用你现在的位置。
+  // 没有定位就没有，地图上那一份就只落在真正打过卡的点上。
+  var where = null;
+  if (nearby.place && nearby.dest) where = { lat:nearby.dest[0], lon:nearby.dest[1], name:nearby.place };
+  else if (state.lat) where = { lat:state.lat, lon:state.lon, name:nearby.city || '' };
   return {
     plan: {
       v: 2,
       ymd: ymd(planDate()),
+      w: where,
       from: cfg.from || '',
       to: cfg.to || '',
       note: '',
@@ -1858,20 +2905,42 @@ function renderPlan(plan, items){
   var d = parseDate(plan.ymd);
   $('m-date').textContent = d.getFullYear()+' . '+(d.getMonth()+1)+' . '+d.getDate()+
     ' — ' + (plan.to ? ('For ' + plan.to) : 'For the one and only');
+  var marks = checksOf(plan);
   $('m-courses').innerHTML = plan.s.map(function(s,i){
     var cat = CAT_EN[s.c] || 'Stop';
-    return '<div class="course"><div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
-      '<div class="row"><span class="t">'+esc(s.t)+'</span>'+
-      '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
-      (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
-      '<div class="d">'+esc(s.d)+'</div>'+
-      (s.x ? '<div class="x">'+esc(s.x)+'</div>' : '')+'</div>';
+    var mk = marks[i];
+    return '<div class="course'+(mk ? ' done' : '')+'" style="animation-delay:'+(i*0.07).toFixed(2)+'s">'+
+      '<button class="tick" data-i="'+i+'" aria-pressed="'+(mk?'true':'false')+'" '+
+        'aria-label="'+(mk ? '取消打卡' : '到这儿了，打个卡')+'">'+(mk ? '✓' : '')+'</button>'+
+      '<div class="c-main">'+
+        '<div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
+        '<div class="row"><span class="t">'+esc(s.t)+'</span>'+
+        '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
+        (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
+        '<div class="d">'+esc(s.d)+'</div>'+
+        (s.x ? '<div class="x">'+esc(s.x)+'</div>' : '')+
+        (mk ? stampHTML(i, mk) : '')+
+      '</div></div>';
   }).join('');
-  if (canSwap){
-    Array.prototype.forEach.call($('m-courses').querySelectorAll('.swap'), function(b){
-      b.onclick = function(){ swapStop(+b.getAttribute('data-i')); };
-    });
-  }
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.swap'), function(b){
+    b.onclick = function(e){ e.stopPropagation(); swapStop(+b.getAttribute('data-i')); };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.tick'), function(b){
+    b.onclick = function(){ toggleCheck(+b.getAttribute('data-i')); };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.shot'), function(b){
+    b.onclick = function(){ askPhoto(+b.getAttribute('data-i')); };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.rate-btn'), function(b){
+    b.onclick = function(){
+      var i = +b.getAttribute('data-i'), st = plan.s[i] || {};
+      openRate(st.p, st.t);
+    };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.stamp-thumb'), function(im){
+    withThumb(im.getAttribute('data-ph'), function(url){ if (url) im.src = url; });
+  });
+  renderProgress(plan, marks);
   $('m-note').innerHTML = esc(BUDGET_NOTE[plan.b] || '今天怎么走都算数。') +
     '<div class="sig">'+esc(plan.e || pick(ENDINGS))+'</div>';
   $('menu').classList.remove('hidden');
@@ -1884,6 +2953,295 @@ function renderPlan(plan, items){
     $('loveNote').classList.add('hidden');
   }
 }
+/* ---------- 打卡：勾一下 = 到过这儿 ----------
+   勾上的时候顺手记三样：时间、（拿得到的话）位置、（她愿意的话）一张照片。
+   位置只在已经授权过的情况下静默取，不会为了打个勾去弹权限框。 */
+function logFind(sig){
+  var a = logRead();
+  for (var i=0;i<a.length;i++) if (a[i].sig === sig) return { list:a, i:i, rec:a[i] };
+  return { list:a, i:-1, rec:null };
+}
+function checksOf(plan){
+  if (!plan) return {};
+  var f = logFind(planSig(plan));
+  return (f.rec && f.rec.checks) || {};
+}
+function setCheck(plan, i, mark){
+  var sig = planSig(plan), f = logFind(sig);
+  if (f.i < 0){
+    f.rec = { sig:sig, ymd:plan.ymd, done:false, plan:JSON.parse(JSON.stringify(plan)), checks:{} };
+    f.list.unshift(f.rec);
+    f.i = 0;
+  }
+  if (!f.rec.checks) f.rec.checks = {};
+  if (mark) f.rec.checks[i] = mark;
+  else {
+    if (f.rec.checks[i] && f.rec.checks[i].ph) Photos.del(f.rec.checks[i].ph);
+    delete f.rec.checks[i];
+  }
+  var n = 0;
+  for (var k in f.rec.checks) if (f.rec.checks.hasOwnProperty(k)) n++;
+  f.rec.done = n > 0 && n >= plan.s.length;
+  logWrite(f.list);
+  return f.rec;
+}
+function stampHTML(i, mk){
+  var bits = [];
+  if (mk.t) bits.push(fmtMin(new Date(mk.t).getHours()*60 + new Date(mk.t).getMinutes()) + ' 到过');
+  if (typeof mk.lat === 'number') bits.push('已记在地图上');
+  var stop = (currentPlan && currentPlan.s[i]) || {};
+  var pid = stop.p || '';
+  var mine = pid ? myReview(pid) : null;
+  return '<div class="stamp">' +
+    '<span class="stamp-txt">✓ ' + esc(bits.join(' · ') || '到过') + '</span>' +
+    (mk.ph
+      ? '<img class="stamp-thumb" data-ph="' + esc(mk.ph) + '" alt="这一站的照片" />'
+      : (Photos.ready() ? '<button class="shot" data-i="' + i + '">📷 加张照片</button>' : '')) +
+    (pid ? '<button class="rate-btn' + (mine ? ' on' : '') + '" data-i="' + i + '">' +
+      (mine ? ('♥'.repeat(mine.r) + ' 已评分') : '给这儿打个分') + '</button>' : '') +
+    '</div>';
+}
+function renderProgress(plan, marks){
+  var el = $('m-progress');
+  if (!el) return;
+  var n = 0;
+  for (var k in marks) if (marks.hasOwnProperty(k)) n++;
+  if (!n){ el.textContent = '到了哪一站就点左边的圈，打个卡'; el.classList.remove('all'); return; }
+  var all = n >= plan.s.length;
+  el.textContent = all ? ('这一天走完了 · ' + n + ' 站全到') : ('已打卡 ' + n + ' / ' + plan.s.length + ' 站');
+  el.classList.toggle('all', all);
+}
+function toggleCheck(i){
+  if (!currentPlan) return;
+  var marks = checksOf(currentPlan);
+  if (marks[i]){
+    setCheck(currentPlan, i, null);
+    renderPlan(currentPlan, currentItems);
+    refreshLogViews();
+    return;
+  }
+  var stop = currentPlan.s[i] || {};
+  var mk = { t: Date.now() };
+  // 这一站本身有坐标（来自附近真实地点）就用它——那是店的位置，比手机定位准，
+  // 而且几站分开才画得出一条路线。手写卡片没有坐标，才退回去用定位。
+  var known = typeof stop.la === 'number';
+  if (known){ mk.lat = stop.la; mk.lon = stop.lo; }
+  else if (currentPlan.w && typeof currentPlan.w.lat === 'number'){ mk.lat = currentPlan.w.lat; mk.lon = currentPlan.w.lon; }
+
+  function finish(){
+    setCheck(currentPlan, i, mk);
+    renderPlan(currentPlan, currentItems);
+    refreshLogViews();
+    if (window.Petals) Petals.burst(12);
+    var marks2 = checksOf(currentPlan), n = 0;
+    for (var k in marks2) if (marks2.hasOwnProperty(k)) n++;
+    if (n >= currentPlan.s.length){
+      hearts(16);
+      toast(typeof mk.lat === 'number' ? '这一天走完了。地图上又亮了一处。' : '这一天走完了。');
+    } else if (typeof mk.lat !== 'number'){
+      toast('打上了。想让它亮在地图上，需要允许一次定位');
+    } else {
+      toast('打上了。' + (Photos.ready() ? '要不要补一张照片？' : ''));
+    }
+  }
+  // 这一站自己就有坐标（附近真实地点）——直接用，不打扰。
+  // 完全没有坐标的时候才去问一次定位：这是唯一值得弹权限框的时刻，
+  // 因为"我到这儿了"本来就是在说一个位置，而它换来的是地图上亮起来的那一点。
+  if (!known && navigator.geolocation){
+    toast('正在记下这个位置…');
+    navigator.geolocation.getCurrentPosition(function(pos){
+      mk.lat = pos.coords.latitude; mk.lon = pos.coords.longitude;
+      finish();
+    }, finish, { timeout:8000, maximumAge:120000 });
+  } else finish();
+}
+function askPhoto(i){
+  if (!currentPlan) return;
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.setAttribute('capture', 'environment');
+  inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    inp.remove();
+    if (!f) return;
+    toast('正在处理照片…');
+    Photos.save(f, function(err, out){
+      if (err || !out){ toast('这张没存下来（可能是空间满了）'); return; }
+      var marks = checksOf(currentPlan);
+      var mk = marks[i] || { t: Date.now() };
+      if (mk.ph) Photos.del(mk.ph);
+      mk.ph = out.id;
+      thumbCache[out.id] = out.thumb;
+      setCheck(currentPlan, i, mk);
+      renderPlan(currentPlan, currentItems);
+      refreshLogViews();
+      if (window.Petals) Petals.burst(10);
+      toast('照片收好了，地图上也有了');
+    });
+  };
+  inp.click();
+}
+
+/* ---------- 评分面板 ---------- */
+var ratePid = '', rateName = '', rateDraft = null;
+function newDraft(){
+  return { r:0, dims:{}, tags:[], cost:'', txt:'' };
+}
+function renderHearts(){
+  var box = $('rateHearts');
+  box.innerHTML = '';
+  for (var i = 1; i <= 5; i++){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = i <= rateDraft.r ? '♥' : '♡';
+    b.className = i <= rateDraft.r ? 'on' : '';
+    b.setAttribute('aria-label', i + ' 颗心');
+    b.onclick = (function(n){ return function(){ rateDraft.r = n; renderHearts(); }; })(i);
+    box.appendChild(b);
+  }
+}
+function renderRateChips(id, items, pick, isOn){
+  var box = $(id);
+  box.innerHTML = '';
+  items.forEach(function(it){
+    var label = it.label || it;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (isOn(it) ? ' on' : '');
+    b.textContent = label;
+    b.setAttribute('aria-pressed', isOn(it) ? 'true' : 'false');
+    b.onclick = function(){ pick(it); renderRateChips(id, items, pick, isOn); };
+    box.appendChild(b);
+  });
+}
+function renderAgg(){
+  var box = $('rateAgg'), st = PLACE_STATS[ratePid];
+  if (!st || !st.n){
+    box.classList.remove('hidden');
+    box.innerHTML = API.base
+      ? '这儿还没有别的情侣打过分，你们是第一对。'
+      : '还没接后台，所以现在只存在你们自己手机上——<b>等后台上线会自动补交</b>，一条都不会丢。';
+    return;
+  }
+  var html = '所有情侣 <b>' + st.score.toFixed(1) + '</b>（' + st.n + ' 对）';
+  if (st.match && st.match.n >= 3) html += ' · 和你们 MBTI 接近的 <b>' + st.match.score.toFixed(1) + '</b>（' + st.match.n + ' 对）';
+  if (st.tags && st.tags.length){
+    html += '<br/>他们说适合：' + st.tags.slice(0,3).map(function(t){ return esc(t[0]) + ' ×' + t[1]; }).join('、');
+  }
+  if (st.quotes && st.quotes.length){
+    html += '<span class="q">「' + esc(st.quotes[0]) + '」</span>';
+  }
+  box.classList.remove('hidden');
+  box.innerHTML = html;
+}
+function openRate(pid, name){
+  if (!pid){ toast('这一站没有具体地点，评分先留给真实的地方'); return; }
+  ratePid = pid; rateName = name || '';
+  var mine = myReview(pid);
+  rateDraft = mine ? { r:mine.r, dims:JSON.parse(JSON.stringify(mine.dims||{})), tags:(mine.tags||[]).slice(), cost:mine.cost||'', txt:mine.txt||'' } : newDraft();
+  $('rateTitle').textContent = name ? ('给「' + name + '」打个分') : '给这儿打个分';
+  $('rateText').value = rateDraft.txt;
+  renderHearts();
+  renderRateChips('rateDims', DIMS,
+    function(d){ rateDraft.dims[d.k] = !rateDraft.dims[d.k]; },
+    function(d){ return !!rateDraft.dims[d.k]; });
+  renderRateChips('rateFit', FIT_TAGS,
+    function(t){ var i = rateDraft.tags.indexOf(t); if (i>-1) rateDraft.tags.splice(i,1); else rateDraft.tags.push(t); },
+    function(t){ return rateDraft.tags.indexOf(t) > -1; });
+  renderRateChips('rateCost', COST_TAGS,
+    function(t){ rateDraft.cost = rateDraft.cost === t ? '' : t; },
+    function(t){ return rateDraft.cost === t; });
+  $('rateDel').classList.toggle('hidden', !mine);
+  Reviews.fetch([pid], function(){ if (ratePid === pid) renderAgg(); });
+  renderAgg();
+  $('rateSheet').classList.add('show');
+}
+$('rateClose').onclick = function(){ $('rateSheet').classList.remove('show'); };
+$('rateSheet').onclick = function(e){ if (e.target === $('rateSheet')) $('rateSheet').classList.remove('show'); };
+$('rateSave').onclick = function(){
+  if (!rateDraft.r){ toast('先给几颗心'); return; }
+  rateDraft.txt = $('rateText').value.trim();
+  var all = revRead();
+  all[ratePid] = {
+    r: rateDraft.r, dims: rateDraft.dims, tags: rateDraft.tags,
+    cost: rateDraft.cost, txt: rateDraft.txt, name: rateName,
+    t: Date.now(), sent: false
+  };
+  revWrite(all);
+  Reviews.flush();
+  $('rateSheet').classList.remove('show');
+  if (window.Petals) Petals.burst(12);
+  toast(API.base ? '谢了，已经交给后台合并' : '记下了。后台上线后会自动补交');
+  if (currentPlan) renderPlan(currentPlan, currentItems);
+  refreshDeckStats();
+};
+$('rateDel').onclick = function(){
+  var all = revRead();
+  delete all[ratePid];
+  revWrite(all);
+  $('rateSheet').classList.remove('show');
+  toast('删掉了');
+  if (currentPlan) renderPlan(currentPlan, currentItems);
+};
+
+/* 和后台打交道：提交走 outbox，读取带 MBTI 好让后台算"和你们像的" */
+var Reviews = (function(){
+  var pending = {}, fetching = {};
+  function payload(pid, rev){
+    return {
+      pid: pid, name: rev.name || '',
+      r: rev.r, dims: rev.dims || {}, tags: rev.tags || [],
+      cost: rev.cost || '', txt: rev.txt || '',
+      mbti: mbtiPair(), by: anonId(), at: rev.t || Date.now()
+    };
+  }
+  return {
+    flush: function(){
+      if (!API.base) return;                       // 没后台就先攒着
+      var all = revRead(), any = false;
+      for (var pid in all){
+        if (!all.hasOwnProperty(pid) || all[pid].sent || pending[pid]) continue;
+        pending[pid] = 1;
+        (function(pid, rev){
+          jpost(API.base + '/reviews', payload(pid, rev), function(err){
+            delete pending[pid];
+            if (err) return;
+            var cur = revRead();
+            if (cur[pid]){ cur[pid].sent = true; revWrite(cur); }
+          });
+        })(pid, all[pid]);
+        any = true;
+      }
+      return any;
+    },
+    fetch: function(pids, cb){
+      cb = cb || function(){};
+      if (!API.base) return cb();
+      var want = [];
+      for (var i=0;i<pids.length;i++){
+        var p = pids[i];
+        if (p && !fetching[p] && PLACE_STATS[p] === undefined) want.push(p);
+      }
+      if (!want.length) return cb();
+      want.forEach(function(p){ fetching[p] = 1; });
+      var url = API.base + '/places?mbti=' + encodeURIComponent(mbtiPair()) +
+                '&ids=' + encodeURIComponent(want.join(','));
+      jget(url, function(err, data){
+        want.forEach(function(p){
+          delete fetching[p];
+          if (PLACE_STATS[p] === undefined) PLACE_STATS[p] = null;   // 问过了，别反复问
+        });
+        var got = data && data.places;
+        if (got) for (var k in got) if (got.hasOwnProperty(k)) PLACE_STATS[k] = got[k];
+        cb();
+      }, 9000);
+    }
+  };
+})();
+
 function planText(plan){
   var lines = [];
   lines.push(dayLabel(plan.ymd) + '的计划 · ' + cnDate(plan.ymd) +
@@ -1968,6 +3326,7 @@ $('quickBtn').onclick = function(){
   logUpsert(built.plan);
   $('ownerActs').classList.remove('hidden');
   if (window._setFold) window._setFold(false);
+  if (window.Petals) Petals.burst(14);
   setTimeout(function(){ $('menu').scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
   toast('排好了。哪一站不合意，点那一行的「换」');
 };
@@ -2046,7 +3405,11 @@ $('copyTextBtn').onclick = function(){
   copyText(planText(currentPlan) + '\n' + planLink(currentPlan), '文字版已复制');
 };
 
-/* 海报：画成一张竖图，微信里长按就能存 */
+/* 海报：画成一张竖图，微信里长按就能存。
+   canvas 不认 CSS 变量，所以这里把降级字体再写一遍，Google 字体拉不到时海报也不会变样。 */
+var CV_SERIF = '"Noto Serif SC","Songti SC","Source Han Serif SC",STSong,serif';
+var CV_SANS  = '"Noto Sans SC","PingFang SC","HarmonyOS Sans SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+var CV_LATIN = '"Cormorant Garamond",Didot,"Hoefler Text",Georgia,serif';
 function wrapLines(x, text, maxW){
   var chars = String(text).split(''), lines = [], cur = '';
   for (var i=0;i<chars.length;i++){
@@ -2071,9 +3434,9 @@ function spacedCenter(x, text, cx, y, sp){
 function drawPoster(plan){
   var W = 750, PAD = 68, INNER = W - PAD*2;
   var mc = document.createElement('canvas').getContext('2d');
-  var F_T = '600 34px "Noto Serif SC", serif';
-  var F_D = '400 24px "Noto Sans SC", sans-serif';
-  var F_N = '400 24px "Noto Sans SC", sans-serif';
+  var F_T = '600 34px ' + CV_SERIF;
+  var F_D = '400 24px ' + CV_SANS;
+  var F_N = '400 24px ' + CV_SANS;
 
   // 先按和下面完全一样的步长量一遍高度
   var y = 0, blocks = [];
@@ -2104,14 +3467,14 @@ function drawPoster(plan){
 
   var cy = 0;
   cy += 78;
-  x.fillStyle = '#C9A96A'; x.font = '500 22px "Cormorant Garamond", serif';
+  x.fillStyle = '#C9A96A'; x.font = '500 22px ' + CV_LATIN;
   spacedCenter(x, 'MENU DU JOUR', W/2, cy, 7);
   cy += 62;
   var label = dayLabel(plan.ymd);
-  x.textAlign = 'center'; x.fillStyle = '#F3EBE0'; x.font = '900 44px "Noto Serif SC", serif';
+  x.textAlign = 'center'; x.fillStyle = '#F3EBE0'; x.font = '900 44px ' + CV_SERIF;
   x.fillText(plan.to ? ('给 '+plan.to+' 的'+label) : (label+'的约会计划'), W/2, cy);
   cy += 46;
-  x.fillStyle = 'rgba(240,232,220,.55)'; x.font = 'italic 500 26px "Cormorant Garamond", serif';
+  x.fillStyle = 'rgba(240,232,220,.55)'; x.font = 'italic 500 26px ' + CV_LATIN;
   x.fillText(cnDate(plan.ymd) + '  ·  ' + (plan.s.length) + ' stops', W/2, cy);
   cy += 34;
 
@@ -2119,7 +3482,7 @@ function drawPoster(plan){
     var b = blocks[bi];
     if (b.k === 'note'){
       cy += 34;
-      x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px "Noto Serif SC", serif';
+      x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px ' + CV_SERIF;
       for (var li=0; li<b.lines.length; li++){ x.fillText(b.lines[li], W/2, cy); cy += 40; }
       cy += 24;
       continue;
@@ -2128,18 +3491,18 @@ function drawPoster(plan){
     cy += 30;
     x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
     x.beginPath(); x.moveTo(PAD, cy - 22); x.lineTo(W-PAD, cy - 22); x.stroke();
-    x.textAlign = 'left'; x.fillStyle = '#C9A96A'; x.font = '500 22px "Cormorant Garamond", serif';
+    x.textAlign = 'left'; x.fillStyle = '#C9A96A'; x.font = '500 22px ' + CV_LATIN;
     x.fillText((ROMAN[b.i]||(b.i+1)) + '  ' + (CAT_EN[s.c]||'STOP').toUpperCase(), PAD, cy);
     cy += 42;
     x.fillStyle = '#F3EBE0'; x.font = F_T;
     x.fillText(s.t, PAD, cy);
-    x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px "Cormorant Garamond", serif';
+    x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px ' + CV_LATIN;
     x.fillText(fmtClock(s.m)+'–'+fmtClock(s.m+s.u), W-PAD, cy);
     cy += 40;
     x.textAlign = 'left'; x.fillStyle = 'rgba(240,232,220,.58)'; x.font = F_D;
     for (var di=0; di<b.lines.length; di++){ x.fillText(b.lines[di], PAD, cy); cy += 36; }
     if (s.x){
-      x.fillStyle = 'rgba(201,169,106,.8)'; x.font = '400 22px "Noto Sans SC", sans-serif';
+      x.fillStyle = 'rgba(201,169,106,.8)'; x.font = '400 22px ' + CV_SANS;
       x.fillText(s.x, PAD, cy); cy += 32;
     }
     cy += 4;
@@ -2148,13 +3511,13 @@ function drawPoster(plan){
   cy += 44;
   x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
   x.beginPath(); x.moveTo(PAD, cy - 26); x.lineTo(W-PAD, cy - 26); x.stroke();
-  x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px "Noto Serif SC", serif';
+  x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px ' + CV_SERIF;
   x.fillText(plan.e || '', W/2, cy);
   cy += 46;
-  x.fillStyle = 'rgba(240,232,220,.5)'; x.font = '400 22px "Noto Sans SC", sans-serif';
+  x.fillStyle = 'rgba(240,232,220,.5)'; x.font = '400 22px ' + CV_SANS;
   x.fillText(plan.from ? ('—— ' + plan.from) : '—— 今天想见你的人', W/2, cy);
   cy += 40;
-  x.fillStyle = 'rgba(201,169,106,.5)'; x.font = '500 18px "Cormorant Garamond", serif';
+  x.fillStyle = 'rgba(201,169,106,.5)'; x.font = '500 18px ' + CV_LATIN;
   spacedCenter(x, '今天，怎么心动？', W/2, cy, 4);
   return c;
 }
@@ -2175,6 +3538,384 @@ $('posterBtn').onclick = showPoster;
 $('shPoster').onclick = function(){ syncPlanFromSheet(); $('sheet').classList.remove('show'); showPoster(); };
 $('posterClose').onclick = function(){ $('posterMask').classList.remove('show'); };
 $('posterMask').onclick = function(e){ if (e.target === $('posterMask')) $('posterMask').classList.remove('show'); };
+
+/* ---------- 8b 自己加一站 ----------
+   卡池再大也总有它没有的地方——你们的老地方、她家楼下、临时想起的一家店。
+   所以给两条路：按名字搜一个真实地点（走 Nominatim，不需要 key），
+   或者干脆自己写一站。加进来的站和别的站完全一样：能排时间轴、能打卡、能评分。 */
+function ownCard(name, note, kind, dur, la, lo, pid, meta){
+  var c = {
+    cat: kind || '游', t: name, d: note || '你自己加的一站',
+    w: '皆', loc: [NEAR, CITY, FAR], b: 0, u: dur || 90,
+    own: 1, meta: meta || ''
+  };
+  if (typeof la === 'number'){ c.la = la; c.lo = lo; }
+  if (pid) c.pid = pid;
+  return c;
+}
+// 直接塞进这一手牌并选上，不用重抽
+function addOwnStop(card){
+  var D = card.cat === '食' ? decks.B : decks.A;
+  var box = $(D.el);
+  box.classList.remove('hidden');
+  var empty = box.querySelector('.empty');
+  if (empty) empty.remove();
+  var idx = D.dealt.length;
+  D.dealt.push(card);
+  D.sel[idx] = true;
+  var el = document.createElement('div');
+  el.className = 'card sel';
+  el.setAttribute('role','button'); el.setAttribute('tabindex','0');
+  el.setAttribute('aria-pressed','true');
+  el.innerHTML = cardHTML(card);
+  var toggle = function(){
+    if (D.sel[idx]) delete D.sel[idx]; else D.sel[idx] = true;
+    el.classList.toggle('sel');
+    el.setAttribute('aria-pressed', D.sel[idx] ? 'true' : 'false');
+    updateFinalBtn();
+  };
+  el.onclick = toggle;
+  el.onkeydown = function(e){ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } };
+  box.appendChild(el);
+  updateFinalBtn();
+  if (window.Petals) Petals.burst(8);
+  toast('「' + card.t + '」加进今天了，点「生成最终计划」');
+}
+function searchPlace(q, cb){
+  var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=zh&q=' +
+            encodeURIComponent(q);
+  if (state.lat){
+    // 有定位就把搜索圈在附近，不然搜"茶社"会给你搜到别的省
+    var d = 0.6;
+    url += '&viewbox=' + (state.lon-d) + ',' + (state.lat+d) + ',' + (state.lon+d) + ',' + (state.lat-d);
+  }
+  jget(url, cb, 12000);
+}
+(function(){
+  var fold = $('ownFold'), body = $('ownBody'), caret = $('ownCaret');
+  fold.onclick = function(){
+    var open = body.classList.contains('hidden');
+    body.classList.toggle('hidden', !open);
+    caret.textContent = open ? '▲' : '▼';
+    fold.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  function renderHits(list, q){
+    var box = $('ownHits');
+    box.innerHTML = '';
+    if (!list){
+      box.innerHTML = '<div class="own-note">没搜到，或者地图服务这会儿忙。直接在下面写一站也行。</div>';
+      return;
+    }
+    if (!list.length){
+      box.innerHTML = '<div class="own-note">「' + esc(q) + '」没找到。名字写全一点，或者直接在下面写一站。</div>';
+      return;
+    }
+    list.forEach(function(hit){
+      var la = parseFloat(hit.lat), lo = parseFloat(hit.lon);
+      if (!isFinite(la)) return;
+      var name = String(hit.name || '').trim() || String(hit.display_name || '').split(',')[0];
+      var where = String(hit.display_name || '').split(',').slice(1, 3).join(' ').trim();
+      var far = state.lat ? Math.round(haversine(state.lat, state.lon, la, lo) / 100) / 10 : null;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'own-hit';
+      b.innerHTML = '<span class="oh-t"><b>' + esc(name) + '</b>' +
+        (where ? '<br/><span style="opacity:.6">' + esc(where) + '</span>' : '') + '</span>' +
+        (far !== null ? '<span class="oh-d">' + far + ' km</span>' : '');
+      b.onclick = function(){
+        var food = /餐|饭|食|茶|咖啡|酒|面|火锅|烤|饼|甜|奶茶|烧|串/.test(name + where);
+        var meta = far === null ? '' :
+          (far < 1.2 ? ('步行 ' + Math.max(1, Math.round(far*1000/75)) + ' 分钟') : (far + ' 公里'));
+        addOwnStop(ownCard(name, '你们要去的那一家', food ? '食' : '游', food ? 75 : 90, la, lo,
+          (hit.osm_type && hit.osm_id) ? ('osm:' + hit.osm_type + '/' + hit.osm_id) : null, meta));
+        $('ownHits').innerHTML = '';
+        $('ownSearch').value = '';
+      };
+      box.appendChild(b);
+    });
+  }
+  $('ownSearchGo').onclick = function(){
+    var q = $('ownSearch').value.trim();
+    if (q.length < 2){ toast('名字至少写两个字'); return; }
+    $('ownHits').innerHTML = '<div class="own-note">⏳ 正在找「' + esc(q) + '」…</div>';
+    searchPlace(q, function(err, list){ renderHits(err ? null : (list || []), q); });
+  };
+  $('ownSearch').onkeydown = function(e){ if (e.key === 'Enter'){ e.preventDefault(); $('ownSearchGo').click(); } };
+  $('ownAdd').onclick = function(){
+    var name = $('ownName').value.trim();
+    if (!name){ toast('先给这一站起个名字'); return; }
+    addOwnStop(ownCard(name, $('ownNote').value.trim(), $('ownKind').value, +$('ownDur').value));
+    $('ownName').value = ''; $('ownNote').value = '';
+  };
+})();
+
+/* ---------- 9b 足迹地图 ----------
+   自己画的极简瓦片地图：不引任何库，只有 canvas + <img> 瓦片。
+   底图用 CARTO 的 light/dark 两套，跟着主题走，所以地图不会从这个网站里跳出来。 */
+var Atlas = (function(){
+  var cv, ctx, W = 0, H = 0, dpr = 1;
+  var TS = 256, z = 3, cLat = 20, cLon = 20;
+  var cache = {}, pins = [], sel = -1, ready = false;
+  var drag = null, pinchBase = 0, needDraw = false;
+
+  // 底图用 OpenStreetMap 的标准瓦片：不要 key，也不会被打水印。
+  // 它本身是彩色的，所以画上去之后用 canvas 滤镜调成这个网站的两套颜色；
+  // 老浏览器不支持 ctx.filter 的话就是一张普通彩色地图，不影响用。
+  function night(){ return document.documentElement.getAttribute('data-theme') === 'night'; }
+  function styleName(){ return night() ? 'night' : 'day'; }
+  function tileFilter(){
+    return night()
+      ? 'invert(1) hue-rotate(180deg) grayscale(.72) brightness(.8) contrast(1.06)'
+      : 'grayscale(.82) sepia(.24) brightness(1.04) contrast(.9)';
+  }
+  function tileUrl(zz, x, y){
+    return 'https://tile.openstreetmap.org/' + zz + '/' + x + '/' + y + '.png';
+  }
+  function lonToX(lon, zz){ return (lon + 180) / 360 * Math.pow(2, zz); }
+  function latToY(lat, zz){
+    var s = Math.sin(Math.max(-85, Math.min(85, lat)) * Math.PI / 180);
+    return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * Math.pow(2, zz);
+  }
+  function xToLon(x, zz){ return x / Math.pow(2, zz) * 360 - 180; }
+  function yToLat(y, zz){
+    var n = Math.PI - 2 * Math.PI * y / Math.pow(2, zz);
+    return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  }
+  function size(){
+    if (!cv) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = cv.clientWidth; H = cv.clientHeight;
+    if (!W || !H) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function schedule(){
+    if (needDraw) return;
+    needDraw = true;
+    requestAnimationFrame(function(){ needDraw = false; draw(); });
+  }
+  function tile(zz, x, y){
+    var n = Math.pow(2, zz);
+    if (y < 0 || y >= n) return null;
+    x = ((x % n) + n) % n;
+    var key = zz + '/' + x + '/' + y;
+    var img = cache[key];
+    if (img) return img.__ok ? img : null;
+    img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function(){ img.__ok = true; schedule(); };
+    img.onerror = function(){ img.__bad = true; };
+    img.src = tileUrl(zz, x, y);
+    cache[key] = img;
+    return null;
+  }
+  function draw(){
+    if (!ctx || !W) return;
+    var s = getComputedStyle(document.documentElement);
+    ctx.fillStyle = (s.getPropertyValue('--paper2') || '#eee').trim();
+    ctx.fillRect(0, 0, W, H);
+
+    var cx = lonToX(cLon, z) * TS, cy = latToY(cLat, z) * TS;
+    var left = cx - W / 2, top = cy - H / 2;
+    var x0 = Math.floor(left / TS), y0 = Math.floor(top / TS);
+    var x1 = Math.floor((left + W) / TS), y1 = Math.floor((top + H) / TS);
+    var canFilter = 'filter' in ctx;
+    if (canFilter) ctx.filter = tileFilter();
+    ctx.globalAlpha = .95;
+    for (var ty = y0; ty <= y1; ty++){
+      for (var tx = x0; tx <= x1; tx++){
+        var img = tile(z, tx, ty);
+        if (!img) continue;
+        ctx.drawImage(img, Math.round(tx * TS - left), Math.round(ty * TS - top), TS, TS);
+      }
+    }
+    ctx.globalAlpha = 1;
+    if (canFilter) ctx.filter = 'none';
+
+    // 再压一层很淡的底色，让地图和这个网站是一套颜色
+    ctx.fillStyle = (s.getPropertyValue('--glow-b') || 'rgba(0,0,0,.05)').trim();
+    ctx.fillRect(0, 0, W, H);
+
+    var gold = (s.getPropertyValue('--gold') || '#A98446').trim();
+    var bright = (s.getPropertyValue('--gold-bright') || '#C9A96A').trim();
+    var ink = (s.getPropertyValue('--paper') || '#fff').trim();
+
+    for (var i = 0; i < pins.length; i++){
+      var p = pins[i];
+      var px = lonToX(p.lon, z) * TS - left, py = latToY(p.lat, z) * TS - top;
+      p._x = px; p._y = py;
+      if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue;
+      var on = i === sel;
+      // 光晕
+      var g = ctx.createRadialGradient(px, py, 0, px, py, on ? 26 : 18);
+      g.addColorStop(0, bright); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = on ? .5 : .28;
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(px, py, on ? 26 : 18, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+      if (p.thumb && p.img && p.img.__ok){
+        var d = on ? 46 : 36, r = 4;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(px-d/2+r, py-d/2);
+        ctx.arcTo(px+d/2, py-d/2, px+d/2, py+d/2, r);
+        ctx.arcTo(px+d/2, py+d/2, px-d/2, py+d/2, r);
+        ctx.arcTo(px-d/2, py+d/2, px-d/2, py-d/2, r);
+        ctx.arcTo(px-d/2, py-d/2, px+d/2, py-d/2, r);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(p.img, px-d/2, py-d/2, d, d);
+        ctx.restore();
+        ctx.strokeStyle = bright; ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(px, py, on ? 8 : 6, 0, Math.PI*2);
+        ctx.fillStyle = bright; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(px, py, on ? 13 : 10, 0, Math.PI*2);
+        ctx.strokeStyle = gold; ctx.lineWidth = 1; ctx.globalAlpha = .7; ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+    ctx.font = '10px ' + (s.getPropertyValue('--sans') || 'sans-serif').trim();
+    ctx.fillStyle = 'rgba(128,128,128,.85)';
+    ctx.textAlign = 'right';
+    ctx.fillText('© OpenStreetMap contributors', W - 6, H - 6);
+    ctx.textAlign = 'left';
+  }
+  function fit(){
+    if (!pins.length){ z = 2; cLat = 20; cLon = 10; return; }
+    if (pins.length === 1){ z = 12; cLat = pins[0].lat; cLon = pins[0].lon; return; }
+    var la1 = 90, la2 = -90, lo1 = 180, lo2 = -180;
+    pins.forEach(function(p){
+      la1 = Math.min(la1, p.lat); la2 = Math.max(la2, p.lat);
+      lo1 = Math.min(lo1, p.lon); lo2 = Math.max(lo2, p.lon);
+    });
+    cLat = (la1 + la2) / 2; cLon = (lo1 + lo2) / 2;
+    for (var zz = 14; zz >= 2; zz--){
+      var w = (lonToX(lo2, zz) - lonToX(lo1, zz)) * TS;
+      var h = (latToY(la1, zz) - latToY(la2, zz)) * TS;
+      if (w < W * 0.72 && h < H * 0.72){ z = zz; return; }
+    }
+    z = 2;
+  }
+  function hit(px, py){
+    for (var i = pins.length - 1; i >= 0; i--){
+      var p = pins[i];
+      if (typeof p._x !== 'number') continue;
+      var dx = p._x - px, dy = p._y - py;
+      if (dx*dx + dy*dy < 26*26) return i;
+    }
+    return -1;
+  }
+  function showCard(i){
+    sel = i;
+    var box = $('mapCard');
+    if (i < 0){ box.classList.add('hidden'); schedule(); return; }
+    var p = pins[i];
+    box.innerHTML = '<div class="mc-d">' + esc(p.ymd ? cnDate(p.ymd) : '') +
+      (p.mine ? '' : ' · 对方打的') + '</div>' +
+      '<div class="mc-t">' + esc(p.title) + '</div>' +
+      (p.where ? '<div class="mc-w">' + esc(p.where) + '</div>' : '') +
+      (p.thumb ? '<img src="' + p.thumb + '" alt="" />' : '');
+    box.classList.remove('hidden');
+    schedule();
+  }
+
+  function bind(){
+    function pos(e){
+      var r = cv.getBoundingClientRect();
+      var t = e.touches && e.touches[0] ? e.touches[0] : e;
+      return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+    function down(e){
+      if (e.touches && e.touches.length === 2){
+        pinchBase = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+        drag = null;
+        return;
+      }
+      var p = pos(e);
+      drag = { x:p.x, y:p.y, lat:cLat, lon:cLon, moved:0 };
+    }
+    function move(e){
+      if (e.touches && e.touches.length === 2 && pinchBase){
+        var d = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+        if (d / pinchBase > 1.55){ step(1); pinchBase = d; }
+        else if (d / pinchBase < 0.65){ step(-1); pinchBase = d; }
+        e.preventDefault();
+        return;
+      }
+      if (!drag) return;
+      var p = pos(e);
+      var dx = p.x - drag.x, dy = p.y - drag.y;
+      drag.moved = Math.max(drag.moved, Math.abs(dx) + Math.abs(dy));
+      var cx = lonToX(drag.lon, z) * TS - dx, cy = latToY(drag.lat, z) * TS - dy;
+      cLon = xToLon(cx / TS, z); cLat = yToLat(cy / TS, z);
+      schedule();
+      e.preventDefault();
+    }
+    function up(e){
+      if (drag && drag.moved < 8){
+        var p = pos(e.changedTouches ? { touches:e.changedTouches } : e);
+        showCard(hit(p.x, p.y));
+      }
+      drag = null; pinchBase = 0;
+    }
+    cv.addEventListener('mousedown', down);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    cv.addEventListener('touchstart', down, { passive:true });
+    cv.addEventListener('touchmove', move, { passive:false });
+    cv.addEventListener('touchend', up);
+    cv.addEventListener('wheel', function(e){ step(e.deltaY < 0 ? 1 : -1); e.preventDefault(); }, { passive:false });
+  }
+  function step(d){
+    var nz = Math.max(2, Math.min(17, z + d));
+    if (nz === z) return;
+    z = nz;
+    schedule();
+  }
+
+  return {
+    init: function(){
+      cv = document.getElementById('mapCanvas');
+      if (!cv || !cv.getContext) return false;
+      ctx = cv.getContext('2d');
+      ready = true;
+      bind();
+      var t;
+      window.addEventListener('resize', function(){
+        clearTimeout(t); t = setTimeout(function(){ size(); schedule(); }, 200);
+      }, { passive:true });
+      return true;
+    },
+    setPins: function(list, refit){
+      if (!ready) return;
+      pins = list;
+      sel = -1;
+      $('mapCard').classList.add('hidden');
+      // 有照片的钉子把缩略图画进地图
+      pins.forEach(function(p){
+        if (!p.thumb) return;
+        var im = new Image();
+        im.onload = function(){ im.__ok = true; schedule(); };
+        im.src = p.thumb;
+        p.img = im;
+      });
+      size();
+      if (refit) fit();
+      schedule();
+    },
+    fit: function(){ size(); fit(); schedule(); },
+    zoom: step,
+    repaint: function(){ cache = {}; size(); schedule(); },
+    has: function(){ return ready; }
+  };
+})();
 
 /* ---------- 10 回忆本 ---------- */
 function logRead(){
@@ -2203,13 +3944,124 @@ function logUpsert(plan){
   logWrite(a);
   renderMemo();
 }
+// 把所有打过卡的点收成地图上的钉子；同一个地方（约 150 米内）只算一处
+// mineOnly=true 时只要这台设备打的卡（同步上传用），否则把对方那半张也并进来
+function collectPins(mineOnly){
+  var a = logRead(), out = [];
+  a.forEach(function(rec){
+    var ch = rec.checks || {};
+    for (var k in ch){
+      if (!ch.hasOwnProperty(k)) continue;
+      var mk = ch[k], stop = rec.plan && rec.plan.s && rec.plan.s[k];
+      if (!mk || !stop) continue;
+      if (!mineOnly && typeof mk.lat !== 'number') continue;
+      out.push({
+        sig: rec.sig, i: +k,
+        lat: mk.lat, lon: mk.lon, ymd: rec.ymd, t: mk.t,
+        title: stop.t, where: (rec.plan.w && rec.plan.w.name) || '',
+        ph: mk.ph || '', thumb: mk.ph ? (thumbCache[mk.ph] || '') : '', mine: 1
+      });
+    }
+  });
+  if (!mineOnly){
+    var seen = {};
+    out.forEach(function(p){ seen[p.sig + '#' + p.i] = 1; });
+    Couple.theirs().forEach(function(p){
+      if (typeof p.lat !== 'number') return;
+      if (seen[p.sig + '#' + p.i]) return;      // 同一站两边都打了，只画一个
+      out.push({
+        sig: p.sig, i: p.i, lat: p.lat, lon: p.lon, ymd: p.ymd || '', t: p.at || 0,
+        title: p.title || '', where: '', ph: '', thumb: p.thumb || '', mine: 0
+      });
+    });
+  }
+  out.sort(function(x, y){ return (y.t || 0) - (x.t || 0); });
+  return out;
+}
+function distinctPlaces(list){
+  var keep = [];
+  list.forEach(function(p){
+    for (var i=0;i<keep.length;i++){
+      if (haversine(keep[i].lat, keep[i].lon, p.lat, p.lon) < 150) return;
+    }
+    keep.push(p);
+  });
+  return keep;
+}
+var fpFitted = false;
+// 打过的勾总数（包含没记到位置的）
+// 打卡状态一变，回忆本那一行和足迹地图都要跟着走
+function refreshLogViews(){ renderMemo(); renderFootprints(); Couple.sync(); }
+function checkTotal(){
+  var a = logRead(), n = 0;
+  a.forEach(function(rec){
+    var ch = rec.checks || {};
+    for (var k in ch) if (ch.hasOwnProperty(k)) n++;
+  });
+  return n;
+}
+function renderFootprints(){
+  if (isGuest) return;
+  var pins = collectPins();
+  var uniq = distinctPlaces(pins);
+  var shots = pins.filter(function(p){ return p.ph; });
+  var plans = logRead().length, all = checkTotal();
+
+  var theirs = pins.filter(function(p){ return !p.mine; }).length;
+  if (pins.length){
+    $('fpStat').innerHTML = '已经点亮 <b>' + uniq.length + '</b> 个地方 · ' +
+      (theirs ? ('你打卡 <b>' + all + '</b> 次 · 对方 <b>' + theirs + '</b> 次')
+              : ('打卡 <b>' + all + '</b> 次')) +
+      ' · 照片 <b>' + shots.length + '</b> 张 · 计划 <b>' + plans + '</b> 份' +
+      (theirs ? '<br/>两边已经合在同一张地图上了'
+              : (API.base && Couple.when() ? '<br/>对方那边还没有打过卡' : ''));
+  } else if (all){
+    $('fpStat').innerHTML = '打卡 <b>' + all + '</b> 次，但都没记到位置。' +
+      '下次打勾时允许一次定位，这些地方就会亮在地图上。';
+  } else {
+    $('fpStat').textContent = '还没有打过卡。出门之后在计划里点一下每一站左边的圈。';
+  }
+
+  $('mapEmpty').classList.toggle('hidden', pins.length > 0);
+  if (pins.length && Atlas.has()){
+    var withThumbs = 0;
+    pins.forEach(function(p){
+      if (!p.ph) return;
+      withThumbs++;
+      withThumb(p.ph, function(url){
+        p.thumb = url;
+        if (--withThumbs <= 0) Atlas.setPins(pins, !fpFitted), fpFitted = true;
+      });
+    });
+    if (!withThumbs){ Atlas.setPins(pins, !fpFitted); fpFitted = true; }
+  }
+
+  var strip = $('shots');
+  strip.innerHTML = '';
+  shots.slice(0, 24).forEach(function(p){
+    var im = document.createElement('img');
+    im.alt = p.title;
+    im.title = cnDate(p.ymd) + ' · ' + p.title;
+    withThumb(p.ph, function(url){ if (url) im.src = url; });
+    im.onclick = function(){
+      Photos.get(p.ph, function(err, rec){
+        if (!rec) return;
+        $('posterImg').src = rec.full;
+        $('posterMask').classList.add('show');
+        $('posterHint').textContent = cnDate(p.ymd) + ' · ' + p.title;
+      });
+    };
+    strip.appendChild(im);
+  });
+}
+
 function renderMemo(){
   if (isGuest) return;
   var a = logRead(), box = $('memoList');
   var doneN = a.filter(function(r){ return r.done; }).length;
-  $('memoCount').textContent = doneN ? ('已完成 ' + doneN + ' 次') : 'Our Days';
+  $('memoCount').textContent = doneN ? ('走完 ' + doneN + ' 天') : 'Our Days';
   if (!a.length){
-    box.innerHTML = '<div class="memo-empty">还没有记录。<br/>生成过的计划会自动收进这里，出门回来点一下「去过了」。</div>';
+    box.innerHTML = '<div class="memo-empty">还没有记录。<br/>生成过的计划会自动收进这里。</div>';
     return;
   }
   box.innerHTML = '';
@@ -2226,26 +4078,46 @@ function renderMemo(){
       $('ownerActs').classList.remove('hidden');
       $('menu').scrollIntoView({behavior:'smooth', block:'start'});
     };
+    var n = 0, ch = r.checks || {};
+    for (var kk in ch) if (ch.hasOwnProperty(kk)) n++;
     var done = document.createElement('button');
-    done.className = 'mb' + (r.done ? ' done' : '');
-    done.textContent = r.done ? '♥ 去过了' : '去过了';
+    done.className = 'mb' + (n ? ' done' : '');
+    done.textContent = n ? ('♥ ' + n + '/' + r.plan.s.length) : '未打卡';
     done.onclick = function(){
-      var all = logRead();
-      if (all[idx]){ all[idx].done = !all[idx].done; logWrite(all); }
-      if (all[idx] && all[idx].done) hearts(8);
-      renderMemo();
+      renderPlan(r.plan, null);
+      $('ownerActs').classList.remove('hidden');
+      $('menu').scrollIntoView({behavior:'smooth', block:'start'});
+      toast('在这一份里给每一站打勾就行');
     };
     var del = document.createElement('button');
     del.className = 'mb'; del.textContent = '✕';
     del.setAttribute('aria-label','删除这条记录');
     del.onclick = function(){
-      var all = logRead(); all.splice(idx,1); logWrite(all); renderMemo();
+      var all = logRead();
+      var gone = all[idx];
+      if (gone && gone.checks){
+        for (var g in gone.checks) if (gone.checks.hasOwnProperty(g) && gone.checks[g].ph) Photos.del(gone.checks[g].ph);
+      }
+      all.splice(idx,1); logWrite(all); refreshLogViews();
     };
     row.appendChild(open); row.appendChild(done); row.appendChild(del);
     box.appendChild(row);
   });
 }
+// 地图控件
+(function(){
+  if (!Atlas.init()) return;
+  $('mapIn').onclick = function(){ Atlas.zoom(1); };
+  $('mapOut').onclick = function(){ Atlas.zoom(-1); };
+  $('mapFit').onclick = function(){ Atlas.fit(); };
+  $('mapFull').onclick = function(){
+    var w = $('mapWrap'), on = w.classList.toggle('full');
+    $('mapFull').textContent = on ? '✕' : '⤢';
+    setTimeout(function(){ Atlas.fit(); }, 60);
+  };
+})();
 renderMemo();
+renderFootprints();
 
 /* ---------- 11 她的视角：信封 → 计划 → 答应 ---------- */
 (function(){
@@ -2271,7 +4143,8 @@ renderMemo();
   inv.classList.remove('hidden');
 
   function open(){
-    hearts(16);
+    hearts(18);
+    if (window.Petals) setTimeout(function(){ Petals.burst(24); }, 260);
     renderPlan(sharedPlan);
     $('guestActs').classList.remove('hidden');
     setTimeout(function(){ inv.classList.add('done'); }, 420);
@@ -2391,6 +4264,39 @@ function renderPanelChips(id, opts, key){
     box.appendChild(b);
   });
 }
+function fillMbti(id, val, placeholder){
+  var sel = $(id);
+  sel.innerHTML = '';
+  var none = document.createElement('option');
+  none.value = ''; none.textContent = placeholder;
+  sel.appendChild(none);
+  MBTI_TYPES.forEach(function(t){
+    var o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    if (val === t) o.selected = true;
+    sel.appendChild(o);
+  });
+}
+// 主题三选一：跟随系统 / 晨光 / 夜色。点了立刻生效，不用等保存
+function renderThemeChips(){
+  var box = $('cfgTheme');
+  box.innerHTML = '';
+  THEME_OPTS.forEach(function(label){
+    var val = THEME_KEY[label];
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + ((cfg.theme || 'auto') === val ? ' on' : '');
+    b.textContent = label;
+    b.setAttribute('aria-pressed', (cfg.theme || 'auto') === val ? 'true' : 'false');
+    b.onclick = function(){
+      cfg.theme = val;
+      paintTheme(val, true);
+      renderThemeChips();
+      if (!isGuest) saveCfgLocal();
+    };
+    box.appendChild(b);
+  });
+}
 function spotRow(s){
   var row = document.createElement('div');
   row.className = 'm-row';
@@ -2428,10 +4334,15 @@ function openPanel(){
   $('cfgFrom').value = cfg.from || '';
   $('cfgTo').value = cfg.to || '';
   $('cfgAvoid').value = cfg.avoid || '';
+  fillMbti('cfgMbtiA', cfg.mbtiA, '你的 MBTI');
+  fillMbti('cfgMbtiB', cfg.mbtiB, '她 / 他的 MBTI');
   panelPick.taste = (cfg.taste || []).slice();
   panelPick.love = (cfg.love || []).slice();
   renderPanelChips('cfgTaste', TASTE_OPTS, 'taste');
   renderPanelChips('cfgLove', LOVE_OPTS, 'love');
+  renderThemeChips();
+  renderCoupleState();
+  if (window._showStore) window._showStore();
   var list = $('mList');
   list.innerHTML = '';
   cfg.miles.forEach(function(m){ list.appendChild(mileRow(m)); });
@@ -2442,6 +4353,18 @@ function openPanel(){
 }
 $('gearBtn').onclick = openPanel;
 panel.onclick = function(e){ if (e.target === panel) panel.classList.remove('show'); };
+$('panelClose').onclick = function(){ panel.classList.remove('show'); };
+$('sheetClose2').onclick = function(){ $('sheet').classList.remove('show'); };
+
+// 顶栏那个太阳/月亮：在晨光和夜色之间来回；想回到"跟随系统"去设置里选
+$('themeBtn').onclick = function(){
+  var now = document.documentElement.getAttribute('data-theme');
+  cfg.theme = now === 'night' ? 'day' : 'night';
+  paintTheme(cfg.theme, true);
+  if (!isGuest) saveCfgLocal();
+  if ($('cfgTheme').children.length) renderThemeChips();
+  toast(cfg.theme === 'night' ? '换成夜色了' : '换成晨光了');
+};
 $('addMile').onclick = function(){
   $('mList').appendChild(mileRow({label:'', date:'', mode:'since'}));
 };
@@ -2456,6 +4379,8 @@ function collectCfg(){
   cfg.from = $('cfgFrom').value.trim();
   cfg.to = $('cfgTo').value.trim();
   cfg.avoid = $('cfgAvoid').value.trim();
+  cfg.mbtiA = $('cfgMbtiA').value;
+  cfg.mbtiB = $('cfgMbtiB').value;
   cfg.taste = panelPick.taste.slice();
   cfg.love = panelPick.love.slice();
   cfg.miles = [];
@@ -2492,6 +4417,103 @@ $('resetCfg').onclick = function(){
   panel.classList.remove('show');
   toast('已恢复默认');
 };
+/* 共一张地图：说清楚现在是什么状态，再给一个链接 */
+function renderCoupleState(){
+  var el = $('coupleState');
+  if (!el) return;
+  var linked = !!cfg.couple, theirs = Couple.theirs().length;
+  if (!API.base){
+    el.innerHTML = '打的卡现在只存在各自手机上，所以是两张地图。' +
+      '要合成一张需要先把后台跑起来（<b>server/</b> 里有，一条命令），之后这里会自动连上。';
+    return;
+  }
+  if (!linked){
+    el.textContent = '还没连。点下面生成链接发给她，她点开再点「存到我手机」就连上了。';
+    return;
+  }
+  el.innerHTML = '已经连上（' + esc(cfg.couple.slice(0, 7)) + '…）。' +
+    (theirs ? ('对方那边有 <b>' + theirs + '</b> 处打卡，已经在同一张地图上了。')
+            : '对方那边还没打过卡，或者还没点开你发的链接。');
+}
+$('coupleLink').onclick = function(){
+  collectCfg();
+  Couple.ensure();
+  saveCfgLocal();
+  var url = baseUrl() + '?s=' + b64e({ k:'cfg', c:cfg });
+  $('coupleOut').value = url;
+  try{ $('coupleOut').setSelectionRange(0, url.length); }catch(e){}
+  copyText(url, '链接已复制。她点开之后要点一下「存到我手机」');
+  renderCoupleState();
+};
+
+/* 备份：导出成一个文件，导入整体覆盖 */
+$('cfgExport').onclick = function(){
+  collectCfg();
+  toast('正在打包，照片多的话要等一下…');
+  Backup.dump(function(box){
+    var name = 'xindong-' + ymd(new Date()) + '.json';
+    var blob;
+    try{ blob = new Blob([JSON.stringify(box)], { type:'application/json' }); }
+    catch(e){ toast('这台设备打包失败了'); return; }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    var kb = Math.round(blob.size / 1024);
+    toast('导出了 ' + name + '（' + (kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb + ' KB') + '）');
+  });
+};
+$('cfgImport').onclick = function(){
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/json,.json';
+  inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    inp.remove();
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      var box;
+      try{ box = JSON.parse(fr.result); }
+      catch(e){ toast('这个文件读不出来'); return; }
+      Backup.load(box, function(err, n){
+        if (err){ toast(err.message || '导入失败'); return; }
+        rebuildCards();
+        renderStats();
+        refreshLogViews();
+        renderThemeChips();
+        paintTheme(cfg.theme, false);
+        panel.classList.remove('show');
+        toast('导回来了' + (n ? ('，含 ' + n + ' 张照片') : ''));
+      });
+    };
+    fr.readAsText(f);
+  };
+  inp.click();
+};
+(function(){
+  var el = $('storeState');
+  if (!el) return;
+  function show(){
+    if (!navigator.storage || !navigator.storage.estimate){ el.textContent = ''; return; }
+    navigator.storage.estimate().then(function(est){
+      var used = Math.round((est.usage || 0) / 1024);
+      var txt = '已经用了 ' + (used > 1024 ? (used/1024).toFixed(1) + ' MB' : used + ' KB');
+      if (navigator.storage.persisted){
+        navigator.storage.persisted().then(function(ok){
+          el.textContent = txt + (ok ? ' · 已申请到持久化存储，系统不会随手清掉' : ' · 系统在空间紧张时可能清掉，建议导一份备份');
+        }).catch(function(){ el.textContent = txt; });
+      } else el.textContent = txt;
+    }).catch(function(){ el.textContent = ''; });
+  }
+  window._showStore = show;
+})();
+
 $('shareBtn').onclick = function(){
   collectCfg(); // 先自动保存，防止忘点保存
   var url = baseUrl() + '?s=' + b64e({ k:'cfg', c:cfg });
@@ -2536,7 +4558,21 @@ $('sweetBtn').onclick = function(){
   });
 };
 
+// 氛围与主题
+Backup.init();          // 申请持久化存储，别让系统把回忆当缓存清掉
+Petals.init();
+paintTheme(cfg.theme, false);
+(function(){
+  if (!window.matchMedia) return;
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  var onChange = function(){ if ((cfg.theme || 'auto') === 'auto') paintTheme('auto', true); };
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else if (mq.addListener) mq.addListener(onChange);
+})();
+
 rebuildCards();
+Reviews.flush();      // 上次没交上去的评分，这次补交
+Couple.sync();        // 把两个人的足迹合到一张地图上
 // 卡池：如果配了 ?api=，开局就去拿一次，拿不到静默用本地
 Sources.cards({ budget:state.budget, loc:state.loc, lat:state.lat, lon:state.lon }, function(err, list){
   if (list && list.length > POOL.length){
@@ -2544,6 +4580,25 @@ Sources.cards({ budget:state.budget, loc:state.loc, lat:state.lat, lon:state.lon
     rebuildCards();
   }
 });
+
+// 离线可用 + 能装到主屏。注册失败就当没有，页面照常
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      // 有新版本就让它立刻接管，别等下次冷启动
+      if (reg.waiting) reg.waiting.postMessage('skip-waiting');
+      reg.onupdatefound = function(){
+        var sw = reg.installing;
+        if (!sw) return;
+        sw.onstatechange = function(){
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) sw.postMessage('skip-waiting');
+        };
+      };
+    }).catch(function(){});
+  });
+})();
 
 // Esc 关掉所有弹层
 document.addEventListener('keydown', function(e){
