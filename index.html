@@ -1592,12 +1592,14 @@ function baseUrl(){ return location.origin + location.pathname; }
 })();
 
 /* ---------- 3 数据源 Sources（未来接 API 只改这一层） ---------- */
+// 后台就在这儿。想临时指到别的地方（比如自己本地调），加 ?api=... 覆盖它；
+// 想彻底断开走纯本地，加 ?api=off
+var API_DEFAULT = 'https://xindong.707748836.workers.dev';
 var API = (function(){
   var p = param('api');
-  return {
-    base: p ? decodeURIComponent(p).replace(/\/+$/,'') : '',
-    timeout: 7000
-  };
+  var base = p ? decodeURIComponent(p).replace(/\/+$/,'') : API_DEFAULT;
+  if (base === 'off' || base === '0') base = '';
+  return { base: base, timeout: 7000 };
 })();
 function jget(url, cb, ms){
   var done = false;
