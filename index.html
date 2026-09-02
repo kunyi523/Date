@@ -516,7 +516,10 @@
 
       <div class="label">Where<b>想跑多远</b></div>
       <div class="chips" id="locs"></div>
-      <div class="chips hidden" id="fars" style="margin-top:8px"></div>
+      <div class="hidden" id="farRow">
+        <div class="temp-read" style="margin-top:10px">开车大概开多远？定位之后我在这个距离上挑一个目的地。</div>
+        <div class="chips" id="fars" style="margin-top:8px"></div>
+      </div>
       <div class="temp-read" id="nearRead" style="margin-top:12px"></div>
       <div class="temp-read" id="timeHint" style="margin-top:12px"></div>
     </div>
@@ -1387,7 +1390,8 @@ function renderWhen(){
   if (!isToday() && state.start === '现在出发') state.start = '上午';
   renderChips('dayChips', DAY_OPTS, 'day');
   renderChips('starts', isToday() ? START_OPTS : START_OPTS.slice(1), 'start');
-  $('fars').classList.toggle('hidden', state.loc !== FAR);
+  renderChips('locs', [NEAR, CITY, FAR], 'loc');
+  $('farRow').classList.toggle('hidden', state.loc !== FAR);
   if (state.loc === FAR) renderChips('fars', FAR_OPTS, 'far');
   renderTimeHint();
 }
