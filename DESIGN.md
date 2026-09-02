@@ -192,6 +192,43 @@
 - **分组:** 内容按 `.group` + `.group-t`（Us / Days / Taste / Ours / Mood / Share）切开，
   一屏只需要看懂一件事；保存按钮永远在视野里，不用滚到底
 
+### tick（打卡的圈）
+- **size:** 26px 的圆，1px `rgba(201,169,106,.5)` 描边，透明底；`::after` 撑出 44px 点击区
+- **checked:** 底色变 `{gold-bright}`，里面一个 `✓`，这一站的名字也转成 `{gold-bright}`
+- **stamp:** 打完之后下面出现一行 `{latin}` `{text-micro}` 的金色小字（`08:21 到过 · 已记在地图上`），
+  右边跟一张 52px 的照片缩略图，或者一个虚线的「📷 加张照片」
+- **role:** 计划从"看的"变成"用的"就靠它。它必须比「换」显眼，但不能比每一站的名字显眼
+
+### footprint map（足迹地图）
+- **底图:** OpenStreetMap 标准瓦片，**不需要 key**，自己用 canvas 画（没有引任何地图库）
+- **配色:** 靠 `ctx.filter` 把彩色底图调成两套主题——
+  晨光 `grayscale(.82) sepia(.24) brightness(1.04) contrast(.9)`，
+  夜色 `invert(1) hue-rotate(180deg) grayscale(.72) brightness(.8) contrast(1.06)`；
+  老浏览器不支持 `ctx.filter` 就是一张普通彩色地图，功能不受影响
+- **署名:** 右下角必须留 `© OpenStreetMap contributors`，这是使用条款，不许删
+- **钉子:** 有照片的画成 36px 圆角方块（缩略图 + 金边），没照片的画成金点 + 外圈光晕；
+  选中的放大并加亮光晕
+- **交互:** 拖动平移、双指捏合换整级缩放、`＋ － 全部 ⤢` 四个按钮、点钉子出小卡片
+- **画布倍率:** 上限 1.5（OSM 没有 @2x 瓦片，再高只是把 256px 图放得更虚）
+
+### rate sheet（情侣评分）
+- **总体:** 五颗心，`♡` / `♥`，选中转 `{gold-bright}`；每颗心自己就是一个 `{tap}` 大的按钮
+- **维度:** 用 chip 而不是星星——五个维度各自只有"是/不是"，点亮就是是。
+  评分要能在餐桌上三十秒填完，不是填表
+- **聚合框:** `.rate-agg`，`{card-ivory}` 底 + 金边，显示所有情侣的分、
+  和你们 MBTI 接近的那一档、他们说适合什么、以及一句引用
+- **没接后台时:** 这个框要**明说**评分只存在本机、后台上线会自动补交，不许假装已经提交了
+
+### card 上的评分行
+- `.rate`，`{latin}` `{text-micro}` `{gold-bright}`，排在 `.meta` 下面、`.tip` 上面
+- 只有真的有人评过才出现；一对情侣的评分不显示"和你们像的"（少于 3 对不做结论）
+
+### photo strip
+- 72px 方形缩略图横向滚动，`scrollbar-width:none`
+- 点开走海报那个弹层看原图
+- 原图和缩略图都存在 IndexedDB 里（长边 1100 / 320，JPEG .76 / .7），
+  **不要**往 localStorage 里塞照片，那里只有 5MB 还要放设置
+
 ### eyebrow
 - **font:** `{latin}` `{text-caption}` `{track-eyebrow}` uppercase
 - **color:** `{gold}`
