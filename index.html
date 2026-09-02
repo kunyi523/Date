@@ -920,12 +920,21 @@ function jget(url, cb, ms){
   }catch(e){ finish(e, null); }
 }
 // 远端卡片 → 本地字段。远端字段可缺省，缺的用默认值兜。
+// 口碑类字段（rating / reviews / summary / hours）会被拼进 meta 那一行，
+// 所以将来接了带评价的接口，下游一行代码都不用改。
 function normCards(list){
   var out = [];
   for (var i=0;i<list.length;i++){
     var r = list[i] || {};
     var t = r.t || r.title, d = r.d || r.detail || r.desc;
     if (!t) continue;
+    var facts = [];
+    if (r.meta) facts.push(String(r.meta));
+    if (typeof r.rating === 'number'){
+      facts.push(r.rating.toFixed(1) + ' 分' + (r.reviews ? '（' + r.reviews + ' 条）' : ''));
+    }
+    if (r.hours) facts.push(String(r.hours));
+    if (r.summary) facts.push(String(r.summary));
     out.push({
       cat: r.cat || r.category || '游',
       t: String(t), d: String(d || ''),
@@ -935,6 +944,8 @@ function normCards(list){
       tw: Array.isArray(r.tw) ? r.tw : (Array.isArray(r.window) ? r.window : null),
       u: typeof r.u === 'number' ? r.u : (typeof r.minutes === 'number' ? r.minutes : 0),
       noHot: r.noHot ? 1 : 0, noCold: r.noCold ? 1 : 0,
+      meta: facts.join(' · '),
+      near: r.near ? 1 : 0,
       src: r.src || r.source || ''
     });
   }
