@@ -335,22 +335,43 @@ async function postRedeem(env, request) {
   if ((results?.[0]?.c || 0) >= 60) return json({ error: 'slow down' }, 429);
   await env.DB.prepare('INSERT INTO hits (ip, at) VALUES (?, ?)').bind(ip, now).run();
 
-  await env.DB.prepare('INSERT INTO redeems (shop, at) VALUES (?, ?)').bind(shop, now).run();
+  // first：这台手机以前在这家店出示过没有。判断在手机上做，这里只收一个比特。
+  // 老板娘想看的是回头客，而这一个比特就够画出那一栏，仍然不带任何用户标识。
+  const first = body.first ? 1 : 0;
+  await env.DB.prepare('INSERT INTO redeems (shop, at, first_time) VALUES (?, ?, ?)')
+    .bind(shop, now, first).run();
   return json({ ok: true });
 }
 
-/** 老板娘月底看的就是这一个数 */
+/**
+ * 老板娘那一页要的数据。不给一个大数字——第一个月可能就是 3，一个大大的"3"
+ * 显得可怜；按天打点才看得出在发生。外加回头那一栏。
+ */
 async function getShop(env, url) {
   const shop = String(url.searchParams.get('id') || '').slice(0, 40);
   if (!shop) return json({ error: 'bad shop' }, 400);
   const since = Date.now() - 30 * 86400e3;
-  const { results } = await env.DB.prepare(
-    'SELECT COUNT(*) AS m FROM redeems WHERE shop = ? AND at > ?'
+  const { results: days } = await env.DB.prepare(
+    `SELECT date(at / 1000, 'unixepoch') AS d,
+            COUNT(*) AS n,
+            SUM(CASE WHEN first_time = 1 THEN 1 ELSE 0 END) AS f
+       FROM redeems WHERE shop = ? AND at > ?
+      GROUP BY d ORDER BY d`
   ).bind(shop, since).all();
   const { results: all } = await env.DB.prepare(
-    'SELECT COUNT(*) AS t FROM redeems WHERE shop = ?'
+    'SELECT COUNT(*) AS t, SUM(CASE WHEN first_time = 1 THEN 1 ELSE 0 END) AS f FROM redeems WHERE shop = ?'
   ).bind(shop).all();
-  return json({ shop, last30: all ? (results?.[0]?.m || 0) : 0, total: all?.[0]?.t || 0 });
+  const series = (days || []).map((r) => ({ d: r.d, n: r.n || 0, f: r.f || 0 }));
+  const last30 = series.reduce((a, r) => a + r.n, 0);
+  const first30 = series.reduce((a, r) => a + r.f, 0);
+  return json({
+    shop,
+    last30,
+    first: first30,
+    repeat: last30 - first30,
+    total: all?.[0]?.t || 0,
+    days: series
+  });
 }
 
 /** 卡池：把收到的评分反过来喂回抽卡——评分高的真实地点会更容易被抽到 */
