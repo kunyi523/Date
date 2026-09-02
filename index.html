@@ -359,6 +359,31 @@
   }
   .m-progress.all{color:var(--gold-bright); font-family:var(--serif); font-size:var(--text-caption)}
 
+  /* ————— 评分 ————— */
+  .hearts{display:flex; gap:6px}
+  .hearts button{
+    min-width:var(--tap); min-height:var(--tap); border:none; background:transparent;
+    color:var(--line); font-size:var(--text-display-sm); cursor:pointer; padding:0;
+    transition:transform var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+  }
+  .hearts button.on{color:var(--gold-bright)}
+  .hearts button:active{transform:scale(.88)}
+  .rate-agg{
+    margin-top:var(--space-7); padding:12px 14px; border-radius:var(--radius-sm);
+    background:var(--card-ivory); border:1px solid var(--gold-line);
+    font-size:var(--text-caption); line-height:1.9; color:var(--ink-soft);
+  }
+  .rate-agg b{font-family:var(--serif); color:var(--gold); font-size:var(--text-body-sm)}
+  .rate-agg .q{display:block; margin-top:4px; color:var(--ink); font-style:italic}
+  .rate-btn{
+    border:1px dashed rgba(201,169,106,.5); background:transparent; color:var(--gold-bright);
+    border-radius:var(--radius-sm); padding:7px 11px; font-size:var(--text-micro);
+    cursor:pointer; font-family:inherit; min-height:34px;
+  }
+  .rate-btn.on{border-style:solid; background:rgba(201,169,106,.12)}
+  .card .rate{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:.8px;
+    color:var(--gold-bright); margin-top:5px; opacity:.95}
+
   /* ————— 足迹地图 ————— */
   .fp-stat{margin-top:12px; font-size:var(--text-body-sm); color:var(--ink-soft); line-height:1.8}
   .fp-stat b{font-family:var(--serif); font-size:var(--text-title); color:var(--gold); font-weight:900}
@@ -869,6 +894,13 @@
         <div class="chips" id="cfgTaste"></div>
         <div class="f-label">喜欢的场景（可多选）</div>
         <div class="chips" id="cfgLove"></div>
+        <div class="f-label">你们俩的 MBTI（可留空）</div>
+        <div class="grid2">
+          <select id="cfgMbtiA"></select>
+          <select id="cfgMbtiB"></select>
+        </div>
+        <div class="hint" style="margin:6px 0 0">填了之后：抽卡会往你们这一型偏，别的情侣的评分里也会单独算一份"和你们 MBTI 接近的"分数。</div>
+
         <div class="f-label">不想碰的</div>
         <input type="text" id="cfgAvoid" placeholder="逗号分开，如：香菜, 排队, 太吵" />
         <div class="hint" style="margin:6px 0 0">写在这里的词，出现在卡片上就不会被抽到。</div>
@@ -938,6 +970,42 @@
     <div class="sheet-foot">
       <button class="p-save" id="shPoster">存 成 图 片</button>
       <button class="p-reset" id="shClose">关闭</button>
+    </div>
+  </div>
+</div>
+
+<!-- 给地点打分（情侣标准） -->
+<div id="rateSheet" class="mask">
+  <div class="panel-card">
+    <div class="sheet-head">
+      <span class="grip"></span>
+      <div>
+        <h3 id="rateTitle">给这儿打个分</h3>
+        <div class="hint" style="margin:2px 0 0">按情侣的标准，不是按好不好吃</div>
+      </div>
+      <button class="sheet-close" id="rateClose" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
+      <div class="f-label">总体</div>
+      <div class="hearts" id="rateHearts"></div>
+
+      <div class="f-label">对上的就点亮</div>
+      <div class="chips" id="rateDims"></div>
+
+      <div class="f-label">适合</div>
+      <div class="chips" id="rateFit"></div>
+
+      <div class="f-label">花费</div>
+      <div class="chips" id="rateCost"></div>
+
+      <div class="f-label">想说一句（会给别的情侣看，可留空）</div>
+      <textarea id="rateText" rows="2" maxlength="60" placeholder="靠窗那一桌可以坐很久"></textarea>
+
+      <div class="rate-agg hidden" id="rateAgg"></div>
+    </div>
+    <div class="sheet-foot">
+      <button class="p-save" id="rateSave">提 交</button>
+      <button class="p-reset" id="rateDel">删掉我的评分</button>
     </div>
   </div>
 </div>
@@ -1275,7 +1343,7 @@ function syncThemeIcon(pref){
 
 /* ---------- 2 设置与链接编码 ---------- */
 refreshNow();
-var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto' };
+var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'' };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
 
@@ -1291,6 +1359,8 @@ function normCfg(c){
   if (typeof c.to !== 'string') c.to = '';
   if (typeof c.avoid !== 'string') c.avoid = '';
   if (c.theme !== 'day' && c.theme !== 'night') c.theme = 'auto';
+  if (typeof c.mbtiA !== 'string') c.mbtiA = '';
+  if (typeof c.mbtiB !== 'string') c.mbtiB = '';
   return c;
 }
 // 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑。
@@ -1375,6 +1445,34 @@ function jget(url, cb, ms){
       } else finish(new Error('http '+x.status), null);
     };
     x.send();
+  }catch(e){ finish(e, null); }
+}
+function jpost(url, body, cb){
+  var done = false;
+  function finish(err, data){ if (!done){ done = true; cb(err, data); } }
+  setTimeout(function(){ finish(new Error('timeout'), null); }, API.timeout);
+  try{
+    if (window.fetch){
+      fetch(url, {
+        method:'POST',
+        headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify(body)
+      }).then(function(r){
+        if (!r.ok) throw new Error('http ' + r.status);
+        return r.json().catch(function(){ return {}; });
+      }).then(function(j){ finish(null, j); })
+        .catch(function(e){ finish(e, null); });
+      return;
+    }
+    var x = new XMLHttpRequest();
+    x.open('POST', url, true);
+    x.setRequestHeader('Content-Type', 'application/json');
+    x.onreadystatechange = function(){
+      if (x.readyState !== 4) return;
+      if (x.status >= 200 && x.status < 300) finish(null, {});
+      else finish(new Error('http ' + x.status), null);
+    };
+    x.send(JSON.stringify(body));
   }catch(e){ finish(e, null); }
 }
 // 远端卡片 → 本地字段。远端字段可缺省，缺的用默认值兜。
@@ -1590,6 +1688,7 @@ function poiToCard(el, center, dow, drive){
     loc: [state.loc], b: 0, u: kind.u,
     tw: hours || kind.tw,
     meta: facts.join(' · '),
+    pid: 'osm:' + (el.type || 'node') + '/' + el.id,
     la: c.lat, lo: c.lon,
     near: 1, dist: Math.round(m),
     rank: (tg.opening_hours ? 1 : 0) + (cui ? .6 : 0) + (tg.wikidata ? 1.2 : 0) - m/2500
@@ -1827,6 +1926,105 @@ function withThumb(id, cb){
     thumbCache[id] = (rec && rec.thumb) || '';
     cb(thumbCache[id]);
   });
+}
+
+/* ---------- 3d 情侣评分 + MBTI ----------
+   一个地点好不好，情侣看的和点评网站看的不是一回事：能不能安静说话、位置是不是
+   适合两个人并排坐、能不能久坐不赶人、拍照好不好看、要不要排队。所以这里不抄五星，
+   自己定一套维度。
+   评分先存在本机；配了 ?api= 就往后台交一份，由后台合并所有情侣的评分再发回来。
+   没有后台的时候不丢：排进 outbox，等后台上线自动补交。后台代码在 server/ 里。 */
+var REV_KEY = 'xindong_reviews_v1';
+var ANON_KEY = 'xindong_anon_v1';
+var DIMS = [
+  { k:'quiet',  label:'能安静说话' },
+  { k:'pair',   label:'位置适合两个人' },
+  { k:'linger', label:'可以久坐' },
+  { k:'photo',  label:'拍照好看' },
+  { k:'noqueue',label:'不用排队' }
+];
+var FIT_TAGS = ['第一次约会','纪念日','随便逛逛','深夜','带家人也行'];
+var COST_TAGS = ['穷开心','小奢侈','豪华版'];
+
+var MBTI_TYPES = ['INTJ','INTP','ENTJ','ENTP','INFJ','INFP','ENFJ','ENFP',
+                  'ISTJ','ISFJ','ESTJ','ESFJ','ISTP','ISFP','ESTP','ESFP'];
+// MBTI 的四个轴各自偏向哪些场景词。两个人的类型都算，不一致就各算一半。
+var MBTI_LEAN = {
+  E:['热闹','逛街'], I:['安静','自然'],
+  S:['运动','动物','逛街'], N:['展览','电影','夜景'],
+  T:['展览','运动'], F:['拍照','夜景','安静'],
+  J:[], P:[]
+};
+function anonId(){
+  try{
+    var v = localStorage.getItem(ANON_KEY);
+    if (!v){
+      v = 'a' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+      localStorage.setItem(ANON_KEY, v);
+    }
+    return v;
+  }catch(e){ return 'anon'; }
+}
+function mbtiPair(){
+  var a = (cfg.mbtiA || '').toUpperCase(), b = (cfg.mbtiB || '').toUpperCase();
+  if (!a && !b) return '';
+  return [a, b].filter(Boolean).sort().join('-');
+}
+// MBTI 给本地抽卡的加权：和口味偏好一个路子，只是权重轻一点
+function mbtiBoost(it){
+  var pair = [cfg.mbtiA, cfg.mbtiB].filter(Boolean);
+  if (!pair.length) return 0;
+  var text = cardText(it), s = 0;
+  var w = 1 / pair.length;
+  for (var p = 0; p < pair.length; p++){
+    var t = String(pair[p]).toUpperCase();
+    for (var i = 0; i < 4; i++){
+      var keys = MBTI_LEAN[t.charAt(i)];
+      if (keys && keys.length){
+        for (var j = 0; j < keys.length; j++){
+          if (hitAny(LOVE_KEY[keys[j]], text)){ s += 0.5 * w; break; }
+        }
+      }
+    }
+    // J 喜欢有明确时段能定下来的，P 喜欢随时都能去的
+    if (t.charAt(3) === 'J' && it.tw) s += 0.25 * w;
+    if (t.charAt(3) === 'P' && !it.tw) s += 0.25 * w;
+  }
+  return s;
+}
+function pidOf(it){
+  if (!it) return '';
+  return it.pid || ('act:' + (it.t || ''));
+}
+function revRead(){
+  try{ return JSON.parse(localStorage.getItem(REV_KEY) || '{}') || {}; }catch(e){ return {}; }
+}
+function revWrite(o){ try{ localStorage.setItem(REV_KEY, JSON.stringify(o)); }catch(e){} }
+function myReview(pid){ return revRead()[pid] || null; }
+
+/* 后台合并回来的分数：{ pid: {n, score, match:{n,score}, dims:{}, tags:[], quotes:[]} } */
+var PLACE_STATS = {};
+function statLine(pid){
+  var st = PLACE_STATS[pid];
+  if (!st || !st.n) return '';
+  var bits = ['情侣评分 ' + st.score.toFixed(1) + '（' + st.n + ' 对）'];
+  if (st.match && st.match.n >= 3) bits.push('和你们像的 ' + st.match.score.toFixed(1));
+  if (st.dims){
+    var best = null;
+    for (var i = 0; i < DIMS.length; i++){
+      var v = st.dims[DIMS[i].k];
+      if (typeof v === 'number' && (!best || v > best.v)) best = { v:v, label:DIMS[i].label };
+    }
+    if (best && best.v >= .6) bits.push(best.label);
+  }
+  return bits.join(' · ');
+}
+function statBonus(it){
+  var st = PLACE_STATS[pidOf(it)];
+  if (!st || !st.n) return 0;
+  var base = (st.score - 3.6) * 0.55;                 // 3.6 分算持平
+  if (st.match && st.match.n >= 3) base += (st.match.score - 3.6) * 0.75;
+  return Math.max(-1.4, Math.min(2.4, base));
 }
 
 /* ---------- 4 纪念数字 ---------- */
@@ -2231,6 +2429,8 @@ function scoreCard(it){
   if (pref && pref.indexOf(it.cat) > -1) s += 1;
   if (it.near) s += 0.8;                      // 附近真实地点比手写卡稍微优先
   if (it.dest) s += 5;                        // 出逃半日的那一站"开车去某某镇"必须领头
+  s += mbtiBoost(it);                         // 你们俩的 MBTI
+  s += statBonus(it);                         // 别的情侣给这儿打的分
   return s;
 }
 function avoidList(){
@@ -2255,6 +2455,7 @@ function cardHTML(it){
          '<div class="t">'+esc(it.t)+'</div>'+
          '<div class="d">'+esc(it.d)+'</div>'+
          '<div class="meta">'+esc(it.meta || ('约 '+durOf(it)+' 分钟'))+'</div>'+
+         (statLine(pidOf(it)) ? '<div class="rate">'+esc(statLine(pidOf(it)))+'</div>' : '')+
          (it.tip ? '<div class="tip">'+esc(it.tip)+'</div>' : '');
 }
 function deal(k){
@@ -2305,6 +2506,36 @@ function deal(k){
   $('menu').classList.add('hidden');
   $('ownerActs').classList.add('hidden');
   updateFinalBtn();
+  fetchDeckStats();
+}
+// 把这一手牌里的地点问一遍后台的合并评分，回来了只补那一行字，不重建卡片
+function fetchDeckStats(){
+  var pids = [];
+  ['A','B'].forEach(function(k){
+    decks[k].dealt.forEach(function(it){ var p = pidOf(it); if (p) pids.push(p); });
+  });
+  if (!pids.length) return;
+  Reviews.fetch(pids, refreshDeckStats);
+}
+function refreshDeckStats(){
+  ['A','B'].forEach(function(k){
+    var D = decks[k], box = $(D.el);
+    D.dealt.forEach(function(it, i){
+      var card = box.children[i];
+      if (!card || !card.classList || !card.classList.contains('card')) return;
+      var txt = statLine(pidOf(it));
+      var line = card.querySelector('.rate');
+      if (!txt){ if (line) line.remove(); return; }
+      if (!line){
+        line = document.createElement('div');
+        line.className = 'rate';
+        var meta = card.querySelector('.meta');
+        if (meta && meta.nextSibling) card.insertBefore(line, meta.nextSibling);
+        else card.appendChild(line);
+      }
+      line.textContent = txt;
+    });
+  });
 }
 $('dealA').onclick = function(){ deal('A'); };
 $('dealB').onclick = function(){ deal('B'); };
@@ -2336,6 +2567,7 @@ function scheduleStops(items){
     if (it.tip) facts.push(it.tip);
     var stop = { c:it.cat, t:it.t, d:it.d, m:s, u:u, x:facts.join(' · ') };
     if (typeof it.la === 'number'){ stop.la = it.la; stop.lo = it.lo; }
+    stop.p = pidOf(it);
     out.push(stop);
     kept.push(it);
     t = s + u + GAP;
@@ -2452,6 +2684,12 @@ function renderPlan(plan, items){
   Array.prototype.forEach.call($('m-courses').querySelectorAll('.shot'), function(b){
     b.onclick = function(){ askPhoto(+b.getAttribute('data-i')); };
   });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.rate-btn'), function(b){
+    b.onclick = function(){
+      var i = +b.getAttribute('data-i'), st = plan.s[i] || {};
+      openRate(st.p, st.t);
+    };
+  });
   Array.prototype.forEach.call($('m-courses').querySelectorAll('.stamp-thumb'), function(im){
     withThumb(im.getAttribute('data-ph'), function(url){ if (url) im.src = url; });
   });
@@ -2504,11 +2742,16 @@ function stampHTML(i, mk){
   var bits = [];
   if (mk.t) bits.push(fmtMin(new Date(mk.t).getHours()*60 + new Date(mk.t).getMinutes()) + ' 到过');
   if (typeof mk.lat === 'number') bits.push('已记在地图上');
+  var stop = (currentPlan && currentPlan.s[i]) || {};
+  var pid = stop.p || '';
+  var mine = pid ? myReview(pid) : null;
   return '<div class="stamp">' +
     '<span class="stamp-txt">✓ ' + esc(bits.join(' · ') || '到过') + '</span>' +
     (mk.ph
       ? '<img class="stamp-thumb" data-ph="' + esc(mk.ph) + '" alt="这一站的照片" />'
       : (Photos.ready() ? '<button class="shot" data-i="' + i + '">📷 加张照片</button>' : '')) +
+    (pid ? '<button class="rate-btn' + (mine ? ' on' : '') + '" data-i="' + i + '">' +
+      (mine ? ('♥'.repeat(mine.r) + ' 已评分') : '给这儿打个分') + '</button>' : '') +
     '</div>';
 }
 function renderProgress(plan, marks){
@@ -2594,6 +2837,163 @@ function askPhoto(i){
   };
   inp.click();
 }
+
+/* ---------- 评分面板 ---------- */
+var ratePid = '', rateName = '', rateDraft = null;
+function newDraft(){
+  return { r:0, dims:{}, tags:[], cost:'', txt:'' };
+}
+function renderHearts(){
+  var box = $('rateHearts');
+  box.innerHTML = '';
+  for (var i = 1; i <= 5; i++){
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.textContent = i <= rateDraft.r ? '♥' : '♡';
+    b.className = i <= rateDraft.r ? 'on' : '';
+    b.setAttribute('aria-label', i + ' 颗心');
+    b.onclick = (function(n){ return function(){ rateDraft.r = n; renderHearts(); }; })(i);
+    box.appendChild(b);
+  }
+}
+function renderRateChips(id, items, pick, isOn){
+  var box = $(id);
+  box.innerHTML = '';
+  items.forEach(function(it){
+    var label = it.label || it;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (isOn(it) ? ' on' : '');
+    b.textContent = label;
+    b.setAttribute('aria-pressed', isOn(it) ? 'true' : 'false');
+    b.onclick = function(){ pick(it); renderRateChips(id, items, pick, isOn); };
+    box.appendChild(b);
+  });
+}
+function renderAgg(){
+  var box = $('rateAgg'), st = PLACE_STATS[ratePid];
+  if (!st || !st.n){
+    box.classList.remove('hidden');
+    box.innerHTML = API.base
+      ? '这儿还没有别的情侣打过分，你们是第一对。'
+      : '还没接后台，所以现在只存在你们自己手机上——<b>等后台上线会自动补交</b>，一条都不会丢。';
+    return;
+  }
+  var html = '所有情侣 <b>' + st.score.toFixed(1) + '</b>（' + st.n + ' 对）';
+  if (st.match && st.match.n >= 3) html += ' · 和你们 MBTI 接近的 <b>' + st.match.score.toFixed(1) + '</b>（' + st.match.n + ' 对）';
+  if (st.tags && st.tags.length){
+    html += '<br/>他们说适合：' + st.tags.slice(0,3).map(function(t){ return esc(t[0]) + ' ×' + t[1]; }).join('、');
+  }
+  if (st.quotes && st.quotes.length){
+    html += '<span class="q">「' + esc(st.quotes[0]) + '」</span>';
+  }
+  box.classList.remove('hidden');
+  box.innerHTML = html;
+}
+function openRate(pid, name){
+  if (!pid){ toast('这一站没有具体地点，评分先留给真实的地方'); return; }
+  ratePid = pid; rateName = name || '';
+  var mine = myReview(pid);
+  rateDraft = mine ? { r:mine.r, dims:JSON.parse(JSON.stringify(mine.dims||{})), tags:(mine.tags||[]).slice(), cost:mine.cost||'', txt:mine.txt||'' } : newDraft();
+  $('rateTitle').textContent = name ? ('给「' + name + '」打个分') : '给这儿打个分';
+  $('rateText').value = rateDraft.txt;
+  renderHearts();
+  renderRateChips('rateDims', DIMS,
+    function(d){ rateDraft.dims[d.k] = !rateDraft.dims[d.k]; },
+    function(d){ return !!rateDraft.dims[d.k]; });
+  renderRateChips('rateFit', FIT_TAGS,
+    function(t){ var i = rateDraft.tags.indexOf(t); if (i>-1) rateDraft.tags.splice(i,1); else rateDraft.tags.push(t); },
+    function(t){ return rateDraft.tags.indexOf(t) > -1; });
+  renderRateChips('rateCost', COST_TAGS,
+    function(t){ rateDraft.cost = rateDraft.cost === t ? '' : t; },
+    function(t){ return rateDraft.cost === t; });
+  $('rateDel').classList.toggle('hidden', !mine);
+  Reviews.fetch([pid], function(){ if (ratePid === pid) renderAgg(); });
+  renderAgg();
+  $('rateSheet').classList.add('show');
+}
+$('rateClose').onclick = function(){ $('rateSheet').classList.remove('show'); };
+$('rateSheet').onclick = function(e){ if (e.target === $('rateSheet')) $('rateSheet').classList.remove('show'); };
+$('rateSave').onclick = function(){
+  if (!rateDraft.r){ toast('先给几颗心'); return; }
+  rateDraft.txt = $('rateText').value.trim();
+  var all = revRead();
+  all[ratePid] = {
+    r: rateDraft.r, dims: rateDraft.dims, tags: rateDraft.tags,
+    cost: rateDraft.cost, txt: rateDraft.txt, name: rateName,
+    t: Date.now(), sent: false
+  };
+  revWrite(all);
+  Reviews.flush();
+  $('rateSheet').classList.remove('show');
+  if (window.Petals) Petals.burst(12);
+  toast(API.base ? '谢了，已经交给后台合并' : '记下了。后台上线后会自动补交');
+  if (currentPlan) renderPlan(currentPlan, currentItems);
+  refreshDeckStats();
+};
+$('rateDel').onclick = function(){
+  var all = revRead();
+  delete all[ratePid];
+  revWrite(all);
+  $('rateSheet').classList.remove('show');
+  toast('删掉了');
+  if (currentPlan) renderPlan(currentPlan, currentItems);
+};
+
+/* 和后台打交道：提交走 outbox，读取带 MBTI 好让后台算"和你们像的" */
+var Reviews = (function(){
+  var pending = {}, fetching = {};
+  function payload(pid, rev){
+    return {
+      pid: pid, name: rev.name || '',
+      r: rev.r, dims: rev.dims || {}, tags: rev.tags || [],
+      cost: rev.cost || '', txt: rev.txt || '',
+      mbti: mbtiPair(), by: anonId(), at: rev.t || Date.now()
+    };
+  }
+  return {
+    flush: function(){
+      if (!API.base) return;                       // 没后台就先攒着
+      var all = revRead(), any = false;
+      for (var pid in all){
+        if (!all.hasOwnProperty(pid) || all[pid].sent || pending[pid]) continue;
+        pending[pid] = 1;
+        (function(pid, rev){
+          jpost(API.base + '/reviews', payload(pid, rev), function(err){
+            delete pending[pid];
+            if (err) return;
+            var cur = revRead();
+            if (cur[pid]){ cur[pid].sent = true; revWrite(cur); }
+          });
+        })(pid, all[pid]);
+        any = true;
+      }
+      return any;
+    },
+    fetch: function(pids, cb){
+      cb = cb || function(){};
+      if (!API.base) return cb();
+      var want = [];
+      for (var i=0;i<pids.length;i++){
+        var p = pids[i];
+        if (p && !fetching[p] && PLACE_STATS[p] === undefined) want.push(p);
+      }
+      if (!want.length) return cb();
+      want.forEach(function(p){ fetching[p] = 1; });
+      var url = API.base + '/places?mbti=' + encodeURIComponent(mbtiPair()) +
+                '&ids=' + encodeURIComponent(want.join(','));
+      jget(url, function(err, data){
+        want.forEach(function(p){
+          delete fetching[p];
+          if (PLACE_STATS[p] === undefined) PLACE_STATS[p] = null;   // 问过了，别反复问
+        });
+        var got = data && data.places;
+        if (got) for (var k in got) if (got.hasOwnProperty(k)) PLACE_STATS[k] = got[k];
+        cb();
+      }, 9000);
+    }
+  };
+})();
 
 function planText(plan){
   var lines = [];
@@ -3482,6 +3882,19 @@ function renderPanelChips(id, opts, key){
     box.appendChild(b);
   });
 }
+function fillMbti(id, val, placeholder){
+  var sel = $(id);
+  sel.innerHTML = '';
+  var none = document.createElement('option');
+  none.value = ''; none.textContent = placeholder;
+  sel.appendChild(none);
+  MBTI_TYPES.forEach(function(t){
+    var o = document.createElement('option');
+    o.value = t; o.textContent = t;
+    if (val === t) o.selected = true;
+    sel.appendChild(o);
+  });
+}
 // 主题三选一：跟随系统 / 晨光 / 夜色。点了立刻生效，不用等保存
 function renderThemeChips(){
   var box = $('cfgTheme');
@@ -3539,6 +3952,8 @@ function openPanel(){
   $('cfgFrom').value = cfg.from || '';
   $('cfgTo').value = cfg.to || '';
   $('cfgAvoid').value = cfg.avoid || '';
+  fillMbti('cfgMbtiA', cfg.mbtiA, '你的 MBTI');
+  fillMbti('cfgMbtiB', cfg.mbtiB, '她 / 他的 MBTI');
   panelPick.taste = (cfg.taste || []).slice();
   panelPick.love = (cfg.love || []).slice();
   renderPanelChips('cfgTaste', TASTE_OPTS, 'taste');
@@ -3580,6 +3995,8 @@ function collectCfg(){
   cfg.from = $('cfgFrom').value.trim();
   cfg.to = $('cfgTo').value.trim();
   cfg.avoid = $('cfgAvoid').value.trim();
+  cfg.mbtiA = $('cfgMbtiA').value;
+  cfg.mbtiB = $('cfgMbtiB').value;
   cfg.taste = panelPick.taste.slice();
   cfg.love = panelPick.love.slice();
   cfg.miles = [];
@@ -3672,6 +4089,7 @@ paintTheme(cfg.theme, false);
 })();
 
 rebuildCards();
+Reviews.flush();      // 上次没交上去的评分，这次补交
 // 卡池：如果配了 ?api=，开局就去拿一次，拿不到静默用本地
 Sources.cards({ budget:state.budget, loc:state.loc, lat:state.lat, lon:state.lon }, function(err, list){
   if (list && list.length > POOL.length){
