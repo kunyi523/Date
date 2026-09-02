@@ -2,7 +2,9 @@
 
 > 一个两个人用的深色"菜单"。整站建立在纸感的暖米底（`#F5F0E6`）与丝绒紫黑卡片（`#251C29`）之间，靠香槟金（`#C9A96A`）做唯一的强调色——它只出现在西文小标、时间、数字和被选中的状态上，不做大面积填充。中文标题用 Noto Serif SC 900 压住版面，西文小标和时间用 Cormorant Garamond 的斜体与宽字距（4–5px）做"印刷品"的呼吸感。圆角一律接近直角（3–8px），只有封蜡（`--radius-full`）和底部抽屉（`16px`）是圆的；没有卡片阴影是软的，投影都带着 12–18px 的垂直偏移，像一张纸压在另一张纸上。它不是 App，是一份每天重新印一次的菜单。
 
-**Theme:** dark / light 双主题（跟随系统 `prefers-color-scheme`，深色是主场）
+**Theme:** 双主题 **晨光（day）/ 夜色（night）**，可跟随系统也可手动切。
+`html[data-theme="day"|"night"]` 由 `<head>` 里的一小段脚本在 CSS 上色之前写好，所以不会闪一下另一套配色。
+优先级：分享链接里带的 > 本机存的 > 跟随系统。
 
 **Source:** [https://kunyi523.github.io/Date/](https://kunyi523.github.io/Date/)
 本文档的格式参考 [ricocc/brands-design-md](https://github.com/ricocc/brands-design-md) 与 [design.ricoui.com/brands](https://design.ricoui.com/brands) 的 `DESIGN.md` 约定。
@@ -12,27 +14,32 @@
 
 ## Tokens — Colors
 
-| Name | Value | Token | Role |
-|---|---|---|---|
-| paper | `#F5F0E6` | `--paper` | 页面底色，纸感暖米 |
-| paper 2 | `#EFE8DA` | `--paper2` | 次级底色 |
-| ink | `#2B2130` | `--ink` | 正文与标题 |
-| ink soft | `rgba(43,33,48,.62)` | `--ink-soft` | 辅助说明、占位 |
-| gold | `#A9853F` | `--gold` | 描边、西文小标（浅色主题） |
-| gold bright | `#C9A96A` | `--gold-bright` | 深色卡片上的强调、被选中的字 |
-| rose | `#9C6B76` | `--rose` | 情绪色，副标题与卡片分类 |
-| card | `#251C29` | `--card` | 深色卡片底 |
-| card top | `#33283A` | `--card-top` | 深色渐变的高光端 |
-| card ivory | `#FBF7EE` | `--card-ivory` | 浅色控件底（chip、输入框） |
-| on dark | `#F0E8DC` | `--on-dark` | 深色卡片上的文字 |
-| on dark soft | `rgba(240,232,220,.6)` | `--on-dark-soft` | 深色卡片上的次要文字 |
-| on dark line | `rgba(240,232,220,.14)` | `--on-dark-line` | 深色卡片里的分隔线 |
-| line | `rgba(43,33,48,.16)` | `--line` | 浅色主题的发丝线 |
-| gold line | `rgba(201,169,106,.4)` | `--gold-line` | 菜单内框那道金线 |
+两套配色用的是**同一组令牌名**，所以组件里永远只写 `var(--…)`，不写具体颜色。
 
-深色主题只覆盖这几个：`--paper:#1D1620`、`--paper2:#261E2A`、`--ink:#F2EAE0`、
-`--ink-soft:rgba(242,234,224,.6)`、`--gold:#C9A96A`、`--line:rgba(242,234,224,.14)`、`--card-ivory:#2A2130`。
-深色卡片本身两个主题下一模一样——计划长什么样，不该跟着系统变。
+| Token | 晨光 day | 夜色 night | Role |
+|---|---|---|---|
+| `--paper` | `#F8F3EA` | `#140F19` | 页面底色 |
+| `--paper2` | `#F1EADD` | `#1D1622` | 次级底色 |
+| `--ink` | `#34293B` | `#F4ECE2` | 正文与标题 |
+| `--ink-soft` | `rgba(52,41,59,.58)` | `rgba(244,236,226,.56)` | 辅助说明、占位 |
+| `--gold` | `#A98446` | `#CBAB6E` | 描边、西文小标 |
+| `--gold-bright` | `#C9A96A` | `#DFC591` | 强调、被选中的字 |
+| `--gold-soft` | `rgba(169,132,70,.5)` | `rgba(203,171,110,.45)` | 淡出的金色发丝线 |
+| `--rose` | `#A4737E` | `#B98C97` | 情绪色，副标题、卡片分类、花瓣 |
+| `--card` | `#2A2130` | `#211A27` | 深色卡片底 |
+| `--card-top` | `#392C40` | `#2E2436` | 深色渐变的高光端 |
+| `--card-ivory` | `#FDFAF4` | `#241C2B` | 控件底（chip、输入框） |
+| `--on-dark` | `#F2EBE1` | `#F4ECE2` | 深色卡片上的文字 |
+| `--line` | `rgba(52,41,59,.12)` | `rgba(244,236,226,.11)` | 发丝线 |
+| `--gold-line` | `rgba(201,169,106,.42)` | `rgba(203,171,110,.42)` | 菜单内框那道金线 |
+| `--glow-a` / `--glow-b` | 金 `.20` / 胭脂 `.13` | 金 `.16` / 胭脂 `.10` | 背景两团光、大数字的呼吸光 |
+
+阴影也是每个主题一套（`--shadow-flat/card/raised/overlay/pressed/inset/seal`）：
+**晨光的阴影更散更淡**（两层，最深只到 `.26`），**夜色的更深更沉**。
+深色卡片在两个主题下都是深色——计划长什么样，不该跟着明暗变。
+
+设计意图：晨光是"暖象牙纸 + 香槟金 + 一点胭脂"，夜色是"近黑丝绒紫 + 亮一档的金"。
+夜色的金要比晨光亮（`#CBAB6E` vs `#A98446`），否则在近黑底上会发灰。
 
 ---
 
@@ -67,6 +74,7 @@
 | body-sm | 13.5px | `--text-body-sm` | 纪念日行、状态行、回忆本 |
 | caption | 12.5px | `--text-caption` | 卡片描述、菜单脚注、表单标签 |
 | micro | 11.5px | `--text-micro` | 卡片分类、页脚、徽标 |
+| input | 16px | `--text-input` | **所有输入框的下限。** 低于 16px，iOS Safari 一点输入框就会把整页放大，用户得手动缩回去——设置页之所以"很不流畅"，一半是这个 |
 
 字距单列成令牌，因为中西文规则相反：西文小标一律拉开，中文正文一律不拉。
 
@@ -121,12 +129,21 @@
 
 | Token | Value | 用在哪 |
 |---|---|---|
-| `--dur-fast` | .16s | 卡片按下、hover |
-| `--dur-base` | .25s | 提示条、按钮缩放 |
+| `--dur-fast` | .16s | 卡片按下、chip 反馈 |
+| `--dur-base` | .25s | 提示条、抽屉升起 |
+| `--dur-veil` | .42s | 换主题时那层幕布 |
 | `--dur-slow` | .7s | 开场淡出、滚动渐显 |
-| `--ease` | ease | 全站只用这一条曲线 |
+| `--ease` | `cubic-bezier(.22,.61,.36,1)` | 全站只用这一条曲线：起步快、收尾慢，像纸落下 |
+
+**只允许动 `transform` 和 `opacity`。** 动 `left/top/width/height` 会每帧触发一次布局——
+这个站以前的高光扫过就是动 `left` 的，静置不动的时候每 3 秒也要做 75 次布局。
+
+常驻动画控制在三个以内（两处高光 + 大数字的呼吸）。像"120 秒转一圈"这种看不出来的动画不要留，
+它看不见，但每一帧都要付一次样式重算。
 
 `@media (prefers-reduced-motion:reduce)` 里所有动画和过渡全部关掉，这条不许省。
+**因此元素的初始状态必须写在 `@keyframes from{}` 里，不能写在元素自己的规则上**——
+写成 `.card{opacity:0; animation:in … forwards}` 的话，动画一被禁用，卡片就永远不出现了。
 
 ### Layout
 
@@ -139,6 +156,42 @@
 
 ## Components
 
+### ornament（花枝）
+- **source:** 文档里一份 `<svg>` 定义了两个 symbol：`#bloom`（五瓣茶花）和 `#sprig`（花枝 = 两段枝 + 两片叶 + 中间一朵）
+- **style:** 只描边不填色，`stroke:currentColor`，所以换主题自动跟着变
+- **sizes:** `.orn.sm` 96×24 / `.orn.md` 132×32 / `.orn.lg` 158×38，透明度 `.45–.55`
+- **用在哪:** 纪念数字与一键之间的分隔、页脚上方、菜单标题下、信封页顶部、爱语卡上方、封蜡的刻花
+- **不要:** 不要给它填色、不要放大到抢标题的注意力、不要一屏出现三个以上
+
+### hero bloom（抬头背后那朵）
+- **size:** 126px，`opacity:.085`，`rotate(-12deg)` 固定不转
+- **位置:** 压在大数字右侧的空处，不能盖住 h1 或任何文字
+- **role:** 让首屏不只是一堆横线，但它是背景，不是装饰主角
+
+### petals（飘落的花瓣）
+- **实现:** 一张 `<canvas id="petals">`，`z-index:-1`，`pointer-events:none`
+- **常驻:** 10 片，尺寸 3.4–7.5，透明度 `.06–.17`，30fps，`devicePixelRatio` 上限 1.5
+- **技法:** 每种颜色先离屏画一片当 sprite，每帧只做 `drawImage`；`document.hidden` 时停
+- **花雨:** `Petals.burst(n)` —— 拆开封蜡、一键出计划时撒一把（透明度高、会淡出）
+- **为什么不用 CSS:** 原来的氛围是两个 `filter:blur(70px)` 的光斑，手机上一直在重绘；
+  现在整个氛围只有一个合成层。**不要再引入 `filter:blur` 或 `backdrop-filter`。**
+
+### theme toggle
+- **位置:** 顶栏，`⚙︎ 设置` 左边，`min-width:{tap}`
+- **图标:** 晨光显示 `☀`，夜色显示 `☾`
+- **行为:** 点一下在晨光/夜色之间来回；想回到"跟随系统"去设置里的三选一
+- **切换动效:** 盖一层当前底色的 `#veil` 淡入 → 换 `data-theme` → 淡出。
+  **不要**给几十个元素各自加颜色过渡，那会在切换瞬间造成一次全页重绘
+
+### bottom sheet（设置 / 分享）
+- **结构:** `.panel-card` 是竖向 flex，分成 `.sheet-head`（粘顶）/ `.sheet-body`（滚）/ `.sheet-foot`（粘底）
+- **高度:** `max-height:90dvh`，并保留 `90vh` 兜底。**不要只写 `vh`**，iOS 上地址栏会把它算错
+- **滚动:** `.sheet-body` 必须有 `-webkit-overflow-scrolling:touch` 和 `overscroll-behavior:contain`，
+  否则滚到底会把整页一起带走
+- **底部:** `padding-bottom` 要加 `env(safe-area-inset-bottom)`
+- **分组:** 内容按 `.group` + `.group-t`（Us / Days / Taste / Ours / Mood / Share）切开，
+  一屏只需要看懂一件事；保存按钮永远在视野里，不用滚到底
+
 ### eyebrow
 - **font:** `{latin}` `{text-caption}` `{track-eyebrow}` uppercase
 - **color:** `{gold}`
@@ -150,7 +203,11 @@
 - **note:** 设置了称呼就变成"瑶瑶，今天怎么心动？"
 
 ### hero stat
-- **border:** 上 1px `{ink}`，下 1px `{line}`
+- **border:** 上边不是实线，而是**两端淡出的金色发丝线**
+  （`linear-gradient(90deg, transparent, {gold-soft} 14%, {gold-soft} 86%, transparent)`
+  当 `background-size:100% 1px` 用）；下 1px `{line}`。
+  `.part-head` 的下边同理。整条死黑的横线太硬，是"柔和"要改掉的第一处
+- **glow:** 大数字背后一团 `{glow-a}` 的径向光，7s 一次呼吸（只动 opacity 和 transform）
 - **number:** `{serif}` 900 `{text-hero}` `{gold}`，进场有一次 900ms 的滚动
 - **label:** `{text-caption}` `{track-tag}` `{ink-soft}`
 
@@ -197,7 +254,7 @@
 ### seal（封蜡）
 - **size:** 106px，`{radius-full}`
 - **background:** `radial-gradient(circle at 33% 26%, #D8BA7C, {gold} 58%, #7C5C24)`
-- **content:** 送的人名字的第一个字，没署名就是 `♥`
+- **content:** 送的人名字的第一个字（没署名就是 `♥`），下面压一朵 `#bloom` 当刻花
 - **motion:** 1.9s 的心跳循环
 - **role:** 她点开链接后的第一个可点物；除了它，那一屏没有别的操作
 
@@ -240,17 +297,23 @@
 ## Do's and Don'ts
 
 ### Do
-- 改样式先改 `:root` 里的令牌，组件里不要再写死数值
+- 改样式先改令牌，组件里不要再写死数值；颜色一律 `var(--…)`，两个主题才会同时对
 - 金色只用于强调：西文小标、时间、数字、选中态。它不做大面积背景
 - 深色卡片代表"计划本身"，浅色底代表"你在挑"。这个对应关系不要反
 - 所有可点元素至少 `{tap}` 高；视觉必须小的，用透明区域补
+- 输入框一律 `{text-input}`（16px）起
+- 动画只动 `transform` 和 `opacity`；初始状态写进 `@keyframes from{}`
 - 只用 ES5 语法（`var` / `function` / 回调）——很多人在微信内置浏览器里打开
 - 任何外部数据都要能失败：拿不到就静默回落到手写卡池，界面照常可用
+- 改完动效跑一遍"静置 3 秒的布局次数"，正常值是 0～2 次
 
 ### Don't
 - 不要引入令牌之外的颜色，尤其不要加第二个强调色
+- 不要写死墨色（`rgba(43,33,48,…)` 这类）：在夜色主题下会变成深色压深色，直接看不见
 - 不要把圆角做圆（除了封蜡和底部抽屉），这是活字印刷的气质，不是圆角卡片 App
 - 不要给中文正文加字距，也不要给西文小标去掉字距
+- 不要用 `filter:blur` / `backdrop-filter` 做氛围，氛围已经交给那张 canvas 了
+- 不要动 `left/top/width/height` 做动画
 - 不要在她的视角（`body.guest`）里露出抽卡、设置这些发送方的操作
 - 不要动这些：favicon、连点 5 次页脚的「初衷」彩蛋、`4-15` 与 `12-6` 的自动彩蛋、旧的 `?c=` 链接兼容
 - 不要为了塞功能把"打开 → 一键 → 送出去"这条路变长
