@@ -10,13 +10,12 @@
  * 只算最新一条。收上来的只有：地点标识、分数、几个布尔维度、标签、一句话、
  * MBTI 组合、设备 id、时间。没有位置、没有姓名、没有联系方式。
  *
- * 部署（Cloudflare Workers + D1）：
- *   npm i -g wrangler && wrangler login
- *   wrangler d1 create xindong
- *   # 把返回的 database_id 填进 wrangler.toml
- *   wrangler d1 execute xindong --remote --file=./schema.sql
- *   wrangler deploy
- *   # 然后打开 https://你的域名/Date/?api=https://xindong.你的账号.workers.dev
+ * 部署：README.md 里有一个「Deploy to Cloudflare」按钮，点一下就会在你自己的
+ * 账号里开好 Worker 和 D1、建好表。想用命令行就是：
+ *   npm install && wrangler login
+ *   wrangler d1 create xindong      # 把 database_id 填进 wrangler.toml
+ *   npm run deploy                  # = d1 migrations apply DB --remote && wrangler deploy
+ * 然后打开 https://kunyi523.github.io/Date/?api=https://你的.workers.dev
  */
 
 const CORS = {
