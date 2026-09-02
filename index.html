@@ -3028,32 +3028,39 @@ function toggleCheck(i){
   if (known){ mk.lat = stop.la; mk.lon = stop.lo; }
   else if (currentPlan.w && typeof currentPlan.w.lat === 'number'){ mk.lat = currentPlan.w.lat; mk.lon = currentPlan.w.lon; }
 
-  function finish(){
-    setCheck(currentPlan, i, mk);
-    renderPlan(currentPlan, currentItems);
-    refreshLogViews();
-    if (window.Petals) Petals.burst(12);
-    var marks2 = checksOf(currentPlan), n = 0;
-    for (var k in marks2) if (marks2.hasOwnProperty(k)) n++;
-    if (n >= currentPlan.s.length){
-      hearts(16);
-      toast(typeof mk.lat === 'number' ? '这一天走完了。地图上又亮了一处。' : '这一天走完了。');
-    } else if (typeof mk.lat !== 'number'){
-      toast('打上了。想让它亮在地图上，需要允许一次定位');
-    } else {
-      toast('打上了。' + (Photos.ready() ? '要不要补一张照片？' : ''));
-    }
-  }
-  // 这一站自己就有坐标（附近真实地点）——直接用，不打扰。
-  // 完全没有坐标的时候才去问一次定位：这是唯一值得弹权限框的时刻，
-  // 因为"我到这儿了"本来就是在说一个位置，而它换来的是地图上亮起来的那一点。
+  // 勾必须是立刻上的。之前是等定位回来才记，手机 GPS 慢的时候要等十秒，
+  // 按下去什么都不动，看着就像坏了——而这是出门在外最常按的一个按钮。
+  // 所以先记上，位置回来了再补进去。
+  setCheck(currentPlan, i, mk);
+  renderPlan(currentPlan, currentItems);
+  refreshLogViews();
+  if (window.Petals) Petals.burst(12);
+
+  var marks2 = checksOf(currentPlan), n = 0;
+  for (var k in marks2) if (marks2.hasOwnProperty(k)) n++;
+  var allDone = n >= currentPlan.s.length;
+  if (allDone) hearts(16);
+
+  // 这一站自己就有坐标（来自附近真实地点）就不打扰；完全没有坐标才顺手问一次定位，
+  // 但是在后台问，不挡着打勾
   if (!known && navigator.geolocation){
-    toast('正在记下这个位置…');
+    toast(allDone ? '这一天走完了。正在顺手记一下位置…' : '打上了。正在顺手记一下位置…');
     navigator.geolocation.getCurrentPosition(function(pos){
-      mk.lat = pos.coords.latitude; mk.lon = pos.coords.longitude;
-      finish();
-    }, finish, { timeout:8000, maximumAge:120000 });
-  } else finish();
+      var cur = checksOf(currentPlan)[i];
+      if (!cur) return;                    // 这期间又被取消了，就别写回去
+      cur.lat = pos.coords.latitude;
+      cur.lon = pos.coords.longitude;
+      setCheck(currentPlan, i, cur);
+      renderPlan(currentPlan, currentItems);
+      refreshLogViews();
+      toast('位置也记下了，地图上亮了一处');
+    }, function(){
+      toast('位置没拿到，勾已经打上了。想让它亮在地图上，下次允许一次定位');
+    }, { timeout:15000, maximumAge:120000 });
+    return;
+  }
+  toast(allDone ? '这一天走完了。地图上又亮了一处。'
+                : ('打上了。' + (Photos.ready() ? '要不要补一张照片？' : '')));
 }
 function askPhoto(i){
   if (!currentPlan) return;
