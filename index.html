@@ -166,6 +166,8 @@
   .card .t{font-family:var(--serif); font-weight:600; font-size:var(--text-title); margin:6px 0 5px}
   .card .d{font-size:var(--text-caption); color:rgba(240,232,220,.62); line-height:1.6}
   .card .meta{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1px; color:rgba(201,169,106,.75); margin-top:7px}
+  .card .tip{font-size:var(--text-micro); line-height:1.6; color:rgba(240,232,220,.5); margin-top:5px;
+    padding-left:8px; border-left:1px solid rgba(201,169,106,.4)}
   .card.sel{
     transform:translateY(3px) scale(.985); border-color:var(--gold-bright);
     box-shadow:var(--shadow-pressed);
@@ -514,7 +516,10 @@
 
       <div class="label">Where<b>想跑多远</b></div>
       <div class="chips" id="locs"></div>
-      <div class="chips hidden" id="fars" style="margin-top:8px"></div>
+      <div class="hidden" id="farRow">
+        <div class="temp-read" style="margin-top:10px">开车大概开多远？定位之后我在这个距离上挑一个目的地。</div>
+        <div class="chips" id="fars" style="margin-top:8px"></div>
+      </div>
       <div class="temp-read" id="nearRead" style="margin-top:12px"></div>
       <div class="temp-read" id="timeHint" style="margin-top:12px"></div>
     </div>
@@ -934,7 +939,6 @@ function normCards(list){
       facts.push(r.rating.toFixed(1) + ' 分' + (r.reviews ? '（' + r.reviews + ' 条）' : ''));
     }
     if (r.hours) facts.push(String(r.hours));
-    if (r.summary) facts.push(String(r.summary));
     out.push({
       cat: r.cat || r.category || '游',
       t: String(t), d: String(d || ''),
@@ -945,6 +949,7 @@ function normCards(list){
       u: typeof r.u === 'number' ? r.u : (typeof r.minutes === 'number' ? r.minutes : 0),
       noHot: r.noHot ? 1 : 0, noCold: r.noCold ? 1 : 0,
       meta: facts.join(' · '),
+      tip: r.summary ? String(r.summary) : '',   // 评价总结单独一行，别和事实挤在一起
       near: r.near ? 1 : 0,
       src: r.src || r.source || ''
     });
@@ -1385,7 +1390,8 @@ function renderWhen(){
   if (!isToday() && state.start === '现在出发') state.start = '上午';
   renderChips('dayChips', DAY_OPTS, 'day');
   renderChips('starts', isToday() ? START_OPTS : START_OPTS.slice(1), 'start');
-  $('fars').classList.toggle('hidden', state.loc !== FAR);
+  renderChips('locs', [NEAR, CITY, FAR], 'loc');
+  $('farRow').classList.toggle('hidden', state.loc !== FAR);
   if (state.loc === FAR) renderChips('fars', FAR_OPTS, 'far');
   renderTimeHint();
 }
@@ -1688,7 +1694,8 @@ function cardHTML(it){
   return '<div class="cat'+(it.own ? ' own' : '')+'">'+tag+'</div>'+
          '<div class="t">'+esc(it.t)+'</div>'+
          '<div class="d">'+esc(it.d)+'</div>'+
-         '<div class="meta">'+esc(it.meta || ('约 '+durOf(it)+' 分钟'))+'</div>';
+         '<div class="meta">'+esc(it.meta || ('约 '+durOf(it)+' 分钟'))+'</div>'+
+         (it.tip ? '<div class="tip">'+esc(it.tip)+'</div>' : '');
 }
 function deal(k){
   refreshNow();
@@ -1764,7 +1771,10 @@ function scheduleStops(items){
     var u = durOf(it);
     var s = Math.max(t, lo);
     if (s > hi || s + u > LAST_END){ dropped.push(it); continue; }
-    out.push({ c:it.cat, t:it.t, d:it.d, m:s, u:u, x:it.meta || '' });
+    var facts = [];
+    if (it.meta) facts.push(it.meta);
+    if (it.tip) facts.push(it.tip);
+    out.push({ c:it.cat, t:it.t, d:it.d, m:s, u:u, x:facts.join(' · ') });
     kept.push(it);
     t = s + u + GAP;
   }
