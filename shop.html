@@ -53,11 +53,47 @@
   .steps{margin-top:34px; padding-top:20px; border-top:1px solid var(--line); font-size:13.5px; color:var(--soft)}
   .steps b{color:var(--ink)}
   .steps ol{padding-left:20px; margin:10px 0}
+  .crew{margin-top:22px; padding-top:18px; border-top:1px solid rgba(201,169,106,.25)}
+  .crew-card{
+    margin:10px 0; padding:14px 16px; border:1px dashed rgba(201,169,106,.5);
+    border-radius:8px; white-space:pre-line; line-height:1.7; font-size:14px;
+  }
+  .data{margin-top:30px; padding-top:22px; border-top:1px solid rgba(201,169,106,.25)}
+  .nums{display:flex; gap:26px; margin:14px 0 4px}
+  .nums div{display:flex; flex-direction:column}
+  .nums b{font-size:26px; color:#c9a96a; font-variant-numeric:tabular-nums}
+  .nums span{font-size:12px; opacity:.7}
+  /* 不给一个大数字：第一个月可能就是 3，一个大大的"3"显得可怜。
+     按天打点看得出在发生。 */
+  .cal{display:grid; grid-template-columns:repeat(15, 1fr); gap:5px; margin:16px 0 8px}
+  .cal i{
+    display:block; aspect-ratio:1; border-radius:3px;
+    background:rgba(201,169,106,.1); border:1px solid rgba(201,169,106,.16);
+  }
+  .cal i.on{background:rgba(201,169,106,.55); border-color:rgba(201,169,106,.7)}
+  .cal i.hi{background:#c9a96a; border-color:#c9a96a}
   .steps li{margin-bottom:8px}
 </style>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="gateWrap">
+  <h1>这一页先不开放</h1>
+  <div class="lead">
+    前几家店的码，应该是你坐在老板娘旁边生成的——<b>那段对话本身就是销售</b>。
+    一个不认人的出码页还有另一个问题：任何人都能给任何一家店挂上一个"免费"，
+    店里拒绝的时候，丢脸的是我们。
+  </div>
+  <label>口令</label>
+  <input id="gk" placeholder="" autocomplete="off" />
+  <div class="hint">
+    这是一道<b>门闩，不是锁</b>——口令在这一页的源码里，会看的人翻得到。
+    它挡住的是顺手点进来的人，那正是现在唯一真实的风险。
+    真要上锁，得让码带一个后端签发的签名，等有第六家店再说。
+  </div>
+  <div style="margin-top:20px"><button class="solid" id="ggo">进去</button></div>
+</div>
+
+<div class="wrap" id="wrap" hidden>
   <h1>做一张放在桌上的码</h1>
   <div class="lead">
     扫码的人第一眼只会看到一句话和一个按钮：<b>「你在〔店名〕。接下来去哪？」</b><br/>
@@ -98,6 +134,32 @@
       <button id="open">自己先扫一遍</button>
     </div>
     <div class="qr" id="qr"></div>
+
+    <div class="crew">
+      <b>店员版（打印出来贴在收银台）</b>
+      <div class="crew-card" id="crew"></div>
+      <button id="copyCrew">复制这段</button>
+    </div>
+  </div>
+
+  <div class="data">
+    <label>看这家店的出示次数</label>
+    <div class="row">
+      <input id="qid" placeholder="店铺代号" />
+      <button id="look">看</button>
+    </div>
+    <div class="hint">
+      同一台手机、同一家店、<b>一天只算一次</b>——连点五下不是五个客人。
+      我们看不到出示的人是谁、去了哪，只看得到"这一天有几次"和"其中几次是回头"。
+    </div>
+    <div id="stat" hidden>
+      <div class="nums">
+        <div><b id="nTot">0</b><span>三十天出示</span></div>
+        <div><b id="nRep">0</b><span>其中回头</span></div>
+      </div>
+      <div class="cal" id="cal"></div>
+      <div class="hint" id="calHint"></div>
+    </div>
   </div>
 
   <div class="steps">
@@ -116,6 +178,28 @@
 
 <script>
 function $(id){ return document.getElementById(id); }
+
+// 门闩。口令就在下一行，会翻源码的人拿得到——挡的是顺手点进来的人。
+var GATE = 'tangtang';
+// 和主站同一个后端；?api= 可以临时指到别处试
+var API_BASE = new URLSearchParams(location.search).get('api') ||
+  'https://xindong.707748836.workers.dev';
+function unlock(){
+  $('gateWrap').hidden = true;
+  $('wrap').hidden = false;
+  try{ sessionStorage.setItem('shopgate', '1'); }catch(e){}
+}
+$('ggo').onclick = function(){
+  if ($('gk').value.trim().toLowerCase() === GATE) unlock();
+  else alert('不对');
+};
+$('gk').onkeydown = function(e){ if (e.key === 'Enter') $('ggo').click(); };
+(function(){
+  var q = new URLSearchParams(location.search).get('k');
+  var had = '';
+  try{ had = sessionStorage.getItem('shopgate') || ''; }catch(e){}
+  if ((q && q.toLowerCase() === GATE) || had) unlock();
+})();
 function b64e(o){
   return btoa(unescape(encodeURIComponent(JSON.stringify(o))))
     .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -166,11 +250,63 @@ $('make').onclick = function(){
   });
   $('url').textContent = link;
   $('out').hidden = false;
+  $('crew').textContent = crewText(name, $('perk').value.trim());
+  if (!$('qid').value.trim()) $('qid').value = $('id').value.trim();
   // 二维码用 Google Chart 的老接口画，纯图片、不引脚本；打不开就手动去任何生成器贴链接
   $('qr').innerHTML = '<img alt="放在桌上的码" src="https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&data=' +
     encodeURIComponent(link) + '" /><div class="hint">长按保存，印出来放桌上。' +
     '<br/>图挂了就把上面那条链接贴进任何二维码生成器。</div>';
 };
+// 店员那三十秒要有人教。这段印出来贴收银台，看什么、给什么，两行说完。
+function crewText(name, perk){
+  return '【' + name + '】桌上那张码\n\n' +
+    '客人给你看一屏手机，上面是：\n' +
+    '  · 大字写着「' + (perk || '（福利）') + '」\n' +
+    '  · 下面有今天的日期和一个每秒在跳的时间\n\n' +
+    '时间在跳 → 是刚点开的，给。\n' +
+    '时间不动 → 那是张截图，请他当面重新点一次。\n\n' +
+    '不用记名字、不用扫码、不用登记，看完就给。\n' +
+    '每人每天一次。';
+}
+$('copyCrew').onclick = function(){
+  try{ navigator.clipboard.writeText($('crew').textContent).catch(function(){}); }catch(e){}
+  alert('复制了');
+};
+
+// 老板娘那一页
+$('look').onclick = function(){
+  var id = $('qid').value.trim();
+  if (!id){ alert('先填店铺代号'); return; }
+  $('calHint').textContent = '正在读…';
+  $('stat').hidden = false;
+  fetch(API_BASE + '/shop?id=' + encodeURIComponent(id))
+    .then(function(r){ return r.json(); })
+    .then(function(d){ paintStat(d); })
+    .catch(function(){
+      $('calHint').textContent = '读不到。后端还没部署，或者代号写错了。';
+    });
+};
+function paintStat(d){
+  var days = d.days || [];
+  $('nTot').textContent = d.last30 || 0;
+  $('nRep').textContent = d.repeat || 0;
+  var by = {}, max = 1, i;
+  days.forEach(function(r){ by[r.d] = r.n; if (r.n > max) max = r.n; });
+  var html = '', t = new Date();
+  for (i = 29; i >= 0; i--){
+    var x = new Date(t.getTime() - i * 86400000);
+    var k = x.getFullYear() + '-' + p2(x.getMonth()+1) + '-' + p2(x.getDate());
+    var n = by[k] || 0;
+    html += '<i class="' + (n ? (n >= max && max > 1 ? 'hi' : 'on') : '') + '" title="' +
+            k + '：' + n + ' 次"></i>';
+  }
+  $('cal').innerHTML = html;
+  $('calHint').textContent = days.length
+    ? '每格一天，左边最早。有颜色就是那天有人出示过。'
+    : '这三十天还没有人出示过。码刚放上桌就是这样，别急。';
+}
+function p2(n){ return (n < 10 ? '0' : '') + n; }
+
 $('copy').onclick = function(){
   try{ navigator.clipboard.writeText(link).catch(function(){}); }catch(e){}
   alert('复制了');

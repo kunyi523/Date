@@ -369,6 +369,39 @@
     font-size:var(--text-caption); cursor:pointer; font-family:inherit;
   }
   .perk button.done{background:rgba(201,169,106,.18); border-style:solid}
+  /* 出示页：店员三十秒内要看明白给什么，所以福利最大；
+     日期和秒针是活的，昨天的截图今天用不了 */
+  .showcase{
+    position:fixed; inset:0; z-index:70; display:none;
+    background:var(--paper); padding:calc(env(safe-area-inset-top) + 20px) 20px 24px;
+  }
+  .showcase.on{display:flex; align-items:center; justify-content:center}
+  .sc-in{width:100%; max-width:520px; text-align:center}
+  .sc-shop{
+    font-family:var(--serif); font-size:var(--text-body); color:var(--ink-soft);
+    letter-spacing:.05em;
+  }
+  .sc-perk{
+    margin:14px 0 22px; font-family:var(--serif); font-weight:600;
+    font-size:clamp(30px, 9vw, 46px); line-height:1.25; color:var(--gold-bright);
+  }
+  .sc-now{
+    display:flex; align-items:baseline; justify-content:center; gap:12px;
+    padding-top:16px; border-top:1px solid var(--gold-line);
+  }
+  /* 店员是从桌子对面看的，日期和秒针得够大 */
+  .sc-date{font-family:var(--serif); font-size:clamp(19px, 5.5vw, 26px); color:var(--ink)}
+  .sc-clock{
+    font-family:var(--latin); font-size:clamp(22px, 6.5vw, 32px); color:var(--gold);
+    font-variant-numeric:tabular-nums; letter-spacing:.04em;
+  }
+  .sc-hint{margin-top:18px; font-size:var(--text-caption); color:var(--ink-faint)}
+  .sc-x{
+    margin-top:26px; min-height:44px; padding:0 22px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); background:transparent; color:var(--ink-soft);
+    font-family:inherit; font-size:var(--text-caption); cursor:pointer;
+    touch-action:manipulation;
+  }
 
   /* ————— 她收到的那句话 ————— */
   .love-note{
@@ -1310,6 +1343,7 @@
 /* ---------- 1 小工具 ---------- */
 var now = new Date();
 function $(id){ return document.getElementById(id); }
+function pad(n){ return (n < 10 ? '0' : '') + n; }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 // 卡片和情话里写的是 {ta}，出屏之前换成设置里的称呼。
 // 原来这些文案里写死了"她"，女生想排一天就出戏，同性情侣直接没法用。
@@ -1977,7 +2011,7 @@ function poiToCard(el, center, dow, drive){
     meta: facts.join(' · '),
     pid: 'osm:' + (el.type || 'node') + '/' + el.id,
     la: c.lat, lo: c.lon,
-    near: 1, dist: Math.round(m),
+    near: 1, dist: Math.round(m), oh: hours ? 1 : 0,
     rank: (tg.opening_hours ? 1 : 0) + (cui ? .6 : 0) + (tg.wikidata ? 1.2 : 0) - m/2500
   };
 }
@@ -3228,9 +3262,20 @@ function stampHTML(i, mk){
 function redeemed(){
   try{ return JSON.parse(localStorage.getItem(REDEEM_KEY) || '{}') || {}; }catch(e){ return {}; }
 }
+function redeemSave(all){ try{ localStorage.setItem(REDEEM_KEY, JSON.stringify(all)); }catch(e){} }
+function shopKey(stop){ return (SHOP && SHOP.id) || (SHOP && SHOP.name) || stop.t; }
+// 同一台手机、同一家店、同一天只算一次。连点五次不是五个客人，
+// 老板娘拿这个数对收银机，对不上她就再也不信这张码了。
+function dayStamp(d){
+  d = d || new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate());
+}
+function shownToday(stop){
+  var r = redeemed()[shopKey(stop)];
+  return !!(r && r.d === dayStamp());
+}
 function perkHTML(i, stop){
-  var key = (SHOP && SHOP.id) || stop.t;
-  var done = !!redeemed()[key];
+  var done = shownToday(stop);
   return '<div class="perk">' +
     '<div class="pk-t">' + esc(stop.k) + '</div>' +
     '<div class="pk-b"><button class="show-perk' + (done ? ' done' : '') + '" data-i="' + i + '">' +
@@ -3239,17 +3284,53 @@ function perkHTML(i, stop){
 function showPerk(i){
   if (!currentPlan) return;
   var stop = currentPlan.s[i] || {};
-  var key = (SHOP && SHOP.id) || stop.t;
-  var all = redeemed();
-  if (!all[key]){
-    all[key] = Date.now();
-    try{ localStorage.setItem(REDEEM_KEY, JSON.stringify(all)); }catch(e){}
-    // 只报一个店铺标识和时间，不带位置、不带 couple id、不带任何本机记录
-    if (API.base && SHOP) jpost(API.base + '/redeem', { shop: SHOP.id || SHOP.name }, function(){});
+  var key = shopKey(stop), all = redeemed(), rec = all[key], today = dayStamp();
+  if (!rec || rec.d !== today){
+    // 这台手机以前在这家店出示过没有——只有这一个比特上传，仍然没有任何用户标识。
+    // 老板娘真正想看的是回头，不是总数。
+    var first = !rec;
+    all[key] = { d: today, n: (rec && rec.n || 0) + 1 };
+    redeemSave(all);
+    if (API.base && SHOP) jpost(API.base + '/redeem',
+      { shop: SHOP.id || SHOP.name, first: first ? 1 : 0 }, function(){});
   }
   renderPlan(currentPlan, currentItems);
   if (window.Petals) Petals.burst(10);
-  toast('给店员看这一下就行。' + (stop.k || ''));
+  openShow(stop);
+}
+// 出示页。店员要在三十秒内看明白给什么，所以福利放到最大；
+// 日期和秒针必须是活的——不然昨天的截图今天照样能用。
+var showTick = null;
+function openShow(stop){
+  var box = $('showcase');
+  if (!box){
+    box = document.createElement('div');
+    box.id = 'showcase'; box.className = 'showcase';
+    document.body.appendChild(box);
+  }
+  var d = new Date();
+  box.innerHTML =
+    '<div class="sc-in">' +
+      '<div class="sc-shop">' + esc((SHOP && SHOP.name) || stop.t || '') + '</div>' +
+      '<div class="sc-perk">' + esc(stop.k || '') + '</div>' +
+      '<div class="sc-now"><span class="sc-date">' + (d.getMonth()+1) + ' 月 ' + d.getDate() + ' 日</span>' +
+      '<span class="sc-clock" id="scClock">' + pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds()) + '</span></div>' +
+      '<div class="sc-hint">给店员看这一屏</div>' +
+      '<button class="sc-x" id="scX">收起</button>' +
+    '</div>';
+  box.classList.add('on');
+  $('scX').onclick = closeShow;
+  if (showTick) clearInterval(showTick);
+  showTick = setInterval(function(){
+    var c = $('scClock'); if (!c){ clearInterval(showTick); showTick = null; return; }
+    var t = new Date();
+    c.textContent = pad(t.getHours()) + ':' + pad(t.getMinutes()) + ':' + pad(t.getSeconds());
+  }, 1000);
+}
+function closeShow(){
+  var box = $('showcase');
+  if (box) box.classList.remove('on');
+  if (showTick){ clearInterval(showTick); showTick = null; }
 }
 
 function renderProgress(plan, marks){
@@ -4585,8 +4666,10 @@ $('mineBtn').onclick = function(){
     nearby.city = '';
     toast('正在看这附近有什么…');
     fetchNearby(true);
-    // 附近拉不到也要出计划：等一下就用手写卡池排
-    setTimeout(build, 3200);
+    // 附近数据一到就排（fetchNearby 完成时会回调 _shopBuild）。
+    // 这个定时器只是兜底：宁可多等两秒也别把真实地点等丢了——
+    // 店里的网慢，3 秒常常不够。
+    setTimeout(build, 6000);
   };
   var built = false;
   function build(){
@@ -4595,26 +4678,66 @@ $('mineBtn').onclick = function(){
     refreshNow();
     // 按钮上写着"两站"，就必须真给两站。优先一玩一吃，凑不出来就从有的那一边取两个；
     // 排程还可能因为营业时段丢掉一站，所以留备选补上。
-    var plays = candidates(false), foods = candidates(true);
-    var pool = [], i;
-    for (i = 0; i < 6; i++){
-      if (plays[i]) pool.push(plays[i]);
-      if (foods[i]) pool.push(foods[i]);
+    // 三条硬规矩，顺序不能反：
+    // 1. 没有地址的卡不要——人正站在店里，"回家做饭"是荒唐的
+    // 2. 营业时间要是真知道的。从她桌上扫出来的计划把人送到一扇关着的门前，
+    //    情侣怪的是她的店。只按类别猜的排到后面，真用上了就在卡面上说清楚
+    // 3. 一玩一吃交替。她刚喝完一杯，接下来两站又是两顿饭，这不叫计划
+    function split(list){
+      var sure = [], guess = [];
+      list.forEach(function(c){
+        if (typeof c.la !== 'number') return;
+        (c.oh ? sure : guess).push(c);
+      });
+      return [sure, guess];
     }
-    // 人正站在店里，"回家做饭"这类没有地址的卡不该排进来；有真实坐标的优先。
-    pool = pool.filter(function(c){ return c.lat && c.lon; }).concat(
-           pool.filter(function(c){ return !(c.lat && c.lon); }));
+    function weave(a, b){
+      var out = [], i;
+      for (i = 0; i < Math.max(a.length, b.length); i++){
+        if (a[i]) out.push(a[i]);
+        if (b[i]) out.push(b[i]);
+      }
+      return out;
+    }
+    // 兜底那一层只用"没有门"的卡（走走、看夜色）——它们不存在关着这件事。
+    // 两个理由都要它：一是在店里用蜂窝网，附近数据很可能根本没拉到，
+    // 那时候硬门槛会把"差一点的计划"变成"什么都不给"，这比排错一站更糟；
+    // 二是变化得从这儿来——汉密尔顿的 OSM 里没有一个"玩"的地点填了营业时间，
+    // 只认有营业时间的话，三站会全是饭。
+    // "回家做饭"这类要回家的，站在店里就不该出现。
+    function doorless(list){
+      return list.filter(function(c){
+        if (typeof c.la === 'number') return false;
+        return !/家|做饭|沙发|阳台|客厅|床|楼下|冰箱/.test((c.t || '') + (c.d || ''));
+      });
+    }
+    var ps = split(candidates(false)), fs = split(candidates(true));
+    // ps[1]/fs[1]（有地址但营业时间不明）整层不要：有场次的剧院、酒吧这种，
+    // 从她桌上扫出来的计划把人送到一扇关着的门前，情侣怪的是她的店。
+    var pool = weave(ps[0], fs[0])
+      .concat(weave(doorless(candidates(false)), doorless(candidates(true))));
+    var i;
     if (!pool.length){ toast('这附近这个点没什么开着的，晚点再试'); return; }
-    var stops = [], used = {}, r;
-    for (i = 0; i < pool.length && stops.length < 2; i++){
-      if (used[pool[i].t]) continue;
-      var tryList = stops.concat([pool[i]]).map(function(x){ return x; });
-      r = scheduleStops(tryList.slice());
-      if (r.stops.length > stops.length){ used[pool[i].t] = 1; stops = tryList; }
+    // 起点卡已经是一家奶茶店了，后面两站再来两顿饭，那不叫计划。
+    // 所以先只挑没出现过的类别；一轮下来凑不够两站，才放开重复。
+    // 换句话说：一个"营业时间要打电话确认"的玩，好过第三顿饭。
+    var start = startCard();
+    var stops = [], used = {}, cats = {}, r, pass, tryList;
+    if (start && start.cat) cats[start.cat] = 1;
+    for (pass = 0; pass < 2 && stops.length < 2; pass++){
+      for (i = 0; i < pool.length && stops.length < 2; i++){
+        if (used[pool[i].t]) continue;
+        if (!pass && cats[pool[i].cat]) continue;
+        tryList = stops.concat([pool[i]]);
+        r = scheduleStops(tryList.slice());
+        if (r.stops.length > stops.length){
+          used[pool[i].t] = 1; cats[pool[i].cat] = 1; stops = tryList;
+        }
+      }
     }
     r = scheduleStops(stops.slice());
     if (!r.stops.length){ toast('这附近这个点没什么开着的，晚点再试'); return; }
-    stops = [startCard()].concat(r.stops);
+    stops = [start].concat(r.stops);
     var plan = {
       v: 2, ymd: ymd(planDate()), w: { lat:SHOP.lat, lon:SHOP.lon, name:SHOP.name },
       from: '', to: '', note: '', b: state.budget, ask: 0, e: pick(ENDINGS), s: stops

@@ -286,5 +286,24 @@ console.log('\n— 下架 —');
   eq('分数只算剩下的', p.score, 5);
 }
 
+console.log('\n— 出示与回头 —');
+{
+  const db = makeDB();
+  const call = makeCall({ DB: db });
+  // 老板娘拿这个数对收银机，所以"首次"和"回头"必须分得开
+  await call('POST', '/redeem', { shop: 'sweetcup', first: 1 });
+  await call('POST', '/redeem', { shop: 'sweetcup', first: 1 });
+  await call('POST', '/redeem', { shop: 'sweetcup', first: 0 });
+  const r = (await call('GET', '/shop?id=sweetcup')).data;
+  eq('出示总数', r.last30, 3);
+  eq('其中首次', r.first, 2);
+  eq('其中回头', r.repeat, 1);
+  eq('按天打点只有今天一格', r.days.length, 1);
+  eq('今天那一格的数', r.days[0].n, 3);
+  eq('别人家的店读不到', (await call('GET', '/shop?id=other')).data.last30, 0);
+  eq('店名乱写被拒', (await call('POST', '/redeem', { shop: 'a b/c?d' })).status, 400);
+  eq('没有店名被拒', (await call('GET', '/shop?id=')).status, 400);
+}
+
 console.log(`\n${fail ? '✗' : '✓'} ${pass} 条通过，${fail} 条失败\n`);
 process.exit(fail ? 1 : 0);
