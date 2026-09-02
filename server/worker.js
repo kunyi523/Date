@@ -316,6 +316,43 @@ async function getCouple(env, url) {
   return json({ others });
 }
 
+/* ── 桌上二维码的核销计数 ──
+   这是商家唯一能看到的数字，也是唯一的归因来源：她主动点了"给店员看这一下"。
+   只存店铺标识和时间。不带 couple id、不带位置、不带任何打卡记录——
+   打卡和照片一个字节都不出用户的手机，这条承诺不因为商家而松动。 */
+async function postRedeem(env, request) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
+  const shop = String(body.shop || '').slice(0, 40);
+  if (!/^[\w\u4e00-\u9fa5.-]{1,40}$/.test(shop)) return json({ error: 'bad shop' }, 400);
+
+  const now = Date.now();
+  const ip = await ipHash(request, env);
+  await env.DB.prepare('DELETE FROM hits WHERE at <= ?').bind(now - 3600e3).run();
+  const { results } = await env.DB.prepare(
+    'SELECT COUNT(*) AS c FROM hits WHERE ip = ? AND at > ?'
+  ).bind(ip, now - 3600e3).all();
+  if ((results?.[0]?.c || 0) >= 60) return json({ error: 'slow down' }, 429);
+  await env.DB.prepare('INSERT INTO hits (ip, at) VALUES (?, ?)').bind(ip, now).run();
+
+  await env.DB.prepare('INSERT INTO redeems (shop, at) VALUES (?, ?)').bind(shop, now).run();
+  return json({ ok: true });
+}
+
+/** 老板娘月底看的就是这一个数 */
+async function getShop(env, url) {
+  const shop = String(url.searchParams.get('id') || '').slice(0, 40);
+  if (!shop) return json({ error: 'bad shop' }, 400);
+  const since = Date.now() - 30 * 86400e3;
+  const { results } = await env.DB.prepare(
+    'SELECT COUNT(*) AS m FROM redeems WHERE shop = ? AND at > ?'
+  ).bind(shop, since).all();
+  const { results: all } = await env.DB.prepare(
+    'SELECT COUNT(*) AS t FROM redeems WHERE shop = ?'
+  ).bind(shop).all();
+  return json({ shop, last30: all ? (results?.[0]?.m || 0) : 0, total: all?.[0]?.t || 0 });
+}
+
 /** 卡池：把收到的评分反过来喂回抽卡——评分高的真实地点会更容易被抽到 */
 async function getCards(env, url) {
   const lat = parseFloat(url.searchParams.get('lat'));
@@ -369,6 +406,8 @@ export default {
     try {
       if (request.method === 'POST' && path === '/reviews') return await postReview(env, request);
       if (request.method === 'GET' && path === '/places') return await getPlaces(env, url);
+      if (request.method === 'POST' && path === '/redeem') return await postRedeem(env, request);
+      if (request.method === 'GET' && path === '/shop') return await getShop(env, url);
       if (request.method === 'POST' && path === '/couple') return await putCouple(env, request);
       if (request.method === 'GET' && path === '/couple') return await getCouple(env, url);
       if (request.method === 'GET' && path === '/cards') return await getCards(env, url);

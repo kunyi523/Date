@@ -331,6 +331,45 @@
   .own-hit .oh-d{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1px; color:var(--gold); white-space:nowrap}
   .own-note{font-size:var(--text-caption); color:var(--ink-soft); line-height:1.8; padding:6px 0}
 
+  /* ————— 桌上扫码进来的第一屏 ————— */
+  #shopGate{
+    position:fixed; inset:0; z-index:61; display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:34px;
+    background:
+      radial-gradient(900px 500px at 85% -5%, var(--glow-a), transparent 60%),
+      radial-gradient(700px 500px at -10% 30%, var(--glow-b), transparent 60%),
+      var(--paper);
+  }
+  #shopGate h2{font-family:var(--serif); font-weight:900; font-size:var(--text-display-lg);
+    line-height:1.6; margin:0 0 var(--space-9); max-width:340px}
+  #shopGate h2 b{color:var(--gold)}
+  #shopGo{
+    padding:17px 40px; border-radius:var(--radius-sm); border:none; cursor:pointer;
+    background:linear-gradient(160deg, var(--card-top), var(--card)); color:var(--gold-bright);
+    font-family:var(--serif); font-size:var(--text-title-lg); font-weight:600; letter-spacing:4px;
+    box-shadow:var(--shadow-raised); border-top:1px solid rgba(255,255,255,.14);
+    min-height:var(--tap);
+  }
+  #shopSkip{margin-top:var(--space-7)}
+  /* 从桌上扫进来的这一路，页面只剩计划本身 */
+  body.shop .hero-wrap, body.shop .orn, body.shop #quickBtn, body.shop .fold,
+  body.shop .setup, body.shop #manual, body.shop .temp-row, body.shop #nearRead,
+  body.shop .sweet-btn, body.shop .sweet, body.shop #memo, body.shop header{display:none}
+  /* 起点卡：她已经坐在这儿了，所以它不是"第一站" */
+  .course.start .no{color:var(--rose)}
+  .perk{
+    margin-top:9px; padding:11px 12px; border-radius:var(--radius-sm);
+    background:rgba(201,169,106,.1); border:1px solid var(--gold-line);
+  }
+  .perk .pk-t{font-family:var(--serif); font-weight:600; font-size:var(--text-body-sm); color:var(--gold-bright)}
+  .perk .pk-b{margin-top:8px; display:flex; gap:8px; flex-wrap:wrap}
+  .perk button{
+    min-height:38px; padding:0 14px; border-radius:var(--radius-sm);
+    border:1px solid var(--gold); background:transparent; color:var(--gold-bright);
+    font-size:var(--text-caption); cursor:pointer; font-family:inherit;
+  }
+  .perk button.done{background:rgba(201,169,106,.18); border-style:solid}
+
   /* ————— 她收到的那句话 ————— */
   .love-note{
     margin-top:26px; padding:22px 20px; border-radius:var(--radius-md); text-align:center;
@@ -837,6 +876,15 @@
     <button id="yesBtn">愿 意</button>
     <button id="noBtn">不愿意</button>
   </div>
+</div>
+
+<!-- 桌上二维码扫进来的第一屏：一句话、一个按钮。
+     扫码的人可能不是情侣，可能是两个闺蜜，所以这里不出现称呼、纪念日、第几天。 -->
+<div id="shopGate" class="hidden">
+  <svg class="orn md" aria-hidden="true"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
+  <h2 id="shopLine"></h2>
+  <button id="shopGo">给 我 排 两 站</button>
+  <button class="i-skip" id="shopSkip">我只是看看</button>
 </div>
 
 <!-- 她点开分享链接时看到的信封 -->
@@ -1763,6 +1811,25 @@ var Sources = {
   }
 };
 
+/* ---------- 3a2 桌上的二维码 ----------
+   店铺信息编在链接里（?shop=），所以落地那一刻不用要定位权限——
+   第一屏少一个弹窗就多留一半人。圆心是这家店，不是"家附近"。 */
+var SHOP = (function(){
+  var p = param('shop');
+  if (!p) return null;
+  try{
+    var o = b64d(p);
+    if (!o || !o.n || typeof o.la !== 'number') return null;
+    return {
+      name: String(o.n).slice(0, 30),
+      lat: +o.la, lon: +o.lo,
+      perk: o.p ? String(o.p).slice(0, 44) : '',
+      id: String(o.id || '').slice(0, 40)
+    };
+  }catch(e){ return null; }
+})();
+var REDEEM_KEY = 'xindong_redeem_v1';
+
 /* ---------- 3b 附近真实的地方（OpenStreetMap，不需要 key） ----------
    近处/市区：以你为圆心找周边；出逃半日：先在你选的公里数附近挑一个镇当目的地，
    再围着那个镇找吃喝玩乐 —— 也就是"先定新的位，再生成"。
@@ -1977,6 +2044,7 @@ function applyNearby(cards, place, km){
   if (!cards.length){ nearStatus(here + '附近没找到能用的地方，先用手写卡池', false, '重新找一次'); return; }
   $('nearRead').innerHTML = '📍 ' + esc(here) + '找到 <b>' + cards.length + '</b> 个真实地点，已混进卡池';
   addNearAgain('重新找一次');
+  if (window._shopBuild) window._shopBuild();      // 桌上那一路：附近一到就出计划
 }
 // 目的地打分：真的是个镇/县/市的排前面，"某某街道"这种城市街区往后放
 function scoreTown(t, km, target){
@@ -2989,6 +3057,15 @@ function selectedItems(){
     .map(function(i){ return decks.B.dealt[i]; }).slice(0,3);
   return a.concat(b);
 }
+// 起点卡：她已经坐在这儿了，所以它不参与"排哪一站"，只是把这一刻钉在这家店
+function startCard(){
+  return {
+    c: '食', t: SHOP.name, d: '你们现在就在这儿',
+    m: Math.floor(nowMin()/5)*5, u: 45,
+    la: SHOP.lat, lo: SHOP.lon, p: 'osm:shop/' + (SHOP.id || SHOP.name),
+    start: 1, k: SHOP.perk || ''
+  };
+}
 function buildPlan(){
   refreshNow();
   var r = scheduleStops(selectedItems());
@@ -3050,16 +3127,17 @@ function renderPlan(plan, items){
   $('m-courses').innerHTML = plan.s.map(function(s,i){
     var cat = CAT_EN[s.c] || 'Stop';
     var mk = marks[i];
-    return '<div class="course'+(mk ? ' done' : '')+'" style="animation-delay:'+(i*0.07).toFixed(2)+'s">'+
+    return '<div class="course'+(mk ? ' done' : '')+(s.start ? ' start' : '')+'" style="animation-delay:'+(i*0.07).toFixed(2)+'s">'+
       '<button class="tick" data-i="'+i+'" aria-pressed="'+(mk?'true':'false')+'" '+
         'aria-label="'+(mk ? '取消打卡' : '到这儿了，打个卡')+'">'+(mk ? '✓' : '')+'</button>'+
       '<div class="c-main">'+
         '<div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
         '<div class="row"><span class="t">'+esc(fill(s.t))+'</span>'+
         '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
-        (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
+        (canSwap && !s.start ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
         '<div class="d">'+esc(fill(s.d))+'</div>'+
         (s.x ? '<div class="x">'+esc(s.x)+'</div>' : '')+
+        (s.k ? perkHTML(i, s) : '')+
         (mk ? stampHTML(i, mk) : '')+
       '</div></div>';
   }).join('');
@@ -3071,6 +3149,9 @@ function renderPlan(plan, items){
   });
   Array.prototype.forEach.call($('m-courses').querySelectorAll('.shot'), function(b){
     b.onclick = function(){ askPhoto(+b.getAttribute('data-i')); };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.show-perk'), function(b){
+    b.onclick = function(){ showPerk(+b.getAttribute('data-i')); };
   });
   Array.prototype.forEach.call($('m-courses').querySelectorAll('.rate-btn'), function(b){
     b.onclick = function(){
@@ -3142,6 +3223,35 @@ function stampHTML(i, mk){
       (mine ? ('♥'.repeat(mine.r) + ' 已评分') : '给这儿打个分') + '</button>' : '') +
     '</div>';
 }
+// 福利写在起点卡上，"出示"是她主动点的一次匿名计数——
+// 老板娘月底看到的就是这个数。打卡数据一个字节都不出手机，所以归因只能从这里来。
+function redeemed(){
+  try{ return JSON.parse(localStorage.getItem(REDEEM_KEY) || '{}') || {}; }catch(e){ return {}; }
+}
+function perkHTML(i, stop){
+  var key = (SHOP && SHOP.id) || stop.t;
+  var done = !!redeemed()[key];
+  return '<div class="perk">' +
+    '<div class="pk-t">' + esc(stop.k) + '</div>' +
+    '<div class="pk-b"><button class="show-perk' + (done ? ' done' : '') + '" data-i="' + i + '">' +
+    (done ? '✓ 已出示' : '给店员看这一下') + '</button></div></div>';
+}
+function showPerk(i){
+  if (!currentPlan) return;
+  var stop = currentPlan.s[i] || {};
+  var key = (SHOP && SHOP.id) || stop.t;
+  var all = redeemed();
+  if (!all[key]){
+    all[key] = Date.now();
+    try{ localStorage.setItem(REDEEM_KEY, JSON.stringify(all)); }catch(e){}
+    // 只报一个店铺标识和时间，不带位置、不带 couple id、不带任何本机记录
+    if (API.base && SHOP) jpost(API.base + '/redeem', { shop: SHOP.id || SHOP.name }, function(){});
+  }
+  renderPlan(currentPlan, currentItems);
+  if (window.Petals) Petals.burst(10);
+  toast('给店员看这一下就行。' + (stop.k || ''));
+}
+
 function renderProgress(plan, marks){
   var el = $('m-progress');
   if (!el) return;
@@ -4446,6 +4556,77 @@ $('mineBtn').onclick = function(){
   toast('轮到你了：直接点「一键定今天」');
   window.scrollTo({top:0, behavior:'smooth'});
 };
+
+/* ---------- 11b 桌上二维码扫进来的那一路 ----------
+   一句话、一个按钮，圆心是这家店。她今晚不需要装什么东西，
+   她需要的是明年今天有人对她说"去年今天，你们在这儿"——
+   所以这张桌子的真正目的是让第一枚图钉落在这家店。 */
+(function(){
+  if (!SHOP || sharedPlan) return;
+  document.body.classList.add('shop');
+  var gate = $('shopGate');
+  $('shopLine').innerHTML = '你在 <b>' + esc(SHOP.name) + '</b>。<br/>接下来去哪？';
+  gate.classList.remove('hidden');
+  document.title = '在' + SHOP.name + '，接下来去哪？';
+
+  function leave(){
+    gate.classList.add('done');
+    setTimeout(function(){ gate.remove(); }, 700);
+  }
+  $('shopSkip').onclick = function(){
+    leave();
+    document.body.classList.remove('shop');
+  };
+  $('shopGo').onclick = function(){
+    leave();
+    // 圆心用店的坐标，所以不弹定位权限
+    state.lat = SHOP.lat; state.lon = SHOP.lon;
+    state.loc = NEAR;
+    nearby.city = '';
+    toast('正在看这附近有什么…');
+    fetchNearby(true);
+    // 附近拉不到也要出计划：等一下就用手写卡池排
+    setTimeout(build, 3200);
+  };
+  var built = false;
+  function build(){
+    if (built) return;
+    built = true;
+    refreshNow();
+    // 按钮上写着"两站"，就必须真给两站。优先一玩一吃，凑不出来就从有的那一边取两个；
+    // 排程还可能因为营业时段丢掉一站，所以留备选补上。
+    var plays = candidates(false), foods = candidates(true);
+    var pool = [], i;
+    for (i = 0; i < 6; i++){
+      if (plays[i]) pool.push(plays[i]);
+      if (foods[i]) pool.push(foods[i]);
+    }
+    // 人正站在店里，"回家做饭"这类没有地址的卡不该排进来；有真实坐标的优先。
+    pool = pool.filter(function(c){ return c.lat && c.lon; }).concat(
+           pool.filter(function(c){ return !(c.lat && c.lon); }));
+    if (!pool.length){ toast('这附近这个点没什么开着的，晚点再试'); return; }
+    var stops = [], used = {}, r;
+    for (i = 0; i < pool.length && stops.length < 2; i++){
+      if (used[pool[i].t]) continue;
+      var tryList = stops.concat([pool[i]]).map(function(x){ return x; });
+      r = scheduleStops(tryList.slice());
+      if (r.stops.length > stops.length){ used[pool[i].t] = 1; stops = tryList; }
+    }
+    r = scheduleStops(stops.slice());
+    if (!r.stops.length){ toast('这附近这个点没什么开着的，晚点再试'); return; }
+    stops = [startCard()].concat(r.stops);
+    var plan = {
+      v: 2, ymd: ymd(planDate()), w: { lat:SHOP.lat, lon:SHOP.lon, name:SHOP.name },
+      from: '', to: '', note: '', b: state.budget, ask: 0, e: pick(ENDINGS), s: stops
+    };
+    renderPlan(plan, null);
+    logUpsert(plan);
+    $('ownerActs').classList.remove('hidden');
+    if (window.Petals) Petals.burst(14);
+    $('menu').scrollIntoView({ behavior:'smooth', block:'start' });
+  }
+  window._shopBuild = build;
+})();
 
 /* ---------- 12 开场 / 设置 / 彩蛋 / 情话 ---------- */
 // 开场那句问话只在"她拆开邀请"的时候出现，而且要发的人自己勾了才有。

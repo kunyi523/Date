@@ -52,3 +52,11 @@ CREATE INDEX IF NOT EXISTS idx_reviews_at   ON reviews (at);
 -- 看最近交上来的：
 --   SELECT pid, name, r, txt, mbti, datetime(at/1000,'unixepoch','localtime')
 --     FROM reviews ORDER BY at DESC LIMIT 50;
+
+-- 桌上二维码的核销计数。商家唯一能看到的数字，也是唯一的归因来源。
+-- 只有店铺标识和时间：没有用户、没有位置、没有打卡记录。
+CREATE TABLE IF NOT EXISTS redeems (
+  shop TEXT    NOT NULL,
+  at   INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_redeems ON redeems (shop, at);
