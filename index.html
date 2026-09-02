@@ -332,6 +332,75 @@
   .sweet-btn{width:100%; margin-top:32px; padding:13px 0; border-radius:var(--radius-sm); border:1px dashed var(--gold); background:transparent; color:var(--gold); font-size:var(--text-body); letter-spacing:3px; cursor:pointer; font-family:inherit}
   .sweet{margin-top:14px; text-align:center; font-family:var(--serif); font-weight:600; font-size:var(--text-title-lg); line-height:1.8; animation:rise .4s ease both; min-height:1em}
 
+  /* ————— 打卡 ————— */
+  .course{display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:start}
+  .tick{
+    flex:none; width:26px; height:26px; margin-top:14px; border-radius:var(--radius-full);
+    border:1px solid rgba(201,169,106,.5); background:transparent; color:var(--card);
+    font-size:var(--text-caption); line-height:1; cursor:pointer; font-family:inherit;
+    position:relative; transition:background var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
+  }
+  /* 视觉上是个小圈，点击区域撑到 44px */
+  .tick::after{content:""; position:absolute; left:50%; top:50%; width:var(--tap); height:var(--tap);
+    transform:translate(-50%,-50%)}
+  .tick:active{transform:scale(.92)}
+  .course.done .tick{background:var(--gold-bright); border-color:var(--gold-bright); font-weight:700}
+  .course.done .c-main .t{color:var(--gold-bright)}
+  .stamp{display:flex; align-items:center; gap:10px; margin-top:8px; flex-wrap:wrap}
+  .stamp-txt{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1px; color:var(--gold-bright)}
+  .stamp-thumb{width:52px; height:52px; object-fit:cover; border-radius:var(--radius-sm);
+    border:1px solid var(--gold-line); display:block}
+  .shot{border:1px dashed rgba(201,169,106,.5); background:transparent; color:var(--gold-bright);
+    border-radius:var(--radius-sm); padding:7px 11px; font-size:var(--text-micro); cursor:pointer;
+    font-family:inherit; min-height:34px}
+  .m-progress{
+    text-align:center; font-size:var(--text-micro); letter-spacing:1.5px;
+    color:var(--on-dark-soft); padding:2px 0 10px;
+  }
+  .m-progress.all{color:var(--gold-bright); font-family:var(--serif); font-size:var(--text-caption)}
+
+  /* ————— 足迹地图 ————— */
+  .fp-stat{margin-top:12px; font-size:var(--text-body-sm); color:var(--ink-soft); line-height:1.8}
+  .fp-stat b{font-family:var(--serif); font-size:var(--text-title); color:var(--gold); font-weight:900}
+  .map-wrap{
+    position:relative; margin-top:14px; height:270px; border-radius:var(--radius-md);
+    overflow:hidden; border:1px solid var(--line); background:var(--paper2);
+    box-shadow:var(--shadow-flat);
+  }
+  .map-wrap.full{
+    position:fixed; inset:0; z-index:80; height:auto; margin:0;
+    border-radius:0; border:none;
+  }
+  #mapCanvas{display:block; width:100%; height:100%; touch-action:none; cursor:grab}
+  .map-ctl{position:absolute; right:8px; top:8px; display:flex; flex-direction:column; gap:6px}
+  .map-ctl button{
+    min-width:36px; min-height:36px; padding:0 8px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); background:var(--card-ivory); color:var(--ink);
+    font-size:var(--text-caption); cursor:pointer; font-family:inherit; opacity:.92;
+  }
+  .map-ctl button:active{transform:scale(.94)}
+  .map-card{
+    position:absolute; left:10px; bottom:10px; max-width:58%; max-height:72%; overflow:hidden;
+    background:var(--card-ivory); border:1px solid var(--gold-line);
+    border-radius:var(--radius-sm); padding:10px 12px; box-shadow:var(--shadow-card);
+    animation:rise var(--dur-base) var(--ease) both;
+  }
+  .map-card .mc-d{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1.5px; color:var(--gold)}
+  .map-card .mc-t{font-family:var(--serif); font-weight:600; font-size:var(--text-body-sm); margin-top:2px}
+  .map-card .mc-w{font-size:var(--text-micro); color:var(--ink-soft); margin-top:2px}
+  .map-card img{width:auto; max-width:100%; max-height:84px; object-fit:cover; margin-top:8px;
+    border-radius:var(--radius-sm); display:block}
+  .map-empty{
+    position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+    text-align:center; font-size:var(--text-caption); line-height:2; color:var(--ink-soft);
+    padding:20px; background:var(--paper2);
+  }
+  .shots{display:flex; gap:8px; overflow-x:auto; margin-top:12px; -webkit-overflow-scrolling:touch;
+    scrollbar-width:none}
+  .shots::-webkit-scrollbar{display:none}
+  .shots img{width:72px; height:72px; flex:none; object-fit:cover; border-radius:var(--radius-sm);
+    border:1px solid var(--line); cursor:pointer; display:block}
+
   /* ————— 回忆本 ————— */
   .memo{margin-top:38px}
   .memo-list{margin-top:12px}
@@ -714,6 +783,7 @@
       <svg class="m-orn" aria-hidden="true"><use href="#sprig"/></svg>
       <h2 id="m-title">最终约会计划</h2>
       <div class="m-date" id="m-date"></div>
+      <div class="m-progress" id="m-progress"></div>
       <div id="m-courses"></div>
       <div class="m-note" id="m-note"></div>
     </div>
@@ -736,7 +806,24 @@
     <div class="sweet" id="sweet"></div>
 
     <div class="memo" id="memo">
-      <div class="part-head"><span class="t">回忆本</span><span class="en" id="memoCount">Our Days</span></div>
+      <div class="part-head"><span class="t">足迹</span><span class="en" id="memoCount">Our Days</span></div>
+      <div class="fp-stat" id="fpStat"></div>
+
+      <div class="map-wrap" id="mapWrap">
+        <canvas id="mapCanvas"></canvas>
+        <div class="map-ctl">
+          <button id="mapIn" aria-label="放大">＋</button>
+          <button id="mapOut" aria-label="缩小">－</button>
+          <button id="mapFit" aria-label="全部装进来">全部</button>
+          <button id="mapFull" aria-label="全屏看">⤢</button>
+        </div>
+        <div class="map-card hidden" id="mapCard"></div>
+        <div class="map-empty" id="mapEmpty">
+          出门之后，在计划里给每一站打个勾。<br/>打过的地方会亮在这张地图上。
+        </div>
+      </div>
+
+      <div class="shots" id="shots"></div>
       <div class="memo-list" id="memoList"></div>
     </div>
   </div>
@@ -859,7 +946,7 @@
 <div id="posterMask" class="mask center">
   <div class="poster-card">
     <img id="posterImg" alt="今天的约会计划" />
-    <div class="pc-hint">长按图片保存，发给她就行</div>
+    <div class="pc-hint" id="posterHint">长按图片保存，发给她就行</div>
     <button class="pc-close" id="posterClose">关闭</button>
   </div>
 </div>
@@ -1162,6 +1249,7 @@ function paintTheme(pref, animate){
   var icon = function(){
     root.setAttribute('data-theme', next);
     if (window.Petals) Petals.theme();
+    if (window.Atlas && Atlas.has()) Atlas.repaint();   // 底图跟着换明暗
     syncThemeIcon(pref);
   };
   var veil = $('veil');
@@ -1369,7 +1457,7 @@ var OVERPASS_HOSTS = [
 ];
 var NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
 var POI_TTL = 7*24*3600*1000;
-var nearby = { key:'', loading:false, place:'', destKm:0 };
+var nearby = { key:'', loading:false, place:'', destKm:0, city:'', dest:null };
 
 function haversine(la1, lo1, la2, lo2){
   var R = 6371000, p = Math.PI/180;
@@ -1502,6 +1590,7 @@ function poiToCard(el, center, dow, drive){
     loc: [state.loc], b: 0, u: kind.u,
     tw: hours || kind.tw,
     meta: facts.join(' · '),
+    la: c.lat, lo: c.lon,
     near: 1, dist: Math.round(m),
     rank: (tg.opening_hours ? 1 : 0) + (cui ? .6 : 0) + (tg.wikidata ? 1.2 : 0) - m/2500
   };
@@ -1545,12 +1634,12 @@ function addNearAgain(label){
   $('nearRead').appendChild(b);
 }
 // 出逃半日：不管那边地图上有没有店，"开车去某某镇"本身就是这一天的第一站
-function destCard(place, km){
+function destCard(place, km, la, lo){
   return {
     cat:'行', t:'开车去' + place, d:'路上放她的歌单，到了先找个地方停车',
     w:'皆', loc:[FAR], b:0, u:Math.max(30, Math.round(km/60*60)), tw:[7,16],
     meta:'约 ' + km + ' 公里 · 车程约 ' + Math.max(20, Math.round(km/60*60)) + ' 分钟',
-    near:1, dest:1, dist:km*1000, rank:9
+    la:la, lo:lo, near:1, dest:1, dist:km*1000, rank:9
   };
 }
 function applyNearby(cards, place, km){
@@ -1612,7 +1701,7 @@ function fetchNearby(force){
         if (c) cards.push(c);
       }
       cards = pickNearby(cards);
-      if (place) cards.unshift(destCard(place, km));
+      if (place) cards.unshift(destCard(place, km, lat, lon));
       nearby.key = key;
       cacheSet(key, { at:Date.now(), cards:cards, place:place, km:km });
       applyNearby(cards, place, km);
@@ -1643,8 +1732,100 @@ function fetchNearby(force){
     cand.sort(function(a,b){ return scoreTown(b, b.km, farKm()) - scoreTown(a, a.km, farKm()); });
     var top = cand.slice(0, 5);
     var dest = top[Math.floor(Math.random()*top.length)];
+    nearby.dest = [dest.lat, dest.lon];
     nearStatus('目的地选好了：' + dest.name + '（约 ' + Math.round(dest.km) + ' 公里），正在找那边的吃喝玩乐…', true);
     loadPOI(dest.lat, dest.lon, 3500, dest.name, Math.round(dest.km), true);
+  });
+}
+
+/* ---------- 3c 照片：存在 IndexedDB 里 ----------
+   localStorage 只有 5MB，还要放设置和附近缓存，塞不下照片。
+   照片进 IndexedDB（原图 + 缩略图都先压过），元数据留在 localStorage。
+   浏览器不支持或者被拒绝，就只是没有照片，其他照常。 */
+var Photos = (function(){
+  var NAME = 'xindong_photos', STORE = 'p', VER = 1;
+  var dbp = null, broken = false;
+
+  function open(cb){
+    if (broken || !window.indexedDB) return cb(new Error('no idb'), null);
+    if (dbp) return cb(null, dbp);
+    try{
+      var req = indexedDB.open(NAME, VER);
+      req.onupgradeneeded = function(){
+        var db = req.result;
+        if (!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE, { keyPath:'id' });
+      };
+      req.onsuccess = function(){ dbp = req.result; cb(null, dbp); };
+      req.onerror = function(){ broken = true; cb(req.error || new Error('idb'), null); };
+    }catch(e){ broken = true; cb(e, null); }
+  }
+  function tx(mode, cb){
+    open(function(err, db){
+      if (err) return cb(err, null);
+      try{ cb(null, db.transaction(STORE, mode).objectStore(STORE)); }
+      catch(e){ cb(e, null); }
+    });
+  }
+  // 长边压到 max，再转 JPEG。手机原图动辄 4MB，压完一般 80–150KB
+  function shrink(img, max, q){
+    var w = img.width, h = img.height;
+    var k = Math.min(1, max / Math.max(w, h));
+    var c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(w*k));
+    c.height = Math.max(1, Math.round(h*k));
+    var x = c.getContext('2d');
+    x.drawImage(img, 0, 0, c.width, c.height);
+    return { url: c.toDataURL('image/jpeg', q), w: c.width, h: c.height };
+  }
+  return {
+    ready: function(){ return !broken && !!window.indexedDB; },
+    save: function(file, cb){
+      if (!file || !window.FileReader) return cb(new Error('no file'), null);
+      var fr = new FileReader();
+      fr.onload = function(){
+        var img = new Image();
+        img.onload = function(){
+          var full, thumb;
+          try{
+            full = shrink(img, 1100, .76);
+            thumb = shrink(img, 320, .7);
+          }catch(e){ return cb(e, null); }
+          var id = 'p' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+          tx('readwrite', function(err, store){
+            if (err) return cb(err, null);
+            var r = store.put({ id:id, full:full.url, thumb:thumb.url, w:full.w, h:full.h });
+            r.onsuccess = function(){ cb(null, { id:id, thumb:thumb.url }); };
+            r.onerror = function(){ cb(r.error || new Error('put'), null); };
+          });
+        };
+        img.onerror = function(){ cb(new Error('bad image'), null); };
+        img.src = fr.result;
+      };
+      fr.onerror = function(){ cb(new Error('read fail'), null); };
+      fr.readAsDataURL(file);
+    },
+    get: function(id, cb){
+      if (!id) return cb(null, null);
+      tx('readonly', function(err, store){
+        if (err) return cb(err, null);
+        var r = store.get(id);
+        r.onsuccess = function(){ cb(null, r.result || null); };
+        r.onerror = function(){ cb(r.error, null); };
+      });
+    },
+    del: function(id){
+      if (!id) return;
+      tx('readwrite', function(err, store){ if (!err) store.delete(id); });
+    }
+  };
+})();
+var thumbCache = {};      // id -> dataURL，省得每次渲染都读一遍库
+function withThumb(id, cb){
+  if (!id) return cb('');
+  if (thumbCache[id] !== undefined) return cb(thumbCache[id]);
+  Photos.get(id, function(err, rec){
+    thumbCache[id] = (rec && rec.thumb) || '';
+    cb(thumbCache[id]);
   });
 }
 
@@ -2153,7 +2334,9 @@ function scheduleStops(items){
     var facts = [];
     if (it.meta) facts.push(it.meta);
     if (it.tip) facts.push(it.tip);
-    out.push({ c:it.cat, t:it.t, d:it.d, m:s, u:u, x:facts.join(' · ') });
+    var stop = { c:it.cat, t:it.t, d:it.d, m:s, u:u, x:facts.join(' · ') };
+    if (typeof it.la === 'number'){ stop.la = it.la; stop.lo = it.lo; }
+    out.push(stop);
     kept.push(it);
     t = s + u + GAP;
   }
@@ -2191,10 +2374,16 @@ function buildPlan(){
   refreshNow();
   var r = scheduleStops(selectedItems());
   reportDropped(r.dropped);
+  // 这份计划大致在哪儿：优先用挑好的目的地，其次用你现在的位置。
+  // 没有定位就没有，地图上那一份就只落在真正打过卡的点上。
+  var where = null;
+  if (nearby.place && nearby.dest) where = { lat:nearby.dest[0], lon:nearby.dest[1], name:nearby.place };
+  else if (state.lat) where = { lat:state.lat, lon:state.lon, name:nearby.city || '' };
   return {
     plan: {
       v: 2,
       ymd: ymd(planDate()),
+      w: where,
       from: cfg.from || '',
       to: cfg.to || '',
       note: '',
@@ -2237,21 +2426,36 @@ function renderPlan(plan, items){
   var d = parseDate(plan.ymd);
   $('m-date').textContent = d.getFullYear()+' . '+(d.getMonth()+1)+' . '+d.getDate()+
     ' — ' + (plan.to ? ('For ' + plan.to) : 'For the one and only');
+  var marks = checksOf(plan);
   $('m-courses').innerHTML = plan.s.map(function(s,i){
     var cat = CAT_EN[s.c] || 'Stop';
-    return '<div class="course" style="animation-delay:'+(i*0.07).toFixed(2)+'s">'+
-      '<div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
-      '<div class="row"><span class="t">'+esc(s.t)+'</span>'+
-      '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
-      (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
-      '<div class="d">'+esc(s.d)+'</div>'+
-      (s.x ? '<div class="x">'+esc(s.x)+'</div>' : '')+'</div>';
+    var mk = marks[i];
+    return '<div class="course'+(mk ? ' done' : '')+'" style="animation-delay:'+(i*0.07).toFixed(2)+'s">'+
+      '<button class="tick" data-i="'+i+'" aria-pressed="'+(mk?'true':'false')+'" '+
+        'aria-label="'+(mk ? '取消打卡' : '到这儿了，打个卡')+'">'+(mk ? '✓' : '')+'</button>'+
+      '<div class="c-main">'+
+        '<div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
+        '<div class="row"><span class="t">'+esc(s.t)+'</span>'+
+        '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
+        (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
+        '<div class="d">'+esc(s.d)+'</div>'+
+        (s.x ? '<div class="x">'+esc(s.x)+'</div>' : '')+
+        (mk ? stampHTML(i, mk) : '')+
+      '</div></div>';
   }).join('');
-  if (canSwap){
-    Array.prototype.forEach.call($('m-courses').querySelectorAll('.swap'), function(b){
-      b.onclick = function(){ swapStop(+b.getAttribute('data-i')); };
-    });
-  }
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.swap'), function(b){
+    b.onclick = function(e){ e.stopPropagation(); swapStop(+b.getAttribute('data-i')); };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.tick'), function(b){
+    b.onclick = function(){ toggleCheck(+b.getAttribute('data-i')); };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.shot'), function(b){
+    b.onclick = function(){ askPhoto(+b.getAttribute('data-i')); };
+  });
+  Array.prototype.forEach.call($('m-courses').querySelectorAll('.stamp-thumb'), function(im){
+    withThumb(im.getAttribute('data-ph'), function(url){ if (url) im.src = url; });
+  });
+  renderProgress(plan, marks);
   $('m-note').innerHTML = esc(BUDGET_NOTE[plan.b] || '今天怎么走都算数。') +
     '<div class="sig">'+esc(plan.e || pick(ENDINGS))+'</div>';
   $('menu').classList.remove('hidden');
@@ -2264,6 +2468,133 @@ function renderPlan(plan, items){
     $('loveNote').classList.add('hidden');
   }
 }
+/* ---------- 打卡：勾一下 = 到过这儿 ----------
+   勾上的时候顺手记三样：时间、（拿得到的话）位置、（她愿意的话）一张照片。
+   位置只在已经授权过的情况下静默取，不会为了打个勾去弹权限框。 */
+function logFind(sig){
+  var a = logRead();
+  for (var i=0;i<a.length;i++) if (a[i].sig === sig) return { list:a, i:i, rec:a[i] };
+  return { list:a, i:-1, rec:null };
+}
+function checksOf(plan){
+  if (!plan) return {};
+  var f = logFind(planSig(plan));
+  return (f.rec && f.rec.checks) || {};
+}
+function setCheck(plan, i, mark){
+  var sig = planSig(plan), f = logFind(sig);
+  if (f.i < 0){
+    f.rec = { sig:sig, ymd:plan.ymd, done:false, plan:JSON.parse(JSON.stringify(plan)), checks:{} };
+    f.list.unshift(f.rec);
+    f.i = 0;
+  }
+  if (!f.rec.checks) f.rec.checks = {};
+  if (mark) f.rec.checks[i] = mark;
+  else {
+    if (f.rec.checks[i] && f.rec.checks[i].ph) Photos.del(f.rec.checks[i].ph);
+    delete f.rec.checks[i];
+  }
+  var n = 0;
+  for (var k in f.rec.checks) if (f.rec.checks.hasOwnProperty(k)) n++;
+  f.rec.done = n > 0 && n >= plan.s.length;
+  logWrite(f.list);
+  return f.rec;
+}
+function stampHTML(i, mk){
+  var bits = [];
+  if (mk.t) bits.push(fmtMin(new Date(mk.t).getHours()*60 + new Date(mk.t).getMinutes()) + ' 到过');
+  if (typeof mk.lat === 'number') bits.push('已记在地图上');
+  return '<div class="stamp">' +
+    '<span class="stamp-txt">✓ ' + esc(bits.join(' · ') || '到过') + '</span>' +
+    (mk.ph
+      ? '<img class="stamp-thumb" data-ph="' + esc(mk.ph) + '" alt="这一站的照片" />'
+      : (Photos.ready() ? '<button class="shot" data-i="' + i + '">📷 加张照片</button>' : '')) +
+    '</div>';
+}
+function renderProgress(plan, marks){
+  var el = $('m-progress');
+  if (!el) return;
+  var n = 0;
+  for (var k in marks) if (marks.hasOwnProperty(k)) n++;
+  if (!n){ el.textContent = '到了哪一站就点左边的圈，打个卡'; el.classList.remove('all'); return; }
+  var all = n >= plan.s.length;
+  el.textContent = all ? ('这一天走完了 · ' + n + ' 站全到') : ('已打卡 ' + n + ' / ' + plan.s.length + ' 站');
+  el.classList.toggle('all', all);
+}
+function toggleCheck(i){
+  if (!currentPlan) return;
+  var marks = checksOf(currentPlan);
+  if (marks[i]){
+    setCheck(currentPlan, i, null);
+    renderPlan(currentPlan, currentItems);
+    refreshLogViews();
+    return;
+  }
+  var stop = currentPlan.s[i] || {};
+  var mk = { t: Date.now() };
+  // 这一站本身有坐标（来自附近真实地点）就用它——那是店的位置，比手机定位准，
+  // 而且几站分开才画得出一条路线。手写卡片没有坐标，才退回去用定位。
+  var known = typeof stop.la === 'number';
+  if (known){ mk.lat = stop.la; mk.lon = stop.lo; }
+  else if (currentPlan.w && typeof currentPlan.w.lat === 'number'){ mk.lat = currentPlan.w.lat; mk.lon = currentPlan.w.lon; }
+
+  function finish(){
+    setCheck(currentPlan, i, mk);
+    renderPlan(currentPlan, currentItems);
+    refreshLogViews();
+    if (window.Petals) Petals.burst(12);
+    var marks2 = checksOf(currentPlan), n = 0;
+    for (var k in marks2) if (marks2.hasOwnProperty(k)) n++;
+    if (n >= currentPlan.s.length){
+      hearts(16);
+      toast(typeof mk.lat === 'number' ? '这一天走完了。地图上又亮了一处。' : '这一天走完了。');
+    } else if (typeof mk.lat !== 'number'){
+      toast('打上了。想让它亮在地图上，需要允许一次定位');
+    } else {
+      toast('打上了。' + (Photos.ready() ? '要不要补一张照片？' : ''));
+    }
+  }
+  // 这一站自己就有坐标（附近真实地点）——直接用，不打扰。
+  // 完全没有坐标的时候才去问一次定位：这是唯一值得弹权限框的时刻，
+  // 因为"我到这儿了"本来就是在说一个位置，而它换来的是地图上亮起来的那一点。
+  if (!known && navigator.geolocation){
+    toast('正在记下这个位置…');
+    navigator.geolocation.getCurrentPosition(function(pos){
+      mk.lat = pos.coords.latitude; mk.lon = pos.coords.longitude;
+      finish();
+    }, finish, { timeout:8000, maximumAge:120000 });
+  } else finish();
+}
+function askPhoto(i){
+  if (!currentPlan) return;
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'image/*';
+  inp.setAttribute('capture', 'environment');
+  inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    inp.remove();
+    if (!f) return;
+    toast('正在处理照片…');
+    Photos.save(f, function(err, out){
+      if (err || !out){ toast('这张没存下来（可能是空间满了）'); return; }
+      var marks = checksOf(currentPlan);
+      var mk = marks[i] || { t: Date.now() };
+      if (mk.ph) Photos.del(mk.ph);
+      mk.ph = out.id;
+      thumbCache[out.id] = out.thumb;
+      setCheck(currentPlan, i, mk);
+      renderPlan(currentPlan, currentItems);
+      refreshLogViews();
+      if (window.Petals) Petals.burst(10);
+      toast('照片收好了，地图上也有了');
+    });
+  };
+  inp.click();
+}
+
 function planText(plan){
   var lines = [];
   lines.push(dayLabel(plan.ymd) + '的计划 · ' + cnDate(plan.ymd) +
@@ -2557,6 +2888,273 @@ $('shPoster').onclick = function(){ syncPlanFromSheet(); $('sheet').classList.re
 $('posterClose').onclick = function(){ $('posterMask').classList.remove('show'); };
 $('posterMask').onclick = function(e){ if (e.target === $('posterMask')) $('posterMask').classList.remove('show'); };
 
+/* ---------- 9b 足迹地图 ----------
+   自己画的极简瓦片地图：不引任何库，只有 canvas + <img> 瓦片。
+   底图用 CARTO 的 light/dark 两套，跟着主题走，所以地图不会从这个网站里跳出来。 */
+var Atlas = (function(){
+  var cv, ctx, W = 0, H = 0, dpr = 1;
+  var TS = 256, z = 3, cLat = 20, cLon = 20;
+  var cache = {}, pins = [], sel = -1, ready = false;
+  var drag = null, pinchBase = 0, needDraw = false;
+
+  // 底图用 OpenStreetMap 的标准瓦片：不要 key，也不会被打水印。
+  // 它本身是彩色的，所以画上去之后用 canvas 滤镜调成这个网站的两套颜色；
+  // 老浏览器不支持 ctx.filter 的话就是一张普通彩色地图，不影响用。
+  function night(){ return document.documentElement.getAttribute('data-theme') === 'night'; }
+  function styleName(){ return night() ? 'night' : 'day'; }
+  function tileFilter(){
+    return night()
+      ? 'invert(1) hue-rotate(180deg) grayscale(.72) brightness(.8) contrast(1.06)'
+      : 'grayscale(.82) sepia(.24) brightness(1.04) contrast(.9)';
+  }
+  function tileUrl(zz, x, y){
+    return 'https://tile.openstreetmap.org/' + zz + '/' + x + '/' + y + '.png';
+  }
+  function lonToX(lon, zz){ return (lon + 180) / 360 * Math.pow(2, zz); }
+  function latToY(lat, zz){
+    var s = Math.sin(Math.max(-85, Math.min(85, lat)) * Math.PI / 180);
+    return (0.5 - Math.log((1 + s) / (1 - s)) / (4 * Math.PI)) * Math.pow(2, zz);
+  }
+  function xToLon(x, zz){ return x / Math.pow(2, zz) * 360 - 180; }
+  function yToLat(y, zz){
+    var n = Math.PI - 2 * Math.PI * y / Math.pow(2, zz);
+    return 180 / Math.PI * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  }
+  function size(){
+    if (!cv) return;
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = cv.clientWidth; H = cv.clientHeight;
+    if (!W || !H) return;
+    cv.width = Math.round(W * dpr); cv.height = Math.round(H * dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function schedule(){
+    if (needDraw) return;
+    needDraw = true;
+    requestAnimationFrame(function(){ needDraw = false; draw(); });
+  }
+  function tile(zz, x, y){
+    var n = Math.pow(2, zz);
+    if (y < 0 || y >= n) return null;
+    x = ((x % n) + n) % n;
+    var key = zz + '/' + x + '/' + y;
+    var img = cache[key];
+    if (img) return img.__ok ? img : null;
+    img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = function(){ img.__ok = true; schedule(); };
+    img.onerror = function(){ img.__bad = true; };
+    img.src = tileUrl(zz, x, y);
+    cache[key] = img;
+    return null;
+  }
+  function draw(){
+    if (!ctx || !W) return;
+    var s = getComputedStyle(document.documentElement);
+    ctx.fillStyle = (s.getPropertyValue('--paper2') || '#eee').trim();
+    ctx.fillRect(0, 0, W, H);
+
+    var cx = lonToX(cLon, z) * TS, cy = latToY(cLat, z) * TS;
+    var left = cx - W / 2, top = cy - H / 2;
+    var x0 = Math.floor(left / TS), y0 = Math.floor(top / TS);
+    var x1 = Math.floor((left + W) / TS), y1 = Math.floor((top + H) / TS);
+    var canFilter = 'filter' in ctx;
+    if (canFilter) ctx.filter = tileFilter();
+    ctx.globalAlpha = .95;
+    for (var ty = y0; ty <= y1; ty++){
+      for (var tx = x0; tx <= x1; tx++){
+        var img = tile(z, tx, ty);
+        if (!img) continue;
+        ctx.drawImage(img, Math.round(tx * TS - left), Math.round(ty * TS - top), TS, TS);
+      }
+    }
+    ctx.globalAlpha = 1;
+    if (canFilter) ctx.filter = 'none';
+
+    // 再压一层很淡的底色，让地图和这个网站是一套颜色
+    ctx.fillStyle = (s.getPropertyValue('--glow-b') || 'rgba(0,0,0,.05)').trim();
+    ctx.fillRect(0, 0, W, H);
+
+    var gold = (s.getPropertyValue('--gold') || '#A98446').trim();
+    var bright = (s.getPropertyValue('--gold-bright') || '#C9A96A').trim();
+    var ink = (s.getPropertyValue('--paper') || '#fff').trim();
+
+    for (var i = 0; i < pins.length; i++){
+      var p = pins[i];
+      var px = lonToX(p.lon, z) * TS - left, py = latToY(p.lat, z) * TS - top;
+      p._x = px; p._y = py;
+      if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue;
+      var on = i === sel;
+      // 光晕
+      var g = ctx.createRadialGradient(px, py, 0, px, py, on ? 26 : 18);
+      g.addColorStop(0, bright); g.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.globalAlpha = on ? .5 : .28;
+      ctx.fillStyle = g;
+      ctx.beginPath(); ctx.arc(px, py, on ? 26 : 18, 0, Math.PI*2); ctx.fill();
+      ctx.globalAlpha = 1;
+      if (p.thumb && p.img && p.img.__ok){
+        var d = on ? 46 : 36, r = 4;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(px-d/2+r, py-d/2);
+        ctx.arcTo(px+d/2, py-d/2, px+d/2, py+d/2, r);
+        ctx.arcTo(px+d/2, py+d/2, px-d/2, py+d/2, r);
+        ctx.arcTo(px-d/2, py+d/2, px-d/2, py-d/2, r);
+        ctx.arcTo(px-d/2, py-d/2, px+d/2, py-d/2, r);
+        ctx.closePath();
+        ctx.clip();
+        ctx.drawImage(p.img, px-d/2, py-d/2, d, d);
+        ctx.restore();
+        ctx.strokeStyle = bright; ctx.lineWidth = 1.5;
+        ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(px, py, on ? 8 : 6, 0, Math.PI*2);
+        ctx.fillStyle = bright; ctx.fill();
+        ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
+        ctx.beginPath(); ctx.arc(px, py, on ? 13 : 10, 0, Math.PI*2);
+        ctx.strokeStyle = gold; ctx.lineWidth = 1; ctx.globalAlpha = .7; ctx.stroke();
+        ctx.globalAlpha = 1;
+      }
+    }
+    ctx.font = '10px ' + (s.getPropertyValue('--sans') || 'sans-serif').trim();
+    ctx.fillStyle = 'rgba(128,128,128,.85)';
+    ctx.textAlign = 'right';
+    ctx.fillText('© OpenStreetMap contributors', W - 6, H - 6);
+    ctx.textAlign = 'left';
+  }
+  function fit(){
+    if (!pins.length){ z = 2; cLat = 20; cLon = 10; return; }
+    if (pins.length === 1){ z = 12; cLat = pins[0].lat; cLon = pins[0].lon; return; }
+    var la1 = 90, la2 = -90, lo1 = 180, lo2 = -180;
+    pins.forEach(function(p){
+      la1 = Math.min(la1, p.lat); la2 = Math.max(la2, p.lat);
+      lo1 = Math.min(lo1, p.lon); lo2 = Math.max(lo2, p.lon);
+    });
+    cLat = (la1 + la2) / 2; cLon = (lo1 + lo2) / 2;
+    for (var zz = 14; zz >= 2; zz--){
+      var w = (lonToX(lo2, zz) - lonToX(lo1, zz)) * TS;
+      var h = (latToY(la1, zz) - latToY(la2, zz)) * TS;
+      if (w < W * 0.72 && h < H * 0.72){ z = zz; return; }
+    }
+    z = 2;
+  }
+  function hit(px, py){
+    for (var i = pins.length - 1; i >= 0; i--){
+      var p = pins[i];
+      if (typeof p._x !== 'number') continue;
+      var dx = p._x - px, dy = p._y - py;
+      if (dx*dx + dy*dy < 26*26) return i;
+    }
+    return -1;
+  }
+  function showCard(i){
+    sel = i;
+    var box = $('mapCard');
+    if (i < 0){ box.classList.add('hidden'); schedule(); return; }
+    var p = pins[i];
+    box.innerHTML = '<div class="mc-d">' + esc(cnDate(p.ymd)) + '</div>' +
+      '<div class="mc-t">' + esc(p.title) + '</div>' +
+      (p.where ? '<div class="mc-w">' + esc(p.where) + '</div>' : '') +
+      (p.thumb ? '<img src="' + p.thumb + '" alt="" />' : '');
+    box.classList.remove('hidden');
+    schedule();
+  }
+
+  function bind(){
+    function pos(e){
+      var r = cv.getBoundingClientRect();
+      var t = e.touches && e.touches[0] ? e.touches[0] : e;
+      return { x: t.clientX - r.left, y: t.clientY - r.top };
+    }
+    function down(e){
+      if (e.touches && e.touches.length === 2){
+        pinchBase = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+        drag = null;
+        return;
+      }
+      var p = pos(e);
+      drag = { x:p.x, y:p.y, lat:cLat, lon:cLon, moved:0 };
+    }
+    function move(e){
+      if (e.touches && e.touches.length === 2 && pinchBase){
+        var d = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY);
+        if (d / pinchBase > 1.55){ step(1); pinchBase = d; }
+        else if (d / pinchBase < 0.65){ step(-1); pinchBase = d; }
+        e.preventDefault();
+        return;
+      }
+      if (!drag) return;
+      var p = pos(e);
+      var dx = p.x - drag.x, dy = p.y - drag.y;
+      drag.moved = Math.max(drag.moved, Math.abs(dx) + Math.abs(dy));
+      var cx = lonToX(drag.lon, z) * TS - dx, cy = latToY(drag.lat, z) * TS - dy;
+      cLon = xToLon(cx / TS, z); cLat = yToLat(cy / TS, z);
+      schedule();
+      e.preventDefault();
+    }
+    function up(e){
+      if (drag && drag.moved < 8){
+        var p = pos(e.changedTouches ? { touches:e.changedTouches } : e);
+        showCard(hit(p.x, p.y));
+      }
+      drag = null; pinchBase = 0;
+    }
+    cv.addEventListener('mousedown', down);
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    cv.addEventListener('touchstart', down, { passive:true });
+    cv.addEventListener('touchmove', move, { passive:false });
+    cv.addEventListener('touchend', up);
+    cv.addEventListener('wheel', function(e){ step(e.deltaY < 0 ? 1 : -1); e.preventDefault(); }, { passive:false });
+  }
+  function step(d){
+    var nz = Math.max(2, Math.min(17, z + d));
+    if (nz === z) return;
+    z = nz;
+    schedule();
+  }
+
+  return {
+    init: function(){
+      cv = document.getElementById('mapCanvas');
+      if (!cv || !cv.getContext) return false;
+      ctx = cv.getContext('2d');
+      ready = true;
+      bind();
+      var t;
+      window.addEventListener('resize', function(){
+        clearTimeout(t); t = setTimeout(function(){ size(); schedule(); }, 200);
+      }, { passive:true });
+      return true;
+    },
+    setPins: function(list, refit){
+      if (!ready) return;
+      pins = list;
+      sel = -1;
+      $('mapCard').classList.add('hidden');
+      // 有照片的钉子把缩略图画进地图
+      pins.forEach(function(p){
+        if (!p.thumb) return;
+        var im = new Image();
+        im.onload = function(){ im.__ok = true; schedule(); };
+        im.src = p.thumb;
+        p.img = im;
+      });
+      size();
+      if (refit) fit();
+      schedule();
+    },
+    fit: function(){ size(); fit(); schedule(); },
+    zoom: step,
+    repaint: function(){ cache = {}; size(); schedule(); },
+    has: function(){ return ready; }
+  };
+})();
+
 /* ---------- 10 回忆本 ---------- */
 function logRead(){
   try{
@@ -2584,13 +3182,104 @@ function logUpsert(plan){
   logWrite(a);
   renderMemo();
 }
+// 把所有打过卡的点收成地图上的钉子；同一个地方（约 150 米内）只算一处
+function collectPins(){
+  var a = logRead(), out = [];
+  a.forEach(function(rec){
+    var ch = rec.checks || {};
+    for (var k in ch){
+      if (!ch.hasOwnProperty(k)) continue;
+      var mk = ch[k], stop = rec.plan && rec.plan.s && rec.plan.s[k];
+      if (!mk || typeof mk.lat !== 'number' || !stop) continue;
+      out.push({
+        lat: mk.lat, lon: mk.lon, ymd: rec.ymd, t: mk.t,
+        title: stop.t, where: (rec.plan.w && rec.plan.w.name) || '',
+        ph: mk.ph || ''
+      });
+    }
+  });
+  out.sort(function(x, y){ return (y.t || 0) - (x.t || 0); });
+  return out;
+}
+function distinctPlaces(list){
+  var keep = [];
+  list.forEach(function(p){
+    for (var i=0;i<keep.length;i++){
+      if (haversine(keep[i].lat, keep[i].lon, p.lat, p.lon) < 150) return;
+    }
+    keep.push(p);
+  });
+  return keep;
+}
+var fpFitted = false;
+// 打过的勾总数（包含没记到位置的）
+// 打卡状态一变，回忆本那一行和足迹地图都要跟着走
+function refreshLogViews(){ renderMemo(); renderFootprints(); }
+function checkTotal(){
+  var a = logRead(), n = 0;
+  a.forEach(function(rec){
+    var ch = rec.checks || {};
+    for (var k in ch) if (ch.hasOwnProperty(k)) n++;
+  });
+  return n;
+}
+function renderFootprints(){
+  if (isGuest) return;
+  var pins = collectPins();
+  var uniq = distinctPlaces(pins);
+  var shots = pins.filter(function(p){ return p.ph; });
+  var plans = logRead().length, all = checkTotal();
+
+  if (pins.length){
+    $('fpStat').innerHTML = '已经点亮 <b>' + uniq.length + '</b> 个地方 · 打卡 <b>' + all +
+      '</b> 次 · 照片 <b>' + shots.length + '</b> 张 · 计划 <b>' + plans + '</b> 份';
+  } else if (all){
+    $('fpStat').innerHTML = '打卡 <b>' + all + '</b> 次，但都没记到位置。' +
+      '下次打勾时允许一次定位，这些地方就会亮在地图上。';
+  } else {
+    $('fpStat').textContent = '还没有打过卡。出门之后在计划里点一下每一站左边的圈。';
+  }
+
+  $('mapEmpty').classList.toggle('hidden', pins.length > 0);
+  if (pins.length && Atlas.has()){
+    var withThumbs = 0;
+    pins.forEach(function(p){
+      if (!p.ph) return;
+      withThumbs++;
+      withThumb(p.ph, function(url){
+        p.thumb = url;
+        if (--withThumbs <= 0) Atlas.setPins(pins, !fpFitted), fpFitted = true;
+      });
+    });
+    if (!withThumbs){ Atlas.setPins(pins, !fpFitted); fpFitted = true; }
+  }
+
+  var strip = $('shots');
+  strip.innerHTML = '';
+  shots.slice(0, 24).forEach(function(p){
+    var im = document.createElement('img');
+    im.alt = p.title;
+    im.title = cnDate(p.ymd) + ' · ' + p.title;
+    withThumb(p.ph, function(url){ if (url) im.src = url; });
+    im.onclick = function(){
+      Photos.get(p.ph, function(err, rec){
+        if (!rec) return;
+        $('posterImg').src = rec.full;
+        $('posterMask').classList.add('show');
+        $('posterHint').textContent = cnDate(p.ymd) + ' · ' + p.title;
+      });
+    };
+    strip.appendChild(im);
+  });
+}
+
 function renderMemo(){
   if (isGuest) return;
   var a = logRead(), box = $('memoList');
   var doneN = a.filter(function(r){ return r.done; }).length;
-  $('memoCount').textContent = doneN ? ('已完成 ' + doneN + ' 次') : 'Our Days';
+  $('memoCount').textContent = doneN ? ('走完 ' + doneN + ' 天') : 'Our Days';
   if (!a.length){
-    box.innerHTML = '<div class="memo-empty">还没有记录。<br/>生成过的计划会自动收进这里，出门回来点一下「去过了」。</div>';
+    box.innerHTML = '<div class="memo-empty">还没有记录。<br/>生成过的计划会自动收进这里。</div>';
     return;
   }
   box.innerHTML = '';
@@ -2607,26 +3296,46 @@ function renderMemo(){
       $('ownerActs').classList.remove('hidden');
       $('menu').scrollIntoView({behavior:'smooth', block:'start'});
     };
+    var n = 0, ch = r.checks || {};
+    for (var kk in ch) if (ch.hasOwnProperty(kk)) n++;
     var done = document.createElement('button');
-    done.className = 'mb' + (r.done ? ' done' : '');
-    done.textContent = r.done ? '♥ 去过了' : '去过了';
+    done.className = 'mb' + (n ? ' done' : '');
+    done.textContent = n ? ('♥ ' + n + '/' + r.plan.s.length) : '未打卡';
     done.onclick = function(){
-      var all = logRead();
-      if (all[idx]){ all[idx].done = !all[idx].done; logWrite(all); }
-      if (all[idx] && all[idx].done) hearts(8);
-      renderMemo();
+      renderPlan(r.plan, null);
+      $('ownerActs').classList.remove('hidden');
+      $('menu').scrollIntoView({behavior:'smooth', block:'start'});
+      toast('在这一份里给每一站打勾就行');
     };
     var del = document.createElement('button');
     del.className = 'mb'; del.textContent = '✕';
     del.setAttribute('aria-label','删除这条记录');
     del.onclick = function(){
-      var all = logRead(); all.splice(idx,1); logWrite(all); renderMemo();
+      var all = logRead();
+      var gone = all[idx];
+      if (gone && gone.checks){
+        for (var g in gone.checks) if (gone.checks.hasOwnProperty(g) && gone.checks[g].ph) Photos.del(gone.checks[g].ph);
+      }
+      all.splice(idx,1); logWrite(all); refreshLogViews();
     };
     row.appendChild(open); row.appendChild(done); row.appendChild(del);
     box.appendChild(row);
   });
 }
+// 地图控件
+(function(){
+  if (!Atlas.init()) return;
+  $('mapIn').onclick = function(){ Atlas.zoom(1); };
+  $('mapOut').onclick = function(){ Atlas.zoom(-1); };
+  $('mapFit').onclick = function(){ Atlas.fit(); };
+  $('mapFull').onclick = function(){
+    var w = $('mapWrap'), on = w.classList.toggle('full');
+    $('mapFull').textContent = on ? '✕' : '⤢';
+    setTimeout(function(){ Atlas.fit(); }, 60);
+  };
+})();
 renderMemo();
+renderFootprints();
 
 /* ---------- 11 她的视角：信封 → 计划 → 答应 ---------- */
 (function(){
