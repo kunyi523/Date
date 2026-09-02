@@ -26,7 +26,7 @@ function eq(name, got, want) {
 /** 内存版 D1：只实现 worker 用到的 prepare().bind().all()/run() */
 function makeDB() {
   const db = new SQL.Database();
-  db.run(readFileSync(join(here, 'schema.sql'), 'utf8'));
+  db.run(readFileSync(join(here, 'migrations/0001_init.sql'), 'utf8'));
   return {
     prepare(sql) {
       let args = [];
