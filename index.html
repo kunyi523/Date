@@ -123,6 +123,8 @@
     color:var(--ink); background:var(--gold-bright); padding:2px 7px; border-radius:2px;
   }
   .empty{grid-column:1/-1; text-align:center; font-size:13px; color:var(--ink-soft); padding:14px 0; line-height:1.8}
+  .empty-act{margin-top:10px; border:1px solid var(--gold); background:transparent; color:var(--gold);
+    border-radius:3px; padding:9px 18px; font-size:13px; letter-spacing:2px; cursor:pointer; font-family:inherit}
 
   .final{
     width:100%; margin-top:36px; padding:17px 0; border-radius:3px; border:none;
@@ -162,6 +164,7 @@
     border-radius:3px; padding:3px 8px; font-size:11px; cursor:pointer; font-family:inherit; margin-left:9px; white-space:nowrap}
   .course .swap:active{background:rgba(201,169,106,.15)}
   .course .d{font-size:12.5px; color:rgba(240,232,220,.6); line-height:1.65; margin-top:3px}
+  .course .x{font-family:var(--latin); font-size:12.5px; letter-spacing:.6px; color:rgba(201,169,106,.8); margin-top:5px}
   .m-note{border-top:1px solid rgba(240,232,220,.14); margin-top:2px; padding-top:14px; text-align:center; font-size:12.5px; line-height:1.8; color:rgba(240,232,220,.7)}
   .m-note .sig{font-family:var(--serif); font-weight:600; font-size:13.5px; color:var(--gold-bright); margin-top:6px}
 
@@ -432,6 +435,10 @@
     </button>
 
     <div class="setup" id="setup">
+      <div class="label">When<b>哪一天</b></div>
+      <div class="chips" id="days"></div>
+      <div class="chips" id="starts" style="margin-top:8px"></div>
+
       <div class="label">Budget<b>预算</b></div>
       <div class="chips" id="budgets"></div>
 
@@ -635,13 +642,49 @@ function dayDiff(a,b){ return Math.round((strip(b)-strip(a))/86400000); }
 function parseDate(s){ var p = String(s).split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
 function ymd(d){ var m=d.getMonth()+1, day=d.getDate(); return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(day<10?'0':'')+day; }
 function cnDate(s){ var d = parseDate(s); return (d.getMonth()+1)+'月'+d.getDate()+'日'; }
+var WEEKDAY = ['周日','周一','周二','周三','周四','周五','周六'];
+// 计划是给哪天的，用人话说。跨天之后同一个链接会自动从"明天"变成"今天"
+function dayLabel(s){
+  var diff = dayDiff(now, parseDate(s));
+  if (diff === 0) return '今天';
+  if (diff === 1) return '明天';
+  if (diff === 2) return '后天';
+  if (diff === -1) return '昨天';
+  var d = parseDate(s);
+  return cnDate(s) + WEEKDAY[d.getDay()];
+}
 function pick(a){ return a[Math.floor(Math.random()*a.length)]; }
 function shuffle(a){ return a.slice().sort(function(){ return Math.random()-.5; }); }
 function nowMin(){ return now.getHours()*60 + now.getMinutes(); }
+// 页面可能开着好几个小时才被点，所以每次抽卡/排程前都把"现在"重新取一遍。
+// 加 ?t=20:30 可以假装"现在是晚上八点半"，用来预览别的时间点会怎么排。
+var _clock;
+function clockOverride(){
+  if (_clock === undefined){
+    var p = param('t'), m = p && decodeURIComponent(p).match(/^(\d{1,2}):(\d{2})$/);
+    _clock = (m && +m[1] < 24 && +m[2] < 60) ? [+m[1], +m[2]] : null;
+  }
+  return _clock;
+}
+function refreshNow(){
+  now = new Date();
+  var c = clockOverride();
+  if (c) now.setHours(c[0], c[1], 0, 0);
+}
+// 计划最早能从什么时候开始。排今天就是"现在 + 25 分钟"，排别的日子按选的出发时段来；
+// 今天又选了时段的话，取两者里晚的那个（不能穿越回上午）。
+function earliestStart(){
+  var soon = Math.ceil((nowMin()+25)/15)*15;
+  var chosen = START_MIN[state.start] || 0;
+  if (!isToday()) return chosen || 10*60;
+  return Math.max(soon, chosen);
+}
+var LAST_END = 25*60;   // 收工线：次日凌晨 1 点
 function fmtMin(m){
   var v = ((Math.round(m)%1440)+1440)%1440, h = Math.floor(v/60), mm = v%60;
   return (h<10?'0':'')+h+':'+(mm<10?'0':'')+mm;
 }
+function fmtClock(m){ return (m >= 1440 ? '次日 ' : '') + fmtMin(m); }
 function b64e(obj){
   return btoa(unescape(encodeURIComponent(JSON.stringify(obj))))
     .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
@@ -699,6 +742,7 @@ function param(name){
 }
 
 /* ---------- 2 设置与链接编码 ---------- */
+refreshNow();
 var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'' };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
@@ -913,7 +957,25 @@ var VIBE_PREF = {
   '热闹一点': ['游','食'],
   '浪漫一点': ['彩蛋','食','行']
 };
-var state = { budget:'小奢侈', vibe:'随便都好', weather:'☀️ 晴', temp:null, loc:CITY, lat:null, lon:null };
+var DAY_OPTS = ['今天','明天','这周末'];
+var START_OPTS = ['现在出发','上午','中午','下午','傍晚'];
+var START_MIN = { '上午':9*60, '中午':11*60+30, '下午':14*60, '傍晚':18*60 };
+var state = {
+  day:'今天', start:'现在出发',
+  budget:'小奢侈', vibe:'随便都好', weather:'☀️ 晴', temp:null, loc:CITY, lat:null, lon:null
+};
+
+// 计划是给哪一天排的（跟"今天几号"分开：晚上排明天是常事）
+function planDate(){
+  var d = strip(now);
+  if (state.day === '明天') return new Date(d.getFullYear(), d.getMonth(), d.getDate()+1);
+  if (state.day === '这周末'){
+    var add = (6 - d.getDay() + 7) % 7;      // 下一个周六，今天就是周六则是今天
+    return new Date(d.getFullYear(), d.getMonth(), d.getDate()+add);
+  }
+  return d;
+}
+function isToday(){ return dayDiff(now, planDate()) === 0; }
 
 function renderChips(id, items, key, allowOff){
   var box = $(id);
@@ -931,7 +993,14 @@ function renderChips(id, items, key, allowOff){
     box.appendChild(b);
   });
 }
+function renderWhen(){
+  if (!isToday() && state.start === '现在出发') state.start = '上午';
+  renderChips('days', DAY_OPTS, 'day');
+  renderChips('starts', isToday() ? START_OPTS : START_OPTS.slice(1), 'start');
+  renderTimeHint();
+}
 function onConditionChange(){
+  renderWhen();
   // 条件变了，已经抽出来的卡就不作数了，免得生成一份和条件不符的计划
   ['A','B'].forEach(function(k){
     var D = decks[k];
@@ -947,6 +1016,7 @@ function onConditionChange(){
 }
 renderChips('budgets', ['穷开心','小奢侈','豪华版'], 'budget');
 renderChips('vibes', VIBE_OPTS, 'vibe');
+renderWhen();
 renderChips('weathers', WEATHER_OPTS, 'weather');
 renderChips('temps', TEMP_OPTS, 'temp', true);
 renderChips('locs', [NEAR, CITY, FAR], 'loc');
@@ -1024,7 +1094,11 @@ var POOL = [
   {cat:'游', t:'温泉半日', d:'泡到手指起皱为止', w:'皆', loc:[FAR], b:1, tw:[10,20], u:150},
   {cat:'游', t:'民宿发呆', d:'什么都不安排也是一种安排', w:'雨', loc:[FAR], b:2, tw:[12,20], u:180},
   {cat:'彩蛋', t:'共撑一把伞', d:'伞记得往她那边偏', w:'雨', loc:[NEAR,CITY,FAR], b:0, u:20},
-  {cat:'食', t:'楼下宵夜摊', d:'一人一串，禁止互抢', w:'皆', loc:[NEAR], b:0, tw:[20,23], u:60},
+  {cat:'食', t:'楼下宵夜摊', d:'一人一串，禁止互抢', w:'皆', loc:[NEAR,CITY], b:0, tw:[19,24], u:60},
+  {cat:'食', t:'便利店关东煮', d:'两个人四串，再来一罐热的', w:'皆', loc:[NEAR,CITY], b:0, tw:[19,24], u:30},
+  {cat:'食', t:'24 小时面馆', d:'一人一碗，汤要喝完', w:'皆', loc:[CITY], b:0, tw:[21,24], u:45},
+  {cat:'游', t:'夜里开车兜一圈', d:'放她的歌单，路随便挑', w:'皆', loc:[CITY,FAR], b:0, tw:[20,24], u:60},
+  {cat:'彩蛋', t:'阳台上看夜色', d:'不说话也行，站一会儿', w:'皆', loc:[NEAR], b:0, tw:[20,24], u:25},
   {cat:'食', t:'街口面包房', d:'刚出炉的那盘先来两个', w:'皆', loc:[NEAR], b:0, tw:[8,19], u:35},
   {cat:'食', t:'奶茶对比评测', d:'两家各买一杯，盲测打分', w:'皆', loc:[NEAR,CITY], b:0, tw:[11,21], u:40},
   {cat:'食', t:'煮一锅热汤面', d:'雨天的标准答案', w:'雨', loc:[NEAR], b:0, tw:[17,22], u:60},
@@ -1101,7 +1175,6 @@ var SWEETS = [
 ];
 
 /* ---------- 7 抽卡 ---------- */
-var HOUR = now.getHours();
 function fits(it){
   var w = (state.weather.indexOf('晴')>-1 || state.weather.indexOf('阴')>-1) ? '晴' : '雨';
   if (!(it.w==='皆' || it.w===w)) return false;
@@ -1109,16 +1182,24 @@ function fits(it){
   if (BUDGET_RANK[state.budget] < it.b) return false;
   if (state.temp && state.temp.indexOf('炎热')>-1 && it.noHot) return false;
   if (state.temp && state.temp.indexOf('寒冷')>-1 && it.noCold) return false;
-  if (it.tw && it.tw[1] < HOUR) return false; // 今天已经来不及开始的，不出现
+  // 关门/过点的不出现：拿真正能出发的时间去比，而不是拿"现在几点"
+  if (it.tw && it.tw[1]*60 < earliestStart()) return false;
+  if (earliestStart() + durOf(it) > LAST_END) return false;
   return true;
 }
-(function(){
-  var m = now.getMinutes();
-  var txt = '🕐 现在 ' + HOUR + ':' + (m<10?'0':'') + m + '，抽卡按当前时间实时筛选';
-  if (HOUR >= 20) txt += '（深夜模式：只出今晚还来得及的）';
-  else if (HOUR >= 16) txt += '（傍晚模式：白天场次已收起）';
-  $('timeHint').textContent = txt;
-})();
+function renderTimeHint(){
+  var s = earliestStart(), d = planDate(), txt;
+  if (isToday()){
+    txt = '🕐 现在 ' + fmtMin(nowMin()) + '，计划从 ' + fmtClock(s) + ' 起算';
+    var h = now.getHours();
+    if (h >= 20) txt += '（深夜模式：只出今晚还赶得上的）';
+    else if (h >= 16) txt += '（傍晚模式：白天场次已收起）';
+  } else {
+    txt = '🗓 排的是 ' + (d.getMonth()+1) + '月' + d.getDate() + '日 ' + WEEKDAY[d.getDay()] +
+          '，从 ' + fmtClock(s) + ' 起算';
+  }
+  $('timeHint').textContent = txt + '，卡片按这个时间筛选';
+}
 
 var decks = {
   A: { dealt:[], sel:{}, el:'deckA', btn:'dealA', isFood:false, n:6 },
@@ -1150,6 +1231,8 @@ function cardHTML(it){
          '<div class="meta">约 '+durOf(it)+' 分钟</div>';
 }
 function deal(k){
+  refreshNow();
+  renderTimeHint();
   var D = decks[k];
   D.dealt = candidates(D.isFood).slice(0, D.n);
   D.sel = {};
@@ -1157,7 +1240,23 @@ function deal(k){
   box.classList.remove('hidden');
   box.innerHTML = '';
   if (!D.dealt.length){
-    box.innerHTML = '<div class="empty">这个条件下没抽到卡。<br/>试试换个距离，或者把预算往上调一档。</div>';
+    var em = document.createElement('div');
+    em.className = 'empty';
+    if (isToday() && earliestStart() >= 19*60){
+      em.textContent = '这个点今天排不下了。';
+      var later = document.createElement('button');
+      later.className = 'empty-act'; later.textContent = '那就排明天';
+      later.onclick = function(){
+        state.day = '明天'; state.start = '上午';
+        onConditionChange();
+        toast('已经切到明天，再抽一次就有了');
+      };
+      em.appendChild(document.createElement('br'));
+      em.appendChild(later);
+    } else {
+      em.textContent = '这个条件下没抽到卡。换个距离，或者把预算往上调一档。';
+    }
+    box.appendChild(em);
   }
   D.dealt.forEach(function(it, i){
     var c = document.createElement('div');
@@ -1187,24 +1286,39 @@ $('dealB').onclick = function(){ deal('B'); };
 function prefStart(it){ return it.tw ? it.tw[0]*60 : 13*60; }
 // 从"现在 + 25 分钟"起，按每张卡最早能开始的时间顺着往后排，站间留 15 分钟路上时间；
 // 再从后往前收一遍，把"等三小时才开门"这种空档压掉，让一天连着走。
-// 注意：会把传进来的数组按时间就地排好，方便调用方拿它和结果一一对应
+// 排一天的时间轴。返回 {stops, kept, dropped}：
+//   stops  —— 给计划用的站点（带起始时间和时长）
+//   kept   —— 和 stops 一一对应的原始卡片，"换一站"要靠它
+//   dropped—— 今天塞不进去的卡片（过了营业时间，或者已经排到后半夜）
+// 规则：从"现在 + 25 分钟"起，站间留 15 分钟路上时间；谁都不能排在自己营业时段之外；
+//       排完再从后往前收一遍，把"等三小时才开门"的空档压掉。
 function scheduleStops(items){
   var GAP = 15;
-  var t = Math.ceil((nowMin()+25)/15)*15;
+  var t = earliestStart();
   var arr = items.sort(function(a,b){ return prefStart(a)-prefStart(b); });
-  var out = [], i;
+  var out = [], kept = [], dropped = [], i;
   for (i=0;i<arr.length;i++){
-    var lo = arr[i].tw ? arr[i].tw[0]*60 : 0;
-    var s = Math.max(t, lo), u = durOf(arr[i]);
-    out.push({ c:arr[i].cat, t:arr[i].t, d:arr[i].d, m:s, u:u });
+    var it = arr[i];
+    var lo = it.tw ? it.tw[0]*60 : 0;
+    var hi = it.tw ? it.tw[1]*60 : LAST_END;
+    var u = durOf(it);
+    var s = Math.max(t, lo);
+    if (s > hi || s + u > LAST_END){ dropped.push(it); continue; }
+    out.push({ c:it.cat, t:it.t, d:it.d, m:s, u:u, x:it.meta || '' });
+    kept.push(it);
     t = s + u + GAP;
   }
   for (i=out.length-2; i>=0; i--){
     var latest = out[i+1].m - GAP - out[i].u;
-    if (arr[i].tw) latest = Math.min(latest, arr[i].tw[1]*60);
+    if (kept[i].tw) latest = Math.min(latest, kept[i].tw[1]*60);
     if (latest > out[i].m) out[i].m = latest;
   }
-  return out;
+  return { stops:out, kept:kept, dropped:dropped };
+}
+function reportDropped(dropped){
+  if (!dropped.length) return;
+  var names = dropped.map(function(it){ return '「'+it.t+'」'; }).join('、');
+  toast(names + '今天赶不上了，已经从计划里拿掉');
 }
 function selectedItems(){
   var a = Object.keys(decks.A.sel).map(Number).sort(function(x,y){return x-y;})
@@ -1214,19 +1328,21 @@ function selectedItems(){
   return a.concat(b);
 }
 function buildPlan(){
-  var items = selectedItems();
+  refreshNow();
+  var r = scheduleStops(selectedItems());
+  reportDropped(r.dropped);
   return {
     plan: {
       v: 2,
-      ymd: ymd(now),
+      ymd: ymd(planDate()),
       from: cfg.from || '',
       to: cfg.to || '',
       note: '',
       b: state.budget,
       e: pick(ENDINGS),
-      s: scheduleStops(items)
+      s: r.stops
     },
-    items: items
+    items: r.kept
   };
 }
 var ROMAN = ['Ⅰ','Ⅱ','Ⅲ','Ⅳ','Ⅴ','Ⅵ','Ⅶ'];
@@ -1243,20 +1359,21 @@ function swapStop(i){
   if (!rest.length){ toast('这一类今天能约的都已经在计划里了'); return; }
   currentItems[i] = rest[0];
   $('shOut').value = '';   // 计划变了，刚生成的链接就作废了
-  currentPlan.s = scheduleStops(currentItems);
-  renderPlan(currentPlan, currentItems);
+  refreshNow();
+  var r = scheduleStops(currentItems);
+  currentPlan.s = r.stops;
+  renderPlan(currentPlan, r.kept);
   logUpsert(currentPlan);
-  toast('换好了，时间轴跟着重排了一遍');
+  if (r.dropped.length) reportDropped(r.dropped);
+  else toast('换好了，时间轴跟着重排了一遍');
 }
 
 function renderPlan(plan, items){
   currentPlan = plan;
   currentItems = items || null;
   var canSwap = !!currentItems && !isGuest;
-  var today = plan.ymd === ymd(now);
-  $('m-title').textContent = plan.to
-    ? ('给 ' + plan.to + (today ? ' 的今天' : ' 的那一天'))
-    : (today ? '最终约会计划' : '那一天的计划');
+  var label = dayLabel(plan.ymd);
+  $('m-title').textContent = plan.to ? ('给 ' + plan.to + ' 的' + label) : (label + '的约会计划');
   var d = parseDate(plan.ymd);
   $('m-date').textContent = d.getFullYear()+' . '+(d.getMonth()+1)+' . '+d.getDate()+
     ' — ' + (plan.to ? ('For ' + plan.to) : 'For the one and only');
@@ -1264,9 +1381,10 @@ function renderPlan(plan, items){
     var cat = CAT_EN[s.c] || 'Stop';
     return '<div class="course"><div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
       '<div class="row"><span class="t">'+esc(s.t)+'</span>'+
-      '<span class="time">'+fmtMin(s.m)+'–'+fmtMin(s.m+s.u)+
+      '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
       (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
-      '<div class="d">'+esc(s.d)+'</div></div>';
+      '<div class="d">'+esc(s.d)+'</div>'+
+      (s.x ? '<div class="x">'+esc(s.x)+'</div>' : '')+'</div>';
   }).join('');
   if (canSwap){
     Array.prototype.forEach.call($('m-courses').querySelectorAll('.swap'), function(b){
@@ -1287,12 +1405,13 @@ function renderPlan(plan, items){
 }
 function planText(plan){
   var lines = [];
-  lines.push((plan.ymd === ymd(now) ? '今天的计划 · ' : '那天的计划 · ') +
-    cnDate(plan.ymd) + (plan.to ? ('（给' + plan.to + '）') : ''));
+  lines.push(dayLabel(plan.ymd) + '的计划 · ' + cnDate(plan.ymd) +
+    (plan.to ? ('（给' + plan.to + '）') : ''));
   if (plan.note) lines.push('「' + plan.note + '」');
   lines.push('');
   plan.s.forEach(function(s,i){
-    lines.push((ROMAN[i]||(i+1)) + ' ' + fmtMin(s.m) + '–' + fmtMin(s.m+s.u) + ' ' + s.t + ' — ' + s.d);
+    lines.push((ROMAN[i]||(i+1)) + ' ' + fmtClock(s.m) + '–' + fmtClock(s.m+s.u) + ' ' + s.t + ' — ' + s.d +
+      (s.x ? '（' + s.x + '）' : ''));
   });
   lines.push('');
   lines.push(plan.e || '');
@@ -1309,7 +1428,15 @@ $('combine').onclick = function(){
 
 /* 一键：条件用当前的，卡自动抽自动选，直接出计划 */
 $('quickBtn').onclick = function(){
+  refreshNow();
   var plays = candidates(false), foods = candidates(true);
+  // 太晚了就别硬排今天，直接给明天排一份——一键就是不该让人再想第二次
+  if ((!plays.length || !foods.length || earliestStart() >= 23*60) && isToday()){
+    state.day = '明天'; state.start = '上午';
+    renderWhen();
+    plays = candidates(false); foods = candidates(true);
+    if (plays.length && foods.length) toast('今天已经来不及了，帮你排的是明天');
+  }
   if (!plays.length || !foods.length){
     toast('这个条件下凑不出一天，把「想跑多远」或预算换一下');
     if (window._setFold) window._setFold(true);
@@ -1458,7 +1585,7 @@ function drawPoster(plan){
     mc.font = F_D;
     var dl = wrapLines(mc, plan.s[i].d, INNER - 20);
     blocks.push({k:'stop', i:i, lines:dl});
-    y += 30 + 42 + 40 + dl.length*36 + 4;
+    y += 30 + 42 + 40 + dl.length*36 + 4 + (plan.s[i].x ? 32 : 0);
   }
   y += 44 + 46 + 40 + 56;                    // 结尾 / 署名 / 出处 / 底部留白
   var H = Math.round(y);
@@ -1477,8 +1604,9 @@ function drawPoster(plan){
   x.fillStyle = '#C9A96A'; x.font = '500 22px "Cormorant Garamond", serif';
   spacedCenter(x, 'MENU DU JOUR', W/2, cy, 7);
   cy += 62;
+  var label = dayLabel(plan.ymd);
   x.textAlign = 'center'; x.fillStyle = '#F3EBE0'; x.font = '900 44px "Noto Serif SC", serif';
-  x.fillText(plan.to ? ('给 '+plan.to+' 的今天') : '今天的约会计划', W/2, cy);
+  x.fillText(plan.to ? ('给 '+plan.to+' 的'+label) : (label+'的约会计划'), W/2, cy);
   cy += 46;
   x.fillStyle = 'rgba(240,232,220,.55)'; x.font = 'italic 500 26px "Cormorant Garamond", serif';
   x.fillText(cnDate(plan.ymd) + '  ·  ' + (plan.s.length) + ' stops', W/2, cy);
@@ -1503,10 +1631,14 @@ function drawPoster(plan){
     x.fillStyle = '#F3EBE0'; x.font = F_T;
     x.fillText(s.t, PAD, cy);
     x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px "Cormorant Garamond", serif';
-    x.fillText(fmtMin(s.m)+'–'+fmtMin(s.m+s.u), W-PAD, cy);
+    x.fillText(fmtClock(s.m)+'–'+fmtClock(s.m+s.u), W-PAD, cy);
     cy += 40;
     x.textAlign = 'left'; x.fillStyle = 'rgba(240,232,220,.58)'; x.font = F_D;
     for (var di=0; di<b.lines.length; di++){ x.fillText(b.lines[di], PAD, cy); cy += 36; }
+    if (s.x){
+      x.fillStyle = 'rgba(201,169,106,.8)'; x.font = '400 22px "Noto Sans SC", sans-serif';
+      x.fillText(s.x, PAD, cy); cy += 32;
+    }
     cy += 4;
   }
 
@@ -1620,17 +1752,18 @@ renderMemo();
 
   var inv = $('invite');
   var who = sharedPlan.from ? sharedPlan.from : '有人';
-  // 隔天才点开的链接，就不说"今天"了
-  var sameDay = sharedPlan.ymd === ymd(now);
-  $('iTitle').textContent = sameDay
-    ? (who + ' 把今天\n给你排好了')
-    : (who + ' 给你排了\n一整天');
+  // 她可能隔一天才点开，所以"今天/明天/9月5日"是按她打开的那一刻算的
+  var label = dayLabel(sharedPlan.ymd);
+  var past = dayDiff(now, parseDate(sharedPlan.ymd)) < 0;
+  $('iTitle').textContent = past
+    ? (who + ' 给你排过\n那一天')
+    : (who + ' 把' + label + '\n给你排好了');
   var first = sharedPlan.s[0];
-  $('iMeta').textContent = (sameDay ? '' : cnDate(sharedPlan.ymd) + ' · ') +
-    sharedPlan.s.length + ' 站 · 从 ' + fmtMin(first.m) + ' 开始';
+  $('iMeta').textContent = cnDate(sharedPlan.ymd) + ' · ' +
+    sharedPlan.s.length + ' 站 · 从 ' + fmtClock(first.m) + ' 开始';
   // 封蜡上盖他的名字，没署名就盖一颗心
   $('sealBtn').textContent = sharedPlan.from ? sharedPlan.from.charAt(0) : '♥';
-  document.title = who + '把今天给你排好了';
+  document.title = who + '把' + label + '给你排好了';
   $('sub').textContent = who + ' 为你排好的一天';
   inv.classList.remove('hidden');
 
