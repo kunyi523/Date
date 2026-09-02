@@ -186,6 +186,21 @@ async function getPlaces(env, url) {
   return json({ places: aggregate(results || [], mbti) });
 }
 
+/**
+ * 按 IP 限流。
+ *
+ * 只按 by_id 限流是没用的：by_id 是前端自己随机生成的，换一个就绕过去了。
+ * 所以真正拦得住的是 IP，Cloudflare 直接把它放在 CF-Connecting-IP 里。
+ * IP 不入库（存进去就等于存了位置），只存一个哈希，而且只留一小时。
+ */
+async function ipHash(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+  const salt = (env && env.IP_SALT) || 'xindong';
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + '|' + ip));
+  return [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+const IP_PER_HOUR = 40;
+
 async function postReview(env, request) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
@@ -193,12 +208,24 @@ async function postReview(env, request) {
   const rec = clean(body);
   if (!rec) return json({ error: 'bad review' }, 400);
 
-  // 一台设备一小时最多 20 条，挡住手滑和刷分
-  const since = Date.now() - 3600e3;
+  const now = Date.now();
+  const since = now - 3600e3;
+
+  // 先按 IP 拦：换 by_id 绕不过去
+  const ip = await ipHash(request, env);
+  await env.DB.prepare('DELETE FROM hits WHERE at <= ?').bind(since).run();
+  const { results: byIp } = await env.DB.prepare(
+    'SELECT COUNT(*) AS c FROM hits WHERE ip = ? AND at > ?'
+  ).bind(ip, since).all();
+  if ((byIp?.[0]?.c || 0) >= IP_PER_HOUR) return json({ error: 'slow down' }, 429);
+
+  // 再按设备拦：同一对情侣手滑连点也不该刷满
   const { results: recent } = await env.DB.prepare(
     'SELECT COUNT(*) AS c FROM reviews WHERE by_id = ? AND at > ?'
   ).bind(rec.by, since).all();
   if ((recent?.[0]?.c || 0) >= 20) return json({ error: 'slow down' }, 429);
+
+  await env.DB.prepare('INSERT INTO hits (ip, at) VALUES (?, ?)').bind(ip, now).run();
 
   // 同一台设备对同一个地点只保留最新一条
   await env.DB.prepare(
@@ -214,6 +241,80 @@ async function postReview(env, request) {
   ).run();
 
   return json({ ok: true });
+}
+
+/* ── 两个人共一张地图 ──
+   couple id 是不可枚举的随机串，知道它就等于有权限——和分享链接一样的思路，
+   没有账号也就没有账号能泄露的东西。每台设备上传"自己那半张"，读回来的是对方那半张。 */
+const COUPLE_RE = /^c[a-z0-9]{16,40}$/;
+const COUPLE_MAX = 420 * 1024;      // 一台设备最多这么多，主要是给缩略图留的
+
+function cleanPins(raw) {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 400).map((p) => {
+    const out = {
+      sig: String(p.sig || '').slice(0, 200),
+      i: Math.max(0, Math.min(20, parseInt(p.i, 10) || 0)),
+      ymd: /^\d{4}-\d{2}-\d{2}$/.test(p.ymd) ? p.ymd : '',
+      title: String(p.title || '').slice(0, 60),
+      at: Number(p.at) || 0,
+    };
+    if (isFinite(p.lat) && isFinite(p.lon) && Math.abs(p.lat) <= 90 && Math.abs(p.lon) <= 180) {
+      out.lat = +Number(p.lat).toFixed(5);
+      out.lon = +Number(p.lon).toFixed(5);
+    }
+    // 只接 data:image 的缩略图，别让人把这里当图床
+    if (typeof p.thumb === 'string' && /^data:image\/(jpeg|png|webp);base64,/.test(p.thumb) && p.thumb.length < 120000) {
+      out.thumb = p.thumb;
+    }
+    return out;
+  }).filter((p) => p.sig && p.title);
+}
+
+async function putCouple(env, request) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
+
+  const couple = String(body.couple || '');
+  const by = String(body.by || '');
+  if (!COUPLE_RE.test(couple)) return json({ error: 'bad couple' }, 400);
+  if (!/^[a-z0-9]{4,40}$/i.test(by)) return json({ error: 'bad device' }, 400);
+
+  const data = JSON.stringify({ pins: cleanPins(body.pins) });
+  if (data.length > COUPLE_MAX) return json({ error: 'too big' }, 413);
+
+  const now = Date.now();
+  const ip = await ipHash(request, env);
+  await env.DB.prepare('DELETE FROM hits WHERE at <= ?').bind(now - 3600e3).run();
+  const { results: byIp } = await env.DB.prepare(
+    'SELECT COUNT(*) AS c FROM hits WHERE ip = ? AND at > ?'
+  ).bind(ip, now - 3600e3).all();
+  if ((byIp?.[0]?.c || 0) >= 120) return json({ error: 'slow down' }, 429);
+  await env.DB.prepare('INSERT INTO hits (ip, at) VALUES (?, ?)').bind(ip, now).run();
+
+  await env.DB.prepare(
+    `INSERT INTO couple_state (couple, by_id, at, data) VALUES (?, ?, ?, ?)
+     ON CONFLICT(couple, by_id) DO UPDATE SET at = excluded.at, data = excluded.data`
+  ).bind(couple, by, now, data).run();
+
+  return json({ ok: true, at: now });
+}
+
+async function getCouple(env, url) {
+  const couple = String(url.searchParams.get('id') || '');
+  const me = String(url.searchParams.get('by') || '');
+  if (!COUPLE_RE.test(couple)) return json({ error: 'bad couple' }, 400);
+
+  const { results } = await env.DB.prepare(
+    'SELECT by_id, at, data FROM couple_state WHERE couple = ? AND by_id <> ? ORDER BY at DESC LIMIT 4'
+  ).bind(couple, me).all();
+
+  const others = (results || []).map((row) => {
+    let pins = [];
+    try { pins = JSON.parse(row.data).pins || []; } catch {}
+    return { by: row.by_id, at: row.at, pins };
+  });
+  return json({ others });
 }
 
 /** 卡池：把收到的评分反过来喂回抽卡——评分高的真实地点会更容易被抽到 */
@@ -269,6 +370,8 @@ export default {
     try {
       if (request.method === 'POST' && path === '/reviews') return await postReview(env, request);
       if (request.method === 'GET' && path === '/places') return await getPlaces(env, url);
+      if (request.method === 'POST' && path === '/couple') return await putCouple(env, request);
+      if (request.method === 'GET' && path === '/couple') return await getCouple(env, url);
       if (request.method === 'GET' && path === '/cards') return await getCards(env, url);
       if (request.method === 'GET' && path === '/weather') return await proxyWeather(url);
       if (request.method === 'GET' && path === '/sweet') return json({});   // 留给以后接模型

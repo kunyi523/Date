@@ -36,6 +36,12 @@
 <meta property="og:title" content="今天，怎么心动？" />
 <meta property="og:description" content="有人把今天的约会计划封在了这个链接里。点开看看。" />
 <meta name="twitter:card" content="summary" />
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="怎么心动" />
+<link rel="apple-touch-icon" href="icon-180.png" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%231D1620'/%3E%3Cpath d='M16 25.5s-8.4-5.3-8.4-11.2a4.7 4.7 0 0 1 8.4-2.9 4.7 4.7 0 0 1 8.4 2.9c0 5.9-8.4 11.2-8.4 11.2z' fill='%23C9A96A'/%3E%3C/svg%3E" />
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@600;900&family=Noto+Sans+SC:wght@300;400;500;700&family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&display=swap" />
 <style>
@@ -80,9 +86,14 @@
   }
 
   :root{
-    /* 字体 */
-    --serif:'Noto Serif SC',serif; --latin:'Cormorant Garamond',serif;
-    --sans:'Noto Sans SC',-apple-system,sans-serif;
+    /* 字体。Google 字体在国内经常拉不到，所以后面的降级不是摆设：
+       中文衬线退到系统的宋体（iOS 的 Songti SC / 鸿蒙的 Noto Serif CJK），
+       西文退到 Didot / Georgia 这一路，气质最接近 Cormorant。 */
+    --serif:'Noto Serif SC','Songti SC','Source Han Serif SC','Noto Serif CJK SC',
+            STSong,'SimSun',serif;
+    --latin:'Cormorant Garamond',Didot,'Hoefler Text','Times New Roman',Georgia,serif;
+    --sans:'Noto Sans SC','PingFang SC','HarmonyOS Sans SC','Source Han Sans SC',
+           'Hiragino Sans GB','Microsoft YaHei',-apple-system,sans-serif;
 
     /* 字号：12 级，别再往里塞 .5px 的中间档 */
     --text-hero:34px;      /* 在一起第 N 天的大数字 */
@@ -129,7 +140,7 @@
       radial-gradient(900px 500px at 85% -5%, rgba(201,169,106,.16), transparent 60%),
       radial-gradient(700px 500px at -10% 30%, rgba(156,107,118,.10), transparent 60%),
       var(--paper);
-    font-family:'Noto Sans SC',-apple-system,sans-serif; font-weight:400;
+    font-family:var(--sans); font-weight:400;
     display:flex; justify-content:center; padding-bottom:64px;
   }
   .app{
@@ -173,7 +184,7 @@
   .mstones{margin-bottom:10px}
   .mstone{display:flex; justify-content:space-between; align-items:baseline; padding:11px 2px; border-bottom:1px solid var(--line); font-size:var(--text-body-sm)}
   .mstone .val{font-family:var(--latin); font-weight:600; font-size:var(--text-display-sm); color:var(--gold)}
-  .mstone .val em{font-style:normal; font-family:'Noto Sans SC'; font-size:var(--text-micro); font-weight:400; color:var(--ink-soft); margin-left:4px}
+  .mstone .val em{font-style:normal; font-family:var(--sans); font-size:var(--text-micro); font-weight:400; color:var(--ink-soft); margin-left:4px}
 
   .label{font-family:var(--latin); font-size:var(--text-caption); letter-spacing:4px; color:var(--gold); text-transform:uppercase; margin:20px 0 10px}
   .label b{font-family:var(--serif); font-size:var(--text-body-sm); letter-spacing:2px; color:var(--ink); font-weight:600; margin-left:8px}
@@ -281,6 +292,29 @@
     border-top:1px solid rgba(255,255,255,.14);
   }
   .final:disabled{opacity:.4; cursor:not-allowed}
+
+  /* ————— 自己加一站 ————— */
+  .own-add{margin-top:var(--space-6)}
+  .own-body{padding-bottom:var(--space-5)}
+  .own-row{display:grid; grid-template-columns:1fr auto; gap:8px; align-items:center}
+  .own-row select{min-width:112px}
+  .own-go{
+    min-height:var(--tap); padding:0 16px; border-radius:var(--radius-sm);
+    border:1px solid var(--gold); background:transparent; color:var(--gold);
+    font-size:var(--text-body-sm); letter-spacing:1px; cursor:pointer; font-family:inherit; white-space:nowrap;
+  }
+  .own-go.wide{padding:0 20px}
+  .own-go:active{transform:scale(.98)}
+  .own-hits{margin-top:8px}
+  .own-hit{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:11px 12px; margin-bottom:6px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); background:var(--card-ivory); cursor:pointer;
+    min-height:var(--tap); text-align:left; width:100%; font-family:inherit;
+  }
+  .own-hit .oh-t{font-size:var(--text-body-sm); color:var(--ink)}
+  .own-hit .oh-d{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:1px; color:var(--gold); white-space:nowrap}
+  .own-note{font-size:var(--text-caption); color:var(--ink-soft); line-height:1.8; padding:6px 0}
 
   /* ————— 她收到的那句话 ————— */
   .love-note{
@@ -796,6 +830,45 @@
 
     <button class="final" id="combine" disabled>生 成 最 终 计 划</button>
 
+    <!-- 卡池里没有的，自己写一站 / 搜一个具体地点 -->
+    <div class="own-add">
+      <button class="fold" id="ownFold" aria-expanded="false">
+        <span>想去的地方卡池里没有？自己加一站</span>
+        <span class="caret" id="ownCaret">▼</span>
+      </button>
+      <div class="own-body hidden" id="ownBody">
+        <div class="f-label">搜一个具体的地方</div>
+        <div class="own-row">
+          <input type="text" id="ownSearch" placeholder="店名或地名，如：鹤鸣茶社" />
+          <button class="own-go" id="ownSearchGo">搜</button>
+        </div>
+        <div class="own-hits" id="ownHits"></div>
+
+        <div class="f-label">或者直接写一站</div>
+        <input type="text" id="ownName" maxlength="20" placeholder="这一站叫什么，如：去她家楼下等她" />
+        <div class="own-row" style="margin-top:8px">
+          <input type="text" id="ownNote" maxlength="24" placeholder="一句说明（可留空）" />
+          <select id="ownKind">
+            <option value="游">玩乐</option>
+            <option value="食">美食</option>
+            <option value="行">走走</option>
+            <option value="彩蛋">彩蛋</option>
+          </select>
+        </div>
+        <div class="own-row" style="margin-top:8px">
+          <select id="ownDur">
+            <option value="30">约半小时</option>
+            <option value="60">约一小时</option>
+            <option value="90" selected>约一个半小时</option>
+            <option value="120">约两小时</option>
+            <option value="180">约三小时</option>
+          </select>
+          <button class="own-go wide" id="ownAdd">加进今天</button>
+        </div>
+        <div class="hint" style="margin-top:8px">加进来的站会直接排进时间轴，也能像别的站一样打卡、拍照、评分。</div>
+      </div>
+    </div>
+
     <div class="love-note hidden" id="loveNote">
       <svg class="ln-orn" aria-hidden="true"><use href="#bloom"/></svg>
       <div class="ln-e">A word for you</div>
@@ -921,6 +994,23 @@
           <span>开场互动（"您愿意和我约会吗"）</span>
           <input type="checkbox" id="cfgGate" class="switch" />
         </label>
+      </div>
+
+      <div class="group">
+        <div class="group-t">Together<b>共一张地图</b></div>
+        <div class="hint" id="coupleState" style="margin-bottom:8px"></div>
+        <button class="m-add" id="coupleLink">生成「连上同一张地图」的链接</button>
+        <input type="text" id="coupleOut" readonly placeholder="发给她，她点开再点「存到我手机」就连上了" style="margin-top:8px" />
+      </div>
+
+      <div class="group">
+        <div class="group-t">Keep<b>备份</b></div>
+        <div class="hint" style="margin-bottom:8px">打卡、照片、足迹都存在这台设备上。换手机、清缓存之前先导一份出来；新手机上再导进去，连照片一起回来。</div>
+        <div class="acts" style="margin-top:0">
+          <button class="act" id="cfgExport">导 出 备 份</button>
+          <button class="act" id="cfgImport">导 入 备 份</button>
+        </div>
+        <div class="hint" id="storeState" style="margin-top:8px"></div>
       </div>
 
       <div class="group">
@@ -1137,7 +1227,8 @@ function copyText(text, okMsg){
   var done = false;
   try{
     if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(text);
+      // 有些环境会拒绝写剪贴板，promise 一定要接住，不然冒一个未处理的 rejection
+      navigator.clipboard.writeText(text).catch(function(){});
       done = true;
     }
   }catch(e){}
@@ -1343,7 +1434,7 @@ function syncThemeIcon(pref){
 
 /* ---------- 2 设置与链接编码 ---------- */
 refreshNow();
-var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'' };
+var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'', couple:'' };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
 
@@ -1361,12 +1452,14 @@ function normCfg(c){
   if (c.theme !== 'day' && c.theme !== 'night') c.theme = 'auto';
   if (typeof c.mbtiA !== 'string') c.mbtiA = '';
   if (typeof c.mbtiB !== 'string') c.mbtiB = '';
+  if (typeof c.couple !== 'string' || !/^c[a-z0-9]{16,40}$/.test(c.couple)) c.couple = '';
   return c;
 }
 // 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑。
 // theme 要带上——她收到的应该是我调好的那一套明暗。
 function publicCfg(){
-  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to, theme:cfg.theme };
+  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to, theme:cfg.theme,
+           couple:Couple.ensure() };
 }
 // ?s= 是新版（可带整份计划），?c= / #c= 是老版（只有设置），两者都要认
 function readShare(){
@@ -1915,6 +2008,15 @@ var Photos = (function(){
     del: function(id){
       if (!id) return;
       tx('readwrite', function(err, store){ if (!err) store.delete(id); });
+    },
+    // 导入备份时把原样的记录写回去（不重新压缩，免得越导越糊）
+    put: function(id, rec, cb){
+      tx('readwrite', function(err, store){
+        if (err) return cb(err);
+        var r = store.put({ id:id, full:rec.full, thumb:rec.thumb, w:rec.w, h:rec.h });
+        r.onsuccess = function(){ cb(null); };
+        r.onerror = function(){ cb(r.error || new Error('put')); };
+      });
     }
   };
 })();
@@ -2026,6 +2128,151 @@ function statBonus(it){
   if (st.match && st.match.n >= 3) base += (st.match.score - 3.6) * 0.75;
   return Math.max(-1.4, Math.min(2.4, base));
 }
+
+/* ---------- 3d2 两个人共一张足迹地图 ----------
+   打卡本来只存在打卡那台手机上，所以严格说是"各有一张地图"。
+   这里给一对情侣一个不可枚举的 couple id：存在设置里、跟着分享链接走，
+   她点「存到我手机」就自动连上了，不需要注册也不需要输入什么码。
+   每次同步是把"我这半张"整份上传（幂等，重传无副作用），读回来的是对方那半张，
+   缓存在本机，所以离线也能看到合起来的地图。照片只传缩略图，原图永远留在本机。 */
+var COUPLE_KEY = 'xindong_couple_v1';
+var Couple = (function(){
+  var pushing = false, pulling = false, lastPush = 0;
+  function cacheRead(){
+    try{ return JSON.parse(localStorage.getItem(COUPLE_KEY) || '{}') || {}; }catch(e){ return {}; }
+  }
+  function cacheWrite(o){ try{ localStorage.setItem(COUPLE_KEY, JSON.stringify(o)); }catch(e){} }
+  return {
+    id: function(){ return cfg.couple || ''; },
+    ensure: function(){
+      if (!cfg.couple){
+        cfg.couple = 'c' + Date.now().toString(36) + Math.random().toString(36).slice(2, 12) +
+                     Math.random().toString(36).slice(2, 8);
+        if (!isGuest) saveCfgLocal();
+        // 刚拿到 id：把已经打过的卡立刻传一份上去，
+        // 不然对方点开链接看到的是一张空地图，还以为没连上
+        var self = this;
+        setTimeout(function(){ self.push(); }, 0);
+      }
+      return cfg.couple;
+    },
+    theirs: function(){ return cacheRead().pins || []; },
+    when: function(){ return cacheRead().at || 0; },
+    // 把我这半张整份传上去。缩略图按时间从新到旧塞，塞到快满就停
+    push: function(){
+      if (!API.base || !cfg.couple || pushing) return;
+      var mine = collectPins(true);
+      if (!mine.length) return;
+      var budget = 360 * 1024, pins = [];
+      for (var i = 0; i < mine.length && i < 400; i++){
+        var p = mine[i];
+        var one = { sig:p.sig, i:p.i, ymd:p.ymd, title:p.title, at:p.t };
+        if (typeof p.lat === 'number'){ one.lat = p.lat; one.lon = p.lon; }
+        if (p.thumb && p.thumb.length < budget - 4096){
+          one.thumb = p.thumb;
+          budget -= p.thumb.length;
+        }
+        pins.push(one);
+      }
+      pushing = true;
+      lastPush = Date.now();
+      jpost(API.base + '/couple', { couple:cfg.couple, by:anonId(), pins:pins }, function(){
+        pushing = false;
+      });
+    },
+    pull: function(cb){
+      cb = cb || function(){};
+      if (!API.base || !cfg.couple || pulling) return cb();
+      pulling = true;
+      jget(API.base + '/couple?id=' + encodeURIComponent(cfg.couple) + '&by=' + encodeURIComponent(anonId()),
+        function(err, data){
+          pulling = false;
+          if (err || !data || !data.others) return cb();
+          var pins = [];
+          data.others.forEach(function(o){
+            (o.pins || []).forEach(function(p){ p.by = o.by; pins.push(p); });
+          });
+          cacheWrite({ at: Date.now(), pins: pins });
+          cb(pins.length);
+        }, 12000);
+    },
+    sync: function(){
+      var self = this;
+      if (!API.base || !cfg.couple) return;
+      self.push();
+      self.pull(function(n){ if (n !== undefined) renderFootprints(); });
+    }
+  };
+})();
+
+/* ---------- 3e 让回忆活下来 ----------
+   打卡、照片、足迹全在这台设备上。系统在存储紧张时是可以把它们清掉的，
+   而这些东西丢一次就没了。所以做两件事：
+     1. 申请持久化存储（浏览器答应了就不会被随手回收）
+     2. 一个"导出成一个文件"的备份口，换手机、清缓存之前自己存一份 */
+var Backup = (function(){
+  var VER = 1;
+  function askPersist(){
+    try{
+      if (!navigator.storage || !navigator.storage.persist) return;
+      if (navigator.storage.persisted){
+        navigator.storage.persisted().then(function(already){
+          if (!already) navigator.storage.persist();
+        }).catch(function(){});
+      } else navigator.storage.persist();
+    }catch(e){}
+  }
+  function collectPhotos(ids, cb){
+    var out = {}, left = ids.length;
+    if (!left) return cb(out);
+    ids.forEach(function(id){
+      Photos.get(id, function(err, rec){
+        if (rec) out[id] = { full:rec.full, thumb:rec.thumb, w:rec.w, h:rec.h };
+        if (--left <= 0) cb(out);
+      });
+    });
+  }
+  function photoIds(log){
+    var ids = [];
+    (log || []).forEach(function(rec){
+      var ch = rec.checks || {};
+      for (var k in ch) if (ch.hasOwnProperty(k) && ch[k].ph) ids.push(ch[k].ph);
+    });
+    return ids;
+  }
+  return {
+    init: askPersist,
+    // 导出：设置 + 计划 + 打卡 + 评分 + 照片，全在一个 .json 里
+    dump: function(cb){
+      var log = logRead();
+      collectPhotos(photoIds(log), function(photos){
+        cb({
+          app: 'xindong', v: VER, at: Date.now(),
+          cfg: cfg, log: log, reviews: revRead(), photos: photos
+        });
+      });
+    },
+    // 导入：整体覆盖。照片一张一张写回 IndexedDB
+    load: function(box, cb){
+      if (!box || box.app !== 'xindong') return cb(new Error('不是这个网站的备份'));
+      try{
+        if (box.cfg){ cfg = normCfg(box.cfg) || cfg; saveCfgLocal(); }
+        if (Array.isArray(box.log)) logWrite(box.log);
+        if (box.reviews) revWrite(box.reviews);
+      }catch(e){ return cb(e); }
+      var ids = Object.keys(box.photos || {});
+      if (!ids.length) return cb(null, 0);
+      var left = ids.length, n = 0;
+      ids.forEach(function(id){
+        Photos.put(id, box.photos[id], function(err){
+          if (!err) n++;
+          thumbCache[id] = box.photos[id].thumb || '';
+          if (--left <= 0) cb(null, n);
+        });
+      });
+    }
+  };
+})();
 
 /* ---------- 4 纪念数字 ---------- */
 function renderStats(){
@@ -3158,7 +3405,11 @@ $('copyTextBtn').onclick = function(){
   copyText(planText(currentPlan) + '\n' + planLink(currentPlan), '文字版已复制');
 };
 
-/* 海报：画成一张竖图，微信里长按就能存 */
+/* 海报：画成一张竖图，微信里长按就能存。
+   canvas 不认 CSS 变量，所以这里把降级字体再写一遍，Google 字体拉不到时海报也不会变样。 */
+var CV_SERIF = '"Noto Serif SC","Songti SC","Source Han Serif SC",STSong,serif';
+var CV_SANS  = '"Noto Sans SC","PingFang SC","HarmonyOS Sans SC","Hiragino Sans GB","Microsoft YaHei",sans-serif';
+var CV_LATIN = '"Cormorant Garamond",Didot,"Hoefler Text",Georgia,serif';
 function wrapLines(x, text, maxW){
   var chars = String(text).split(''), lines = [], cur = '';
   for (var i=0;i<chars.length;i++){
@@ -3183,9 +3434,9 @@ function spacedCenter(x, text, cx, y, sp){
 function drawPoster(plan){
   var W = 750, PAD = 68, INNER = W - PAD*2;
   var mc = document.createElement('canvas').getContext('2d');
-  var F_T = '600 34px "Noto Serif SC", serif';
-  var F_D = '400 24px "Noto Sans SC", sans-serif';
-  var F_N = '400 24px "Noto Sans SC", sans-serif';
+  var F_T = '600 34px ' + CV_SERIF;
+  var F_D = '400 24px ' + CV_SANS;
+  var F_N = '400 24px ' + CV_SANS;
 
   // 先按和下面完全一样的步长量一遍高度
   var y = 0, blocks = [];
@@ -3216,14 +3467,14 @@ function drawPoster(plan){
 
   var cy = 0;
   cy += 78;
-  x.fillStyle = '#C9A96A'; x.font = '500 22px "Cormorant Garamond", serif';
+  x.fillStyle = '#C9A96A'; x.font = '500 22px ' + CV_LATIN;
   spacedCenter(x, 'MENU DU JOUR', W/2, cy, 7);
   cy += 62;
   var label = dayLabel(plan.ymd);
-  x.textAlign = 'center'; x.fillStyle = '#F3EBE0'; x.font = '900 44px "Noto Serif SC", serif';
+  x.textAlign = 'center'; x.fillStyle = '#F3EBE0'; x.font = '900 44px ' + CV_SERIF;
   x.fillText(plan.to ? ('给 '+plan.to+' 的'+label) : (label+'的约会计划'), W/2, cy);
   cy += 46;
-  x.fillStyle = 'rgba(240,232,220,.55)'; x.font = 'italic 500 26px "Cormorant Garamond", serif';
+  x.fillStyle = 'rgba(240,232,220,.55)'; x.font = 'italic 500 26px ' + CV_LATIN;
   x.fillText(cnDate(plan.ymd) + '  ·  ' + (plan.s.length) + ' stops', W/2, cy);
   cy += 34;
 
@@ -3231,7 +3482,7 @@ function drawPoster(plan){
     var b = blocks[bi];
     if (b.k === 'note'){
       cy += 34;
-      x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px "Noto Serif SC", serif';
+      x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px ' + CV_SERIF;
       for (var li=0; li<b.lines.length; li++){ x.fillText(b.lines[li], W/2, cy); cy += 40; }
       cy += 24;
       continue;
@@ -3240,18 +3491,18 @@ function drawPoster(plan){
     cy += 30;
     x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
     x.beginPath(); x.moveTo(PAD, cy - 22); x.lineTo(W-PAD, cy - 22); x.stroke();
-    x.textAlign = 'left'; x.fillStyle = '#C9A96A'; x.font = '500 22px "Cormorant Garamond", serif';
+    x.textAlign = 'left'; x.fillStyle = '#C9A96A'; x.font = '500 22px ' + CV_LATIN;
     x.fillText((ROMAN[b.i]||(b.i+1)) + '  ' + (CAT_EN[s.c]||'STOP').toUpperCase(), PAD, cy);
     cy += 42;
     x.fillStyle = '#F3EBE0'; x.font = F_T;
     x.fillText(s.t, PAD, cy);
-    x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px "Cormorant Garamond", serif';
+    x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px ' + CV_LATIN;
     x.fillText(fmtClock(s.m)+'–'+fmtClock(s.m+s.u), W-PAD, cy);
     cy += 40;
     x.textAlign = 'left'; x.fillStyle = 'rgba(240,232,220,.58)'; x.font = F_D;
     for (var di=0; di<b.lines.length; di++){ x.fillText(b.lines[di], PAD, cy); cy += 36; }
     if (s.x){
-      x.fillStyle = 'rgba(201,169,106,.8)'; x.font = '400 22px "Noto Sans SC", sans-serif';
+      x.fillStyle = 'rgba(201,169,106,.8)'; x.font = '400 22px ' + CV_SANS;
       x.fillText(s.x, PAD, cy); cy += 32;
     }
     cy += 4;
@@ -3260,13 +3511,13 @@ function drawPoster(plan){
   cy += 44;
   x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
   x.beginPath(); x.moveTo(PAD, cy - 26); x.lineTo(W-PAD, cy - 26); x.stroke();
-  x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px "Noto Serif SC", serif';
+  x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px ' + CV_SERIF;
   x.fillText(plan.e || '', W/2, cy);
   cy += 46;
-  x.fillStyle = 'rgba(240,232,220,.5)'; x.font = '400 22px "Noto Sans SC", sans-serif';
+  x.fillStyle = 'rgba(240,232,220,.5)'; x.font = '400 22px ' + CV_SANS;
   x.fillText(plan.from ? ('—— ' + plan.from) : '—— 今天想见你的人', W/2, cy);
   cy += 40;
-  x.fillStyle = 'rgba(201,169,106,.5)'; x.font = '500 18px "Cormorant Garamond", serif';
+  x.fillStyle = 'rgba(201,169,106,.5)'; x.font = '500 18px ' + CV_LATIN;
   spacedCenter(x, '今天，怎么心动？', W/2, cy, 4);
   return c;
 }
@@ -3287,6 +3538,116 @@ $('posterBtn').onclick = showPoster;
 $('shPoster').onclick = function(){ syncPlanFromSheet(); $('sheet').classList.remove('show'); showPoster(); };
 $('posterClose').onclick = function(){ $('posterMask').classList.remove('show'); };
 $('posterMask').onclick = function(e){ if (e.target === $('posterMask')) $('posterMask').classList.remove('show'); };
+
+/* ---------- 8b 自己加一站 ----------
+   卡池再大也总有它没有的地方——你们的老地方、她家楼下、临时想起的一家店。
+   所以给两条路：按名字搜一个真实地点（走 Nominatim，不需要 key），
+   或者干脆自己写一站。加进来的站和别的站完全一样：能排时间轴、能打卡、能评分。 */
+function ownCard(name, note, kind, dur, la, lo, pid, meta){
+  var c = {
+    cat: kind || '游', t: name, d: note || '你自己加的一站',
+    w: '皆', loc: [NEAR, CITY, FAR], b: 0, u: dur || 90,
+    own: 1, meta: meta || ''
+  };
+  if (typeof la === 'number'){ c.la = la; c.lo = lo; }
+  if (pid) c.pid = pid;
+  return c;
+}
+// 直接塞进这一手牌并选上，不用重抽
+function addOwnStop(card){
+  var D = card.cat === '食' ? decks.B : decks.A;
+  var box = $(D.el);
+  box.classList.remove('hidden');
+  var empty = box.querySelector('.empty');
+  if (empty) empty.remove();
+  var idx = D.dealt.length;
+  D.dealt.push(card);
+  D.sel[idx] = true;
+  var el = document.createElement('div');
+  el.className = 'card sel';
+  el.setAttribute('role','button'); el.setAttribute('tabindex','0');
+  el.setAttribute('aria-pressed','true');
+  el.innerHTML = cardHTML(card);
+  var toggle = function(){
+    if (D.sel[idx]) delete D.sel[idx]; else D.sel[idx] = true;
+    el.classList.toggle('sel');
+    el.setAttribute('aria-pressed', D.sel[idx] ? 'true' : 'false');
+    updateFinalBtn();
+  };
+  el.onclick = toggle;
+  el.onkeydown = function(e){ if (e.key==='Enter'||e.key===' '){ e.preventDefault(); toggle(); } };
+  box.appendChild(el);
+  updateFinalBtn();
+  if (window.Petals) Petals.burst(8);
+  toast('「' + card.t + '」加进今天了，点「生成最终计划」');
+}
+function searchPlace(q, cb){
+  var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=zh&q=' +
+            encodeURIComponent(q);
+  if (state.lat){
+    // 有定位就把搜索圈在附近，不然搜"茶社"会给你搜到别的省
+    var d = 0.6;
+    url += '&viewbox=' + (state.lon-d) + ',' + (state.lat+d) + ',' + (state.lon+d) + ',' + (state.lat-d);
+  }
+  jget(url, cb, 12000);
+}
+(function(){
+  var fold = $('ownFold'), body = $('ownBody'), caret = $('ownCaret');
+  fold.onclick = function(){
+    var open = body.classList.contains('hidden');
+    body.classList.toggle('hidden', !open);
+    caret.textContent = open ? '▲' : '▼';
+    fold.setAttribute('aria-expanded', open ? 'true' : 'false');
+  };
+  function renderHits(list, q){
+    var box = $('ownHits');
+    box.innerHTML = '';
+    if (!list){
+      box.innerHTML = '<div class="own-note">没搜到，或者地图服务这会儿忙。直接在下面写一站也行。</div>';
+      return;
+    }
+    if (!list.length){
+      box.innerHTML = '<div class="own-note">「' + esc(q) + '」没找到。名字写全一点，或者直接在下面写一站。</div>';
+      return;
+    }
+    list.forEach(function(hit){
+      var la = parseFloat(hit.lat), lo = parseFloat(hit.lon);
+      if (!isFinite(la)) return;
+      var name = String(hit.name || '').trim() || String(hit.display_name || '').split(',')[0];
+      var where = String(hit.display_name || '').split(',').slice(1, 3).join(' ').trim();
+      var far = state.lat ? Math.round(haversine(state.lat, state.lon, la, lo) / 100) / 10 : null;
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'own-hit';
+      b.innerHTML = '<span class="oh-t"><b>' + esc(name) + '</b>' +
+        (where ? '<br/><span style="opacity:.6">' + esc(where) + '</span>' : '') + '</span>' +
+        (far !== null ? '<span class="oh-d">' + far + ' km</span>' : '');
+      b.onclick = function(){
+        var food = /餐|饭|食|茶|咖啡|酒|面|火锅|烤|饼|甜|奶茶|烧|串/.test(name + where);
+        var meta = far === null ? '' :
+          (far < 1.2 ? ('步行 ' + Math.max(1, Math.round(far*1000/75)) + ' 分钟') : (far + ' 公里'));
+        addOwnStop(ownCard(name, '你们要去的那一家', food ? '食' : '游', food ? 75 : 90, la, lo,
+          (hit.osm_type && hit.osm_id) ? ('osm:' + hit.osm_type + '/' + hit.osm_id) : null, meta));
+        $('ownHits').innerHTML = '';
+        $('ownSearch').value = '';
+      };
+      box.appendChild(b);
+    });
+  }
+  $('ownSearchGo').onclick = function(){
+    var q = $('ownSearch').value.trim();
+    if (q.length < 2){ toast('名字至少写两个字'); return; }
+    $('ownHits').innerHTML = '<div class="own-note">⏳ 正在找「' + esc(q) + '」…</div>';
+    searchPlace(q, function(err, list){ renderHits(err ? null : (list || []), q); });
+  };
+  $('ownSearch').onkeydown = function(e){ if (e.key === 'Enter'){ e.preventDefault(); $('ownSearchGo').click(); } };
+  $('ownAdd').onclick = function(){
+    var name = $('ownName').value.trim();
+    if (!name){ toast('先给这一站起个名字'); return; }
+    addOwnStop(ownCard(name, $('ownNote').value.trim(), $('ownKind').value, +$('ownDur').value));
+    $('ownName').value = ''; $('ownNote').value = '';
+  };
+})();
 
 /* ---------- 9b 足迹地图 ----------
    自己画的极简瓦片地图：不引任何库，只有 canvas + <img> 瓦片。
@@ -3452,7 +3813,8 @@ var Atlas = (function(){
     var box = $('mapCard');
     if (i < 0){ box.classList.add('hidden'); schedule(); return; }
     var p = pins[i];
-    box.innerHTML = '<div class="mc-d">' + esc(cnDate(p.ymd)) + '</div>' +
+    box.innerHTML = '<div class="mc-d">' + esc(p.ymd ? cnDate(p.ymd) : '') +
+      (p.mine ? '' : ' · 对方打的') + '</div>' +
       '<div class="mc-t">' + esc(p.title) + '</div>' +
       (p.where ? '<div class="mc-w">' + esc(p.where) + '</div>' : '') +
       (p.thumb ? '<img src="' + p.thumb + '" alt="" />' : '');
@@ -3583,21 +3945,36 @@ function logUpsert(plan){
   renderMemo();
 }
 // 把所有打过卡的点收成地图上的钉子；同一个地方（约 150 米内）只算一处
-function collectPins(){
+// mineOnly=true 时只要这台设备打的卡（同步上传用），否则把对方那半张也并进来
+function collectPins(mineOnly){
   var a = logRead(), out = [];
   a.forEach(function(rec){
     var ch = rec.checks || {};
     for (var k in ch){
       if (!ch.hasOwnProperty(k)) continue;
       var mk = ch[k], stop = rec.plan && rec.plan.s && rec.plan.s[k];
-      if (!mk || typeof mk.lat !== 'number' || !stop) continue;
+      if (!mk || !stop) continue;
+      if (!mineOnly && typeof mk.lat !== 'number') continue;
       out.push({
+        sig: rec.sig, i: +k,
         lat: mk.lat, lon: mk.lon, ymd: rec.ymd, t: mk.t,
         title: stop.t, where: (rec.plan.w && rec.plan.w.name) || '',
-        ph: mk.ph || ''
+        ph: mk.ph || '', thumb: mk.ph ? (thumbCache[mk.ph] || '') : '', mine: 1
       });
     }
   });
+  if (!mineOnly){
+    var seen = {};
+    out.forEach(function(p){ seen[p.sig + '#' + p.i] = 1; });
+    Couple.theirs().forEach(function(p){
+      if (typeof p.lat !== 'number') return;
+      if (seen[p.sig + '#' + p.i]) return;      // 同一站两边都打了，只画一个
+      out.push({
+        sig: p.sig, i: p.i, lat: p.lat, lon: p.lon, ymd: p.ymd || '', t: p.at || 0,
+        title: p.title || '', where: '', ph: '', thumb: p.thumb || '', mine: 0
+      });
+    });
+  }
   out.sort(function(x, y){ return (y.t || 0) - (x.t || 0); });
   return out;
 }
@@ -3614,7 +3991,7 @@ function distinctPlaces(list){
 var fpFitted = false;
 // 打过的勾总数（包含没记到位置的）
 // 打卡状态一变，回忆本那一行和足迹地图都要跟着走
-function refreshLogViews(){ renderMemo(); renderFootprints(); }
+function refreshLogViews(){ renderMemo(); renderFootprints(); Couple.sync(); }
 function checkTotal(){
   var a = logRead(), n = 0;
   a.forEach(function(rec){
@@ -3630,9 +4007,14 @@ function renderFootprints(){
   var shots = pins.filter(function(p){ return p.ph; });
   var plans = logRead().length, all = checkTotal();
 
+  var theirs = pins.filter(function(p){ return !p.mine; }).length;
   if (pins.length){
-    $('fpStat').innerHTML = '已经点亮 <b>' + uniq.length + '</b> 个地方 · 打卡 <b>' + all +
-      '</b> 次 · 照片 <b>' + shots.length + '</b> 张 · 计划 <b>' + plans + '</b> 份';
+    $('fpStat').innerHTML = '已经点亮 <b>' + uniq.length + '</b> 个地方 · ' +
+      (theirs ? ('你打卡 <b>' + all + '</b> 次 · 对方 <b>' + theirs + '</b> 次')
+              : ('打卡 <b>' + all + '</b> 次')) +
+      ' · 照片 <b>' + shots.length + '</b> 张 · 计划 <b>' + plans + '</b> 份' +
+      (theirs ? '<br/>两边已经合在同一张地图上了'
+              : (API.base && Couple.when() ? '<br/>对方那边还没有打过卡' : ''));
   } else if (all){
     $('fpStat').innerHTML = '打卡 <b>' + all + '</b> 次，但都没记到位置。' +
       '下次打勾时允许一次定位，这些地方就会亮在地图上。';
@@ -3959,6 +4341,8 @@ function openPanel(){
   renderPanelChips('cfgTaste', TASTE_OPTS, 'taste');
   renderPanelChips('cfgLove', LOVE_OPTS, 'love');
   renderThemeChips();
+  renderCoupleState();
+  if (window._showStore) window._showStore();
   var list = $('mList');
   list.innerHTML = '';
   cfg.miles.forEach(function(m){ list.appendChild(mileRow(m)); });
@@ -4033,6 +4417,103 @@ $('resetCfg').onclick = function(){
   panel.classList.remove('show');
   toast('已恢复默认');
 };
+/* 共一张地图：说清楚现在是什么状态，再给一个链接 */
+function renderCoupleState(){
+  var el = $('coupleState');
+  if (!el) return;
+  var linked = !!cfg.couple, theirs = Couple.theirs().length;
+  if (!API.base){
+    el.innerHTML = '打的卡现在只存在各自手机上，所以是两张地图。' +
+      '要合成一张需要先把后台跑起来（<b>server/</b> 里有，一条命令），之后这里会自动连上。';
+    return;
+  }
+  if (!linked){
+    el.textContent = '还没连。点下面生成链接发给她，她点开再点「存到我手机」就连上了。';
+    return;
+  }
+  el.innerHTML = '已经连上（' + esc(cfg.couple.slice(0, 7)) + '…）。' +
+    (theirs ? ('对方那边有 <b>' + theirs + '</b> 处打卡，已经在同一张地图上了。')
+            : '对方那边还没打过卡，或者还没点开你发的链接。');
+}
+$('coupleLink').onclick = function(){
+  collectCfg();
+  Couple.ensure();
+  saveCfgLocal();
+  var url = baseUrl() + '?s=' + b64e({ k:'cfg', c:cfg });
+  $('coupleOut').value = url;
+  try{ $('coupleOut').setSelectionRange(0, url.length); }catch(e){}
+  copyText(url, '链接已复制。她点开之后要点一下「存到我手机」');
+  renderCoupleState();
+};
+
+/* 备份：导出成一个文件，导入整体覆盖 */
+$('cfgExport').onclick = function(){
+  collectCfg();
+  toast('正在打包，照片多的话要等一下…');
+  Backup.dump(function(box){
+    var name = 'xindong-' + ymd(new Date()) + '.json';
+    var blob;
+    try{ blob = new Blob([JSON.stringify(box)], { type:'application/json' }); }
+    catch(e){ toast('这台设备打包失败了'); return; }
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url; a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
+    var kb = Math.round(blob.size / 1024);
+    toast('导出了 ' + name + '（' + (kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb + ' KB') + '）');
+  });
+};
+$('cfgImport').onclick = function(){
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/json,.json';
+  inp.style.display = 'none';
+  document.body.appendChild(inp);
+  inp.onchange = function(){
+    var f = inp.files && inp.files[0];
+    inp.remove();
+    if (!f) return;
+    var fr = new FileReader();
+    fr.onload = function(){
+      var box;
+      try{ box = JSON.parse(fr.result); }
+      catch(e){ toast('这个文件读不出来'); return; }
+      Backup.load(box, function(err, n){
+        if (err){ toast(err.message || '导入失败'); return; }
+        rebuildCards();
+        renderStats();
+        refreshLogViews();
+        renderThemeChips();
+        paintTheme(cfg.theme, false);
+        panel.classList.remove('show');
+        toast('导回来了' + (n ? ('，含 ' + n + ' 张照片') : ''));
+      });
+    };
+    fr.readAsText(f);
+  };
+  inp.click();
+};
+(function(){
+  var el = $('storeState');
+  if (!el) return;
+  function show(){
+    if (!navigator.storage || !navigator.storage.estimate){ el.textContent = ''; return; }
+    navigator.storage.estimate().then(function(est){
+      var used = Math.round((est.usage || 0) / 1024);
+      var txt = '已经用了 ' + (used > 1024 ? (used/1024).toFixed(1) + ' MB' : used + ' KB');
+      if (navigator.storage.persisted){
+        navigator.storage.persisted().then(function(ok){
+          el.textContent = txt + (ok ? ' · 已申请到持久化存储，系统不会随手清掉' : ' · 系统在空间紧张时可能清掉，建议导一份备份');
+        }).catch(function(){ el.textContent = txt; });
+      } else el.textContent = txt;
+    }).catch(function(){ el.textContent = ''; });
+  }
+  window._showStore = show;
+})();
+
 $('shareBtn').onclick = function(){
   collectCfg(); // 先自动保存，防止忘点保存
   var url = baseUrl() + '?s=' + b64e({ k:'cfg', c:cfg });
@@ -4078,6 +4559,7 @@ $('sweetBtn').onclick = function(){
 };
 
 // 氛围与主题
+Backup.init();          // 申请持久化存储，别让系统把回忆当缓存清掉
 Petals.init();
 paintTheme(cfg.theme, false);
 (function(){
@@ -4090,6 +4572,7 @@ paintTheme(cfg.theme, false);
 
 rebuildCards();
 Reviews.flush();      // 上次没交上去的评分，这次补交
+Couple.sync();        // 把两个人的足迹合到一张地图上
 // 卡池：如果配了 ?api=，开局就去拿一次，拿不到静默用本地
 Sources.cards({ budget:state.budget, loc:state.loc, lat:state.lat, lon:state.lon }, function(err, list){
   if (list && list.length > POOL.length){
@@ -4097,6 +4580,25 @@ Sources.cards({ budget:state.budget, loc:state.loc, lat:state.lat, lon:state.lon
     rebuildCards();
   }
 });
+
+// 离线可用 + 能装到主屏。注册失败就当没有，页面照常
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost') return;
+  window.addEventListener('load', function(){
+    navigator.serviceWorker.register('sw.js').then(function(reg){
+      // 有新版本就让它立刻接管，别等下次冷启动
+      if (reg.waiting) reg.waiting.postMessage('skip-waiting');
+      reg.onupdatefound = function(){
+        var sw = reg.installing;
+        if (!sw) return;
+        sw.onstatechange = function(){
+          if (sw.state === 'installed' && navigator.serviceWorker.controller) sw.postMessage('skip-waiting');
+        };
+      };
+    }).catch(function(){});
+  });
+})();
 
 // Esc 关掉所有弹层
 document.addEventListener('keydown', function(e){
