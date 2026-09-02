@@ -111,6 +111,7 @@
   .card:nth-child(6){animation-delay:.3s}
   @keyframes dealIn{to{opacity:1; transform:translateY(0)}}
   .card .cat{font-family:var(--latin); font-size:11px; letter-spacing:3px; color:var(--rose); text-transform:uppercase}
+  .card .cat.own{color:var(--gold-bright)}
   .card .t{font-family:var(--serif); font-weight:600; font-size:16px; margin:6px 0 5px}
   .card .d{font-size:12px; color:rgba(240,232,220,.62); line-height:1.6}
   .card .meta{font-family:var(--latin); font-size:11.5px; letter-spacing:1px; color:rgba(201,169,106,.75); margin-top:7px}
@@ -529,6 +530,21 @@
     <div class="f-label">在一起的日子（大数字从这天开始算）</div>
     <input type="date" id="cfgAnni" />
 
+    <div class="f-label">口味（可多选，抽卡会往这边偏）</div>
+    <div class="chips" id="cfgTaste"></div>
+
+    <div class="f-label">喜欢的场景（可多选）</div>
+    <div class="chips" id="cfgLove"></div>
+
+    <div class="f-label">不想碰的</div>
+    <input type="text" id="cfgAvoid" placeholder="逗号分开，如：香菜, 排队, 太吵" />
+    <div class="hint" style="margin:6px 0 0">写在这里的词，出现在卡片上就不会被抽到。</div>
+
+    <div class="f-label">你们的私藏地点</div>
+    <div class="hint" style="margin-bottom:8px">写进来的地方会变成卡片跟着一起抽，而且优先抽到。比如"城南那家烧烤"、"她第一次说喜欢我的那家咖啡馆"。</div>
+    <div id="sList"></div>
+    <button class="m-add" id="addSpot">＋ 添加一个私藏</button>
+
     <div class="f-label">纪念日列表</div>
     <div id="mList"></div>
     <button class="m-add" id="addMile">＋ 添加一条纪念日</button>
@@ -743,18 +759,26 @@ function param(name){
 
 /* ---------- 2 设置与链接编码 ---------- */
 refreshNow();
-var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'' };
+var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[] };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
 
 function normCfg(c){
   if (!c || typeof c !== 'object') return null;
   if (!Array.isArray(c.miles)) c.miles = [];
+  if (!Array.isArray(c.taste)) c.taste = [];
+  if (!Array.isArray(c.love)) c.love = [];
+  if (!Array.isArray(c.spots)) c.spots = [];
   if (typeof c.gate !== 'boolean') c.gate = true;
   if (typeof c.anni !== 'string') c.anni = '';
   if (typeof c.from !== 'string') c.from = '';
   if (typeof c.to !== 'string') c.to = '';
+  if (typeof c.avoid !== 'string') c.avoid = '';
   return c;
+}
+// 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑
+function publicCfg(){
+  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to };
 }
 // ?s= 是新版（可带整份计划），?c= / #c= 是老版（只有设置），两者都要认
 function readShare(){
@@ -1114,6 +1138,52 @@ var POOL = [
   {cat:'食', t:'服务区小吃巡礼', d:'出逃路上的仪式感', w:'皆', loc:[FAR], b:0, tw:[9,20], u:40},
   {cat:'食', t:'带上野餐篮', d:'三明治 + 她爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15], u:90}
 ];
+// 偏好词 → 在卡片文字里找什么。宁可宽松一点，命中就加分，不命中也不排除
+var TASTE_OPTS = ['辣','清淡','甜品','咖啡','烧烤','火锅','日料','海鲜','面食','小酒'];
+var TASTE_KEY = {
+  '辣':['辣','火锅','川','串','烧烤'],
+  '清淡':['汤','面','粥','早茶','素','蒸','豆'],
+  '甜品':['甜','面包','蛋糕','冰','奶茶','糖'],
+  '咖啡':['咖啡'],
+  '烧烤':['烧烤','串','宵夜','夜宵','烤'],
+  '火锅':['火锅','锅'],
+  '日料':['日料','寿司','居酒屋','拉面','刺身'],
+  '海鲜':['海鲜','鱼','虾','蟹','贝'],
+  '面食':['面','饺','包','馍','馒'],
+  '小酒':['酒','微醺','酒馆','啤']
+};
+var LOVE_OPTS = ['自然','展览','电影','拍照','安静','热闹','逛街','运动','动物','夜景'];
+var LOVE_KEY = {
+  '自然':['山','花','园','海','湖','公园','徒步','果园','田','星'],
+  '展览':['美术馆','展','博物','画廊','艺术','陶艺'],
+  '电影':['电影','影院','片'],
+  '拍照':['拍','大头贴','打卡','照片','立得'],
+  '安静':['书','发呆','咖啡','散步','漫步','民宿','纸条','阳台'],
+  '热闹':['KTV','游船','市','球','游乐','采购','宵夜'],
+  '逛街':['超市','采购','店','唱片','书店','市','花'],
+  '运动':['球','徒步','山','游','骑','温泉'],
+  '动物':['水族','动物','猫','狗','鱼','母'],
+  '夜景':['夜','星空','观景','高层','兜','月']
+};
+function hitAny(keys, text){
+  if (!keys) return false;
+  for (var i=0;i<keys.length;i++) if (text.indexOf(keys[i]) > -1) return true;
+  return false;
+}
+function cardText(it){ return (it.t||'') + ' ' + (it.d||'') + ' ' + (it.meta||''); }
+// 私藏地点：设置里写的"我们喜欢去的地方"，直接当卡片一起抽，而且加分最多
+function spotCards(){
+  return (cfg.spots || []).map(function(s){
+    var food = s.kind === '食';
+    return {
+      cat: food ? '食' : '游', t: s.name, d: s.note || '你们的老地方，闭着眼也知道点什么',
+      w: '皆', loc: [NEAR, CITY, FAR], b: 0, u: food ? 75 : 90, own: 1
+    };
+  });
+}
+var NEARBY_CARDS = [];      // 定位之后抓到的真实地点
+var REMOTE_CARDS = [];      // ?api= 接口给的
+function rebuildCards(){ CARDS = POOL.concat(spotCards(), NEARBY_CARDS, REMOTE_CARDS); }
 var CARDS = POOL;
 var CAT_EN = { '行':'Stroll', '游':'Play', '食':'Taste', '彩蛋':'Surprise' };
 var BUDGET_RANK = { '穷开心':0, '小奢侈':1, '豪华版':2 };
@@ -1212,23 +1282,39 @@ function updateFinalBtn(){
   btn.disabled = !(a>=1 && b>=1);
   btn.textContent = btn.disabled ? '生 成 最 终 计 划' : '生成最终计划（玩'+a+' · 食'+b+'）';
 }
-function candidates(isFood){
-  var fit = CARDS.filter(function(it){ return (it.cat==='食')===isFood && fits(it); });
-  var arr = shuffle(fit);
+// 打分：私藏 > 口味/场景对得上 > 今天的心情，然后再掺一点随机，
+// 保证偏好会往前排但不会每次都是同几张
+function scoreCard(it){
+  var s = it.own ? 2.4 : 0, text = cardText(it), i;
+  for (i=0;i<cfg.taste.length;i++) if (hitAny(TASTE_KEY[cfg.taste[i]], text)) s += 1.4;
+  for (i=0;i<cfg.love.length;i++) if (hitAny(LOVE_KEY[cfg.love[i]], text)) s += 1.2;
   var pref = VIBE_PREF[state.vibe];
-  if (pref){
-    arr.sort(function(a,b){
-      return (pref.indexOf(b.cat)>-1?1:0) - (pref.indexOf(a.cat)>-1?1:0);
-    });
-  }
-  return arr;
+  if (pref && pref.indexOf(it.cat) > -1) s += 1;
+  if (it.near) s += 0.8;                      // 附近真实地点比手写卡稍微优先
+  return s;
+}
+function avoidList(){
+  return (cfg.avoid || '').split(/[,，、\s]+/).filter(function(x){ return x.length > 0; });
+}
+function candidates(isFood){
+  var bad = avoidList();
+  var fit = CARDS.filter(function(it){
+    if ((it.cat==='食') !== isFood) return false;
+    if (!fits(it)) return false;
+    if (bad.length && hitAny(bad, cardText(it))) return false;
+    return true;
+  });
+  return shuffle(fit).sort(function(a,b){
+    return (scoreCard(b) + Math.random()) - (scoreCard(a) + Math.random());
+  });
 }
 function durOf(it){ return it.u || (it.cat==='食' ? 75 : (it.cat==='彩蛋' ? 30 : 90)); }
 function cardHTML(it){
-  return '<div class="cat">'+CAT_EN[it.cat]+' · '+it.cat+'</div>'+
+  var tag = it.own ? 'Ours · 私藏' : (it.near ? 'Nearby · 附近' : CAT_EN[it.cat]+' · '+it.cat);
+  return '<div class="cat'+(it.own ? ' own' : '')+'">'+tag+'</div>'+
          '<div class="t">'+esc(it.t)+'</div>'+
          '<div class="d">'+esc(it.d)+'</div>'+
-         '<div class="meta">约 '+durOf(it)+' 分钟</div>';
+         '<div class="meta">'+esc(it.meta || ('约 '+durOf(it)+' 分钟'))+'</div>';
 }
 function deal(k){
   refreshNow();
@@ -1471,7 +1557,7 @@ $('quickBtn').onclick = function(){
 
 /* ---------- 9 分享（链接 / 文字 / 海报） ---------- */
 function planLink(plan){
-  return baseUrl() + '?s=' + b64e({ k:'plan', p:plan, c:cfg });
+  return baseUrl() + '?s=' + b64e({ k:'plan', p:plan, c:publicCfg() });
 }
 function openSheet(){
   if (!currentPlan){ toast('先生成一份计划'); return; }
@@ -1868,14 +1954,73 @@ function mileRow(m){
   };
   return row;
 }
+// 设置面板里的多选（口味 / 场景）：先改暂存的数组，点保存才写进 cfg
+var panelPick = { taste:[], love:[] };
+function renderPanelChips(id, opts, key){
+  var box = $(id);
+  box.innerHTML = '';
+  opts.forEach(function(v){
+    var on = panelPick[key].indexOf(v) > -1;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (on ? ' on' : '');
+    b.textContent = v;
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.onclick = function(){
+      var i = panelPick[key].indexOf(v);
+      if (i > -1) panelPick[key].splice(i, 1); else panelPick[key].push(v);
+      renderPanelChips(id, opts, key);
+    };
+    box.appendChild(b);
+  });
+}
+function spotRow(s){
+  var row = document.createElement('div');
+  row.className = 'm-row';
+  var left = document.createElement('div');
+  var name = document.createElement('input');
+  name.type = 'text'; name.maxLength = 16; name.value = s.name || '';
+  name.placeholder = '地方的名字，如：城南那家烧烤';
+  var grid = document.createElement('div'); grid.className = 'grid2';
+  var note = document.createElement('input');
+  note.type = 'text'; note.maxLength = 20; note.value = s.note || '';
+  note.placeholder = '一句备注（可留空）';
+  var kind = document.createElement('select');
+  [['游','玩乐'],['食','美食']].forEach(function(o){
+    var op = document.createElement('option');
+    op.value = o[0]; op.textContent = o[1];
+    if (s.kind === o[0]) op.selected = true;
+    kind.appendChild(op);
+  });
+  grid.appendChild(note); grid.appendChild(kind);
+  left.appendChild(name); left.appendChild(grid);
+  var del = document.createElement('button');
+  del.className = 'm-del'; del.textContent = '✕';
+  del.setAttribute('aria-label','删除这个私藏');
+  del.onclick = function(){ row.remove(); };
+  row.appendChild(left); row.appendChild(del);
+  row._get = function(){
+    if (!name.value.trim()) return null;
+    return { name:name.value.trim(), note:note.value.trim(), kind:kind.value };
+  };
+  return row;
+}
 function openPanel(){
   $('cfgAnni').value = cfg.anni;
   $('cfgGate').checked = cfg.gate;
   $('cfgFrom').value = cfg.from || '';
   $('cfgTo').value = cfg.to || '';
+  $('cfgAvoid').value = cfg.avoid || '';
+  panelPick.taste = (cfg.taste || []).slice();
+  panelPick.love = (cfg.love || []).slice();
+  renderPanelChips('cfgTaste', TASTE_OPTS, 'taste');
+  renderPanelChips('cfgLove', LOVE_OPTS, 'love');
   var list = $('mList');
   list.innerHTML = '';
   cfg.miles.forEach(function(m){ list.appendChild(mileRow(m)); });
+  var slist = $('sList');
+  slist.innerHTML = '';
+  (cfg.spots || []).forEach(function(s){ slist.appendChild(spotRow(s)); });
   panel.classList.add('show');
 }
 $('gearBtn').onclick = openPanel;
@@ -1883,18 +2028,32 @@ panel.onclick = function(e){ if (e.target === panel) panel.classList.remove('sho
 $('addMile').onclick = function(){
   $('mList').appendChild(mileRow({label:'', date:'', mode:'since'}));
 };
+$('addSpot').onclick = function(){
+  if ($('sList').children.length >= 12){ toast('私藏先记 12 个，够用了'); return; }
+  $('sList').appendChild(spotRow({name:'', note:'', kind:'食'}));
+};
 function collectCfg(){
   var anni = $('cfgAnni').value;
   if (anni) cfg.anni = anni;
   cfg.gate = $('cfgGate').checked;
   cfg.from = $('cfgFrom').value.trim();
   cfg.to = $('cfgTo').value.trim();
+  cfg.avoid = $('cfgAvoid').value.trim();
+  cfg.taste = panelPick.taste.slice();
+  cfg.love = panelPick.love.slice();
   cfg.miles = [];
-  var rows = $('mList').children;
-  for (var i=0;i<rows.length && cfg.miles.length<8;i++){
+  var rows = $('mList').children, i;
+  for (i=0;i<rows.length && cfg.miles.length<8;i++){
     var m = rows[i]._get && rows[i]._get();
     if (m) cfg.miles.push(m);
   }
+  cfg.spots = [];
+  var srows = $('sList').children;
+  for (i=0;i<srows.length && cfg.spots.length<12;i++){
+    var s = srows[i]._get && srows[i]._get();
+    if (s) cfg.spots.push(s);
+  }
+  rebuildCards();
   saveCfgLocal();
   renderStats();
   if (cfg.to){
@@ -1911,6 +2070,7 @@ $('resetCfg').onclick = function(){
   try{ localStorage.removeItem(CFG_KEY); }catch(e){}
   sharedCfg = null;
   cfg = JSON.parse(JSON.stringify(DEFAULT_CFG));
+  rebuildCards();
   renderStats();
   panel.classList.remove('show');
   toast('已恢复默认');
@@ -1959,9 +2119,13 @@ $('sweetBtn').onclick = function(){
   });
 };
 
+rebuildCards();
 // 卡池：如果配了 ?api=，开局就去拿一次，拿不到静默用本地
 Sources.cards({ budget:state.budget, loc:state.loc, lat:state.lat, lon:state.lon }, function(err, list){
-  if (list && list.length) CARDS = list;
+  if (list && list.length > POOL.length){
+    REMOTE_CARDS = list.slice(POOL.length);
+    rebuildCards();
+  }
 });
 
 // Esc 关掉所有弹层
