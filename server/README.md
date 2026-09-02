@@ -11,17 +11,16 @@
 这个按钮做的事：在**你自己的** Cloudflare 账号里建好 Worker、自动开一个 D1 数据库、
 建好表、配好每次 push 自动部署。**不需要把任何密钥交给别人**，也不用装命令行工具。
 
-点完会得到一个地址，形如 `https://xindong.你的账号.workers.dev`。
-拿它这样打开网站验证一下：
+**已经部署好了：`https://xindong.707748836.workers.dev`**，
+并且已经写进 `index.html` 的 `API_DEFAULT`，所以打开网站就是连着的，不用带任何参数。
 
-```
-https://kunyi523.github.io/Date/?api=https://xindong.你的账号.workers.dev
-```
+想临时指到别处（比如本地调试）加 `?api=http://localhost:8787`；
+想彻底断开走纯本地加 `?api=off`。
 
-进设置看到「共一张地图」那一栏不再说"要先把后台跑起来"，就是通了。
-之后把这个地址填进 `index.html` 里 `API` 那一段的 `base` 默认值，就不用每次带 `?api=` 了。
-
-部署完建议换一下 IP 哈希用的盐（`wrangler.toml` 里那个 `IP_SALT`）：
+**还剩一件小事**：IP 哈希用的盐还是默认值 `change-me-after-deploy`。
+它只用来防止有人从库里反推 IP（IP 本身不入库，只存哈希、只留一小时），
+所以不紧急，但建议换掉。在 Cloudflare 面板 → Workers & Pages → `xindong`
+→ Settings → Variables，把 `IP_SALT` 改成任意一串字符即可；或者：
 
 ```bash
 npx wrangler secret put IP_SALT

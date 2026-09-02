@@ -131,6 +131,11 @@
     --tap:44px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  /* 只要布局比视口宽一点，iOS 就会把整页缩小去装下它，那次缩放很显眼。
+     根因（画布尺寸、探出边界的装饰）是分别修掉的，这里再兜一层：
+     以后新加的绝对定位装饰不小心探出去，也不会再引起缩放。
+     用 clip 而不是 hidden，是因为 hidden 会把 body 变成滚动容器。 */
+  html{overflow-x:clip}
   /* 去掉 iOS 上点按的 300ms 等待，手感差别很明显 */
   button, .chip, .card, .swap, label{touch-action:manipulation}
   button{-webkit-appearance:none; appearance:none}
@@ -1592,12 +1597,14 @@ function baseUrl(){ return location.origin + location.pathname; }
 })();
 
 /* ---------- 3 数据源 Sources（未来接 API 只改这一层） ---------- */
+// 后台就在这儿。想临时指到别的地方（比如自己本地调），加 ?api=... 覆盖它；
+// 想彻底断开走纯本地，加 ?api=off
+var API_DEFAULT = 'https://xindong.707748836.workers.dev';
 var API = (function(){
   var p = param('api');
-  return {
-    base: p ? decodeURIComponent(p).replace(/\/+$/,'') : '',
-    timeout: 7000
-  };
+  var base = p ? decodeURIComponent(p).replace(/\/+$/,'') : API_DEFAULT;
+  if (base === 'off' || base === '0') base = '';
+  return { base: base, timeout: 7000 };
 })();
 function jget(url, cb, ms){
   var done = false;
