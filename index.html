@@ -563,6 +563,7 @@
       <button class="act" id="shCopy">复 制 链 接</button>
       <button class="act" id="shSys">系 统 分 享</button>
     </div>
+    <button class="m-add" id="shPreview" style="margin-top:10px">预览她点开会看到什么</button>
 
     <div class="panel-actions">
       <button class="p-save" id="shPoster">存 成 图 片</button>
@@ -1286,7 +1287,8 @@ function renderPlan(plan, items){
 }
 function planText(plan){
   var lines = [];
-  lines.push('今天的计划 · ' + cnDate(plan.ymd) + (plan.to ? ('（给' + plan.to + '）') : ''));
+  lines.push((plan.ymd === ymd(now) ? '今天的计划 · ' : '那天的计划 · ') +
+    cnDate(plan.ymd) + (plan.to ? ('（给' + plan.to + '）') : ''));
   if (plan.note) lines.push('「' + plan.note + '」');
   lines.push('');
   plan.s.forEach(function(s,i){
@@ -1400,6 +1402,14 @@ $('shSys').onclick = function(){
   } else {
     copyText(url, '这个浏览器不支持系统分享，已复制链接');
   }
+};
+$('shPreview').onclick = function(){
+  var plan = syncPlanFromSheet() || currentPlan;
+  if (!plan) return;
+  var url = planLink(plan);
+  $('shOut').value = url;
+  var w = window.open(url, '_blank');
+  if (!w) toast('浏览器拦了新窗口，把链接复制到地址栏就能预览');
 };
 $('copyTextBtn').onclick = function(){
   if (!currentPlan) return;
