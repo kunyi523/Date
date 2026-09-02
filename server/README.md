@@ -1,30 +1,46 @@
 # 后台
 
 网站本身是纯静态的，没有这个后台也能完整使用——评分会先存在自己手机上，
-等后台上线之后自动补交。这个后台只做一件前端做不到的事：**把所有情侣的评分合并起来**。
+等后台上线之后自动补交。这个后台只做前端做不到的两件事：
+**把所有情侣的评分合并起来**，以及**让两个人共用同一张足迹地图**。
 
-## 部署
+## 部署：点一下就好（推荐）
+
+[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kunyi523/Date/tree/main/server)
+
+这个按钮做的事：在**你自己的** Cloudflare 账号里建好 Worker、自动开一个 D1 数据库、
+建好表、配好每次 push 自动部署。**不需要把任何密钥交给别人**，也不用装命令行工具。
+
+点完会得到一个地址，形如 `https://xindong.你的账号.workers.dev`。
+拿它这样打开网站验证一下：
+
+```
+https://kunyi523.github.io/Date/?api=https://xindong.你的账号.workers.dev
+```
+
+进设置看到「共一张地图」那一栏不再说"要先把后台跑起来"，就是通了。
+之后把这个地址填进 `index.html` 里 `API` 那一段的 `base` 默认值，就不用每次带 `?api=` 了。
+
+部署完建议换一下 IP 哈希用的盐（`wrangler.toml` 里那个 `IP_SALT`）：
+
+```bash
+npx wrangler secret put IP_SALT
+```
+
+> 这个按钮偶尔会出问题（Cloudflare 自己的 issue #14553：有时新建的仓库只有两个文件、
+> Worker 停在 Hello World）。如果碰上了，用下面的命令行方式，两分钟。
+
+## 部署：命令行
 
 ```bash
 npm i -g wrangler
 wrangler login
 
 cd server
-wrangler d1 create xindong                 # 记下返回的 database_id
-# 把 database_id 填进 wrangler.toml
-wrangler d1 execute xindong --remote --file=./schema.sql
-wrangler deploy
+npm install
+wrangler d1 create xindong                 # 把返回的 database_id 填进 wrangler.toml
+npm run deploy                             # 建表 + 发布
 ```
-
-部署完会给你一个地址，比如 `https://xindong.你的账号.workers.dev`。
-然后这样打开网站，前端就会走后台：
-
-```
-https://kunyi523.github.io/Date/?api=https://xindong.你的账号.workers.dev
-```
-
-确认好用之后，把 `index.html` 里 `API` 那一段的 `base` 默认值改成这个地址，
-就不用每次带参数了。
 
 ## 接口
 
