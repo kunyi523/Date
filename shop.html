@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>做一张放在桌上的码</title>
+<style>
+  :root{
+    --paper:#F8F3EA; --ink:#34293B; --soft:rgba(52,41,59,.58);
+    --gold:#A98446; --line:rgba(52,41,59,.14); --card:#2A2130;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; padding:34px 22px 60px; background:var(--paper); color:var(--ink);
+    font:15px/1.75 'Noto Sans SC','PingFang SC','Hiragino Sans GB','Microsoft YaHei',sans-serif;
+    display:flex; justify-content:center;
+  }
+  .wrap{width:100%; max-width:560px}
+  h1{font-family:'Noto Serif SC','Songti SC',serif; font-weight:900; font-size:27px; margin:0 0 6px}
+  .lead{color:var(--soft); font-size:13.5px; margin-bottom:26px; line-height:1.9}
+  label{display:block; font-size:12.5px; font-weight:700; letter-spacing:1px; margin:18px 0 7px}
+  .hint{font-size:12.5px; color:var(--soft); line-height:1.8; margin-top:6px}
+  input, textarea{
+    width:100%; padding:11px 12px; border-radius:3px; border:1px solid rgba(52,41,59,.26);
+    background:#FDFAF4; color:var(--ink); font-size:16px; font-family:inherit; min-height:44px;
+  }
+  .row{display:grid; grid-template-columns:1fr auto; gap:8px}
+  .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
+  button{
+    min-height:44px; padding:0 18px; border-radius:3px; cursor:pointer; font-family:inherit;
+    border:1px solid var(--gold); background:transparent; color:var(--gold); font-size:14px;
+    letter-spacing:1px; white-space:nowrap;
+  }
+  button.solid{
+    border:none; background:linear-gradient(160deg,#392C40,var(--card)); color:#DFC591;
+    font-family:'Noto Serif SC',serif; font-weight:600; letter-spacing:4px; padding:0 26px;
+  }
+  button:active{transform:scale(.98)}
+  .hits{margin-top:8px}
+  .hit{
+    display:block; width:100%; text-align:left; min-height:44px; padding:10px 12px; margin-bottom:6px;
+    border:1px solid var(--line); background:#FDFAF4; border-radius:3px; cursor:pointer;
+    font-family:inherit; font-size:13.5px; color:var(--ink);
+  }
+  .hit small{display:block; color:var(--soft); font-size:12px}
+  .out{
+    margin-top:26px; padding:18px; border-radius:6px; background:#FDFAF4;
+    border:1px solid rgba(201,169,106,.5); word-break:break-all;
+  }
+  .out .u{font-size:12.5px; color:var(--soft); line-height:1.8}
+  .qr{margin-top:16px; text-align:center}
+  .qr img{width:220px; height:220px; image-rendering:pixelated; background:#fff; padding:10px; border-radius:4px}
+  .steps{margin-top:34px; padding-top:20px; border-top:1px solid var(--line); font-size:13.5px; color:var(--soft)}
+  .steps b{color:var(--ink)}
+  .steps ol{padding-left:20px; margin:10px 0}
+  .steps li{margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>做一张放在桌上的码</h1>
+  <div class="lead">
+    扫码的人第一眼只会看到一句话和一个按钮：<b>「你在〔店名〕。接下来去哪？」</b><br/>
+    她可能不是情侣，可能是两个闺蜜，所以那一屏不出现称呼、纪念日、第几天。<br/>
+    店的坐标编在码里，所以落地<b>不需要定位权限</b>——第一屏少一个弹窗就多留一半人。
+  </div>
+
+  <label>店名（会直接印在第一句话里）</label>
+  <div class="row">
+    <input id="name" placeholder="如：Sweet Cup 奶茶" />
+    <button id="find">按名字找坐标</button>
+  </div>
+  <div class="hits" id="hits"></div>
+
+  <label>坐标</label>
+  <div class="grid2">
+    <input id="lat" placeholder="纬度 43.2557" />
+    <input id="lon" placeholder="经度 -79.8711" />
+  </div>
+  <div class="hint">找不到就打开手机地图长按店的位置，把那一串复制过来。</div>
+
+  <label>福利（写在起点卡上）</label>
+  <input id="perk" maxlength="44" placeholder="如：坐在店里第二杯半价" />
+  <div class="hint">
+    要<b>现在就能用</b>的，别要"下次来"的。她已经坐在这儿了，第二杯半价对老板娘几乎零成本；
+    而一张下次才能用的券，不值得她为此掏手机。"下次"交给足迹和「去年今天」去做。
+  </div>
+
+  <label>店铺代号（月底数核销用，只用来计数）</label>
+  <input id="id" maxlength="40" placeholder="如：sweetcup-hamilton" />
+
+  <div style="margin-top:24px"><button class="solid" id="make">生成链接和码</button></div>
+
+  <div class="out" id="out" hidden>
+    <div class="u" id="url"></div>
+    <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap">
+      <button id="copy">复制链接</button>
+      <button id="open">自己先扫一遍</button>
+    </div>
+    <div class="qr" id="qr"></div>
+  </div>
+
+  <div class="steps">
+    <b>放上桌之前，自己先走一遍这四步</b>
+    <ol>
+      <li>用手机扫，确认第一屏只有那一句话和一个按钮，而且<b>没有弹定位权限</b></li>
+      <li>点「给我排两站」，确认起点卡是这家店、福利那行是对的</li>
+      <li>点「给店员看这一下」，确认店员那边认得这是什么</li>
+      <li>点起点卡左边的圈打个卡——<b>这才是这张桌子的真正目的</b>：
+        明年今天她打开会看到"去年今天，你们在这儿"</li>
+    </ol>
+    归因只从「给店员看这一下」来，是她主动点的一次匿名计数。
+    打卡和照片一个字节都不出她的手机，这条不因为商家而松动。
+  </div>
+</div>
+
+<script>
+function $(id){ return document.getElementById(id); }
+function b64e(o){
+  return btoa(unescape(encodeURIComponent(JSON.stringify(o))))
+    .replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+}
+function siteBase(){
+  return location.origin + location.pathname.replace(/shop\.html$/, '');
+}
+
+$('find').onclick = function(){
+  var q = $('name').value.trim();
+  if (q.length < 2){ alert('店名至少写两个字'); return; }
+  $('hits').innerHTML = '<div class="hint">正在找…</div>';
+  fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&limit=6&accept-language=zh&q=' +
+        encodeURIComponent(q))
+    .then(function(r){ return r.json(); })
+    .then(function(list){
+      if (!list || !list.length){
+        $('hits').innerHTML = '<div class="hint">没找到。直接手填坐标也行。</div>';
+        return;
+      }
+      $('hits').innerHTML = '';
+      list.forEach(function(h){
+        var b = document.createElement('button');
+        b.className = 'hit';
+        b.innerHTML = '<b>' + (h.name || String(h.display_name).split(',')[0]) + '</b>' +
+          '<small>' + String(h.display_name).split(',').slice(1,4).join(' ') + '</small>';
+        b.onclick = function(){
+          $('lat').value = (+h.lat).toFixed(5);
+          $('lon').value = (+h.lon).toFixed(5);
+          if (!$('name').value.trim()) $('name').value = h.name || '';
+          $('hits').innerHTML = '';
+        };
+        $('hits').appendChild(b);
+      });
+    })
+    .catch(function(){ $('hits').innerHTML = '<div class="hint">地图服务忙，手填坐标吧。</div>'; });
+};
+
+var link = '';
+$('make').onclick = function(){
+  var name = $('name').value.trim();
+  var la = parseFloat($('lat').value), lo = parseFloat($('lon').value);
+  if (!name){ alert('先写店名'); return; }
+  if (!isFinite(la) || !isFinite(lo)){ alert('坐标还没填'); return; }
+  link = siteBase() + '?shop=' + b64e({
+    n: name, la: +la.toFixed(5), lo: +lo.toFixed(5),
+    p: $('perk').value.trim(), id: $('id').value.trim()
+  });
+  $('url').textContent = link;
+  $('out').hidden = false;
+  // 二维码用 Google Chart 的老接口画，纯图片、不引脚本；打不开就手动去任何生成器贴链接
+  $('qr').innerHTML = '<img alt="放在桌上的码" src="https://api.qrserver.com/v1/create-qr-code/?size=440x440&margin=0&data=' +
+    encodeURIComponent(link) + '" /><div class="hint">长按保存，印出来放桌上。' +
+    '<br/>图挂了就把上面那条链接贴进任何二维码生成器。</div>';
+};
+$('copy').onclick = function(){
+  try{ navigator.clipboard.writeText(link).catch(function(){}); }catch(e){}
+  alert('复制了');
+};
+$('open').onclick = function(){ if (link) window.open(link, '_blank'); };
+</script>
+</body>
+</html>
