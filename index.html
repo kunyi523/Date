@@ -178,6 +178,12 @@
     background-repeat:no-repeat; background-size:100% 1px; background-position:top;
   }
   .hero-stat small{font-size:var(--text-caption); letter-spacing:3px; color:var(--ink-soft)}
+  /* 没设"在一起的日子"时不摆那个空数字，换成一句可以点的话 */
+  .hero-stat.unset{cursor:pointer}
+  .hero-stat.unset .num, .hero-stat.unset small{display:none}
+  .hero-stat.unset::after{
+    content:"设一个开始的日子 →"; font-size:var(--text-body-sm); color:var(--gold);
+  }
   .hero-stat .num{position:relative; font-family:var(--serif); font-weight:900; font-size:var(--text-hero); color:var(--gold)}
   .hero-stat .num::before{
     content:""; position:absolute; inset:-20px -30px; border-radius:var(--radius-full);
@@ -239,8 +245,10 @@
     border:none; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:transparent;
     color:var(--ink-soft); font-size:var(--text-body-sm); font-family:inherit; cursor:pointer; letter-spacing:1px}
   .fold .caret{color:var(--gold); font-size:var(--text-micro)}
-  .setup{overflow:hidden}
-  .setup.collapsed{display:none}
+  /* 主页默认只有「一键定今天」和结果。条件、两副牌、自己加一站都在「调一调」后面：
+     一键本来就是正确答案，底下摊一整个控制台反而让人怀疑它是将就版。 */
+  .setup, #manual{display:none}
+  body.tuning .setup, body.tuning #manual{display:block}
 
   .part{margin-top:34px}
   .part-head{
@@ -427,6 +435,10 @@
 
   /* ————— 足迹地图 ————— */
   .fp-stat{margin-top:12px; font-size:var(--text-body-sm); color:var(--ink-soft); line-height:1.8}
+  .fp-warn{margin-top:8px; font-size:var(--text-caption); line-height:1.9; color:var(--rose)}
+  .fp-warn button{margin-left:8px; min-height:32px; padding:0 12px; border-radius:var(--radius-sm);
+    border:1px solid var(--rose); background:transparent; color:var(--rose);
+    font-size:var(--text-micro); cursor:pointer; font-family:inherit}
   .fp-stat b{font-family:var(--serif); font-size:var(--text-title); color:var(--gold); font-weight:900}
   .map-wrap{
     position:relative; margin-top:14px; height:270px; border-radius:var(--radius-md);
@@ -485,6 +497,7 @@
   button:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 
   /* ————— 开场互动 ————— */
+  #gate{z-index:62}
   #gate, #invite{
     position:fixed; inset:0; z-index:60; display:flex; flex-direction:column;
     align-items:center; justify-content:center; text-align:center; padding:34px;
@@ -822,7 +835,7 @@
 <!-- 她点开分享链接时看到的信封 -->
 <div id="invite" class="hidden">
   <svg class="i-orn" aria-hidden="true"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
-  <div class="i-eyebrow">A surprise for you</div>
+  
   <h2 id="iTitle">有人为你准备了今天</h2>
   <div class="i-meta" id="iMeta"></div>
   <button class="seal" id="sealBtn" aria-label="拆开今天">
@@ -830,14 +843,13 @@
     <span id="sealChar">♥</span>
   </button>
   <div class="i-hint">轻点封蜡，拆开今天</div>
-  <button class="i-skip" id="iSkip">直接看计划</button>
+  <button class="i-skip hidden" id="iSkip">直接看计划</button>
 </div>
 
 <div class="app">
   <div class="col col-a">
     <header>
       <div class="topbar">
-        <div class="eyebrow">Private Reserve</div>
         <div class="top-acts">
           <button class="gear icon" id="themeBtn" aria-label="切换晨光/夜色"><span id="themeIcon">☾</span></button>
           <button class="gear" id="gearBtn">⚙︎ 设置</button>
@@ -860,50 +872,52 @@
       <span class="qd">不用想，我按现在的时间直接排好一份</span>
     </button>
 
-    <button class="fold" id="foldBtn" aria-expanded="true">
-      <span id="foldTxt">今天的条件（预算 / 天气 / 距离 / 心情）</span>
-      <span class="caret" id="foldCaret">▲</span>
+    <div class="temp-row" style="margin-top:12px">
+      <button class="temp-btn" id="tempBtn">📍 定位一下，用附近真实的地方</button>
+      <div class="temp-read" id="tempRead"></div>
+    </div>
+    <div class="temp-read" id="nearRead" style="margin-top:8px"></div>
+
+    <button class="fold" id="foldBtn" aria-expanded="false">
+      <span id="foldTxt">调一调</span>
+      <span class="caret" id="foldCaret">▼</span>
     </button>
 
     <div class="setup" id="setup">
-      <div class="label">When<b>哪一天</b></div>
+      <div class="label"><b>哪一天</b></div>
       <div class="chips" id="dayChips"></div>
       <div class="chips" id="starts" style="margin-top:8px"></div>
 
-      <div class="label">Budget<b>预算</b></div>
+      <div class="label"><b>预算</b></div>
       <div class="chips" id="budgets"></div>
 
-      <div class="label">Mood<b>今天想要</b></div>
+      <div class="label"><b>今天想要</b></div>
       <div class="chips" id="vibes"></div>
 
-      <div class="label">Weather<b>天气</b></div>
+      <div class="label"><b>天气</b></div>
       <div class="chips" id="weathers"></div>
-      <div class="temp-row">
-        <button class="temp-btn" id="tempBtn">📍 定位：识别天气，并找附近真实的地方</button>
-        <div class="temp-read" id="tempRead"></div>
-      </div>
       <div class="chips" id="temps" style="margin-top:10px"></div>
 
-      <div class="label">Where<b>想跑多远</b></div>
+      <div class="label"><b>想跑多远</b></div>
       <div class="chips" id="locs"></div>
       <div class="hidden" id="farRow">
         <div class="temp-read" style="margin-top:10px">开车大概开多远？定位之后我在这个距离上挑一个目的地。</div>
         <div class="chips" id="fars" style="margin-top:8px"></div>
       </div>
-      <div class="temp-read" id="nearRead" style="margin-top:12px"></div>
       <div class="temp-read" id="timeHint" style="margin-top:12px"></div>
     </div>
   </div>
 
   <div class="col col-b">
+    <div id="manual">
     <div class="part">
-      <div class="part-head"><span class="t">今日出行计划</span><span class="en">The Outing</span></div>
+      <div class="part-head"><span class="t">今天去哪</span></div>
       <button class="deal" id="dealA">抽 取 玩 乐 卡</button>
       <div class="deck hidden" id="deckA"></div>
     </div>
 
     <div class="part">
-      <div class="part-head"><span class="t">今日约会菜单</span><span class="en">The Table</span></div>
+      <div class="part-head"><span class="t">今天吃什么</span></div>
       <button class="deal" id="dealB">抽 取 美 食 卡</button>
       <div class="deck hidden" id="deckB"></div>
     </div>
@@ -948,16 +962,16 @@
         <div class="hint" style="margin-top:8px">加进来的站会直接排进时间轴，也能像别的站一样打卡、拍照、评分。</div>
       </div>
     </div>
+    </div><!-- /#manual -->
 
     <div class="love-note hidden" id="loveNote">
       <svg class="ln-orn" aria-hidden="true"><use class="fd" href="#jasmine"/><use class="fn" href="#briar"/></svg>
-      <div class="ln-e">A word for you</div>
+      
       <div class="ln-b" id="lnBody"></div>
       <div class="ln-s" id="lnSign"></div>
     </div>
 
     <div class="menu hidden" id="menu">
-      <div class="m-eyebrow">Menu du jour</div>
       <svg class="m-orn" aria-hidden="true"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
       <h2 id="m-title">最终约会计划</h2>
       <div class="m-date" id="m-date"></div>
@@ -968,7 +982,7 @@
 
     <!-- 我这边：把计划送出去 -->
     <div class="acts hidden" id="ownerActs">
-      <button class="act primary" id="shareOpen">把 今 天 送 给 她</button>
+      <button class="act primary" id="shareOpen">把 今 天 送 出 去</button>
       <button class="act" id="posterBtn">存 成 图 片</button>
       <button class="act" id="copyTextBtn">复 制 文 字 版</button>
     </div>
@@ -984,8 +998,9 @@
     <div class="sweet" id="sweet"></div>
 
     <div class="memo" id="memo">
-      <div class="part-head"><span class="t">足迹</span><span class="en" id="memoCount">Our Days</span></div>
+      <div class="part-head"><span class="t">足迹</span><span class="en" id="memoCount"></span></div>
       <div class="fp-stat" id="fpStat"></div>
+      <div class="fp-warn" id="fpWarn"></div>
 
       <div class="map-wrap" id="mapWrap">
         <canvas id="mapCanvas"></canvas>
@@ -1007,7 +1022,7 @@
   </div>
 
   <svg class="orn sm" aria-hidden="true" style="margin-top:var(--space-9)"><use class="fd" href="#sprigDay"/><use class="fn" href="#sprigNight"/></svg>
-  <footer id="origin">Handcrafted with love · Est. 2026</footer>
+  <footer id="origin">为了一个人做的</footer>
 </div>
 
 <!-- 设置面板 -->
@@ -1017,14 +1032,14 @@
       <span class="grip"></span>
       <div>
         <h3>设置</h3>
-        <div class="hint" style="margin:2px 0 0">只存在你这台手机里，填一次就够了</div>
+        <div class="hint" style="margin:2px 0 0">填一次就够了。名字、日子、口味、私藏、打卡和照片都只在这台手机里；只有给地点记的分会匿名汇总（不带位置和名字）。</div>
       </div>
       <button class="sheet-close" id="panelClose" aria-label="关闭设置">✕</button>
     </div>
 
     <div class="sheet-body">
       <div class="group">
-        <div class="group-t">Us<b>你们</b></div>
+        <div class="group-t"><b>你们</b></div>
         <div class="f-label">怎么称呼</div>
         <div class="grid2">
           <input type="text" id="cfgFrom" maxlength="8" placeholder="你（署名）" />
@@ -1033,7 +1048,7 @@
       </div>
 
       <div class="group">
-        <div class="group-t">Days<b>日子</b></div>
+        <div class="group-t"><b>日子</b></div>
         <div class="f-label">在一起的日子（大数字从这天开始算）</div>
         <input type="date" id="cfgAnni" />
         <div class="f-label">纪念日</div>
@@ -1042,7 +1057,7 @@
       </div>
 
       <div class="group">
-        <div class="group-t">Taste<b>口味与喜好</b></div>
+        <div class="group-t"><b>口味与喜好</b></div>
         <div class="f-label">口味（可多选，抽卡会往这边偏）</div>
         <div class="chips" id="cfgTaste"></div>
         <div class="f-label">喜欢的场景（可多选）</div>
@@ -1060,31 +1075,27 @@
       </div>
 
       <div class="group">
-        <div class="group-t">Ours<b>私藏地点</b></div>
+        <div class="group-t"><b>私藏地点</b></div>
         <div class="hint" style="margin-bottom:8px">写进来的地方会变成卡片跟着一起抽，而且优先抽到。比如"城南那家烧烤"、"她第一次说喜欢我的那家咖啡馆"。</div>
         <div id="sList"></div>
         <button class="m-add" id="addSpot">＋ 添加一个私藏</button>
       </div>
 
       <div class="group">
-        <div class="group-t">Mood<b>明暗与开场</b></div>
+        <div class="group-t"><b>明暗</b></div>
         <div class="f-label">这个网站的明暗</div>
         <div class="chips" id="cfgTheme"></div>
-        <label class="switch-row" for="cfgGate">
-          <span>开场互动（"您愿意和我约会吗"）</span>
-          <input type="checkbox" id="cfgGate" class="switch" />
-        </label>
       </div>
 
       <div class="group">
-        <div class="group-t">Together<b>共一张地图</b></div>
+        <div class="group-t"><b>共一张地图</b></div>
         <div class="hint" id="coupleState" style="margin-bottom:8px"></div>
         <button class="m-add" id="coupleLink">生成「连上同一张地图」的链接</button>
-        <input type="text" id="coupleOut" readonly placeholder="发给她，她点开再点「存到我手机」就连上了" style="margin-top:8px" />
+        <input type="text" id="coupleOut" readonly placeholder="发过去，对方点开再点「存到我手机」就连上了" style="margin-top:8px" />
       </div>
 
       <div class="group">
-        <div class="group-t">Keep<b>备份</b></div>
+        <div class="group-t"><b>备份</b></div>
         <div class="hint" style="margin-bottom:8px">打卡、照片、足迹都存在这台设备上。换手机、清缓存之前先导一份出来；新手机上再导进去，连照片一起回来。</div>
         <div class="acts" style="margin-top:0">
           <button class="act" id="cfgExport">导 出 备 份</button>
@@ -1094,7 +1105,7 @@
       </div>
 
       <div class="group">
-        <div class="group-t">Share<b>只把设置带给她</b></div>
+        <div class="group-t"><b>只把设置带过去</b></div>
         <div class="hint" style="margin-bottom:8px">这个链接只带名字、日期和明暗，不含计划。想送计划的话，先生成计划，再点「把今天送给她」。</div>
         <button class="m-add" id="shareBtn">生成设置链接</button>
         <input type="text" id="shareOut" readonly placeholder="链接会出现在这里，长按全选复制" style="margin-top:8px" />
@@ -1114,8 +1125,8 @@
     <div class="sheet-head">
       <span class="grip"></span>
       <div>
-        <h3>把今天送给她</h3>
-        <div class="hint" style="margin:2px 0 0">她点开先看到一个封蜡，拆开才是你排好的今天</div>
+        <h3 id="sheetTitle">把今天送出去</h3>
+        <div class="hint" style="margin:2px 0 0" id="sheetHint">对方点开先看到一个封蜡，拆开才是你排好的今天</div>
       </div>
       <button class="sheet-close" id="sheetClose2" aria-label="关闭">✕</button>
     </div>
@@ -1123,9 +1134,14 @@
     <div class="f-label">署名</div>
     <input type="text" id="shFrom" maxlength="8" placeholder="留空就是「有人」" />
 
-    <div class="f-label">想对她说的一句话</div>
+    <div class="f-label" id="noteLabel">想说的一句话</div>
     <textarea id="shNote" rows="2" maxlength="60" placeholder="今天交给我，你只管出门。"></textarea>
     <div class="row3" id="noteTpl"></div>
+
+    <label class="switch-row" for="shAsk">
+      <span>拆开之前先问一句「愿意和我约会吗」</span>
+      <input type="checkbox" id="shAsk" class="switch" />
+    </label>
 
     <button class="m-add" id="shMake" style="margin-top:14px">生成惊喜链接</button>
     <input type="text" id="shOut" readonly placeholder="链接会出现在这里" style="margin-top:8px" />
@@ -1134,7 +1150,7 @@
       <button class="act" id="shCopy">复 制 链 接</button>
       <button class="act" id="shSys">系 统 分 享</button>
     </div>
-    <button class="m-add" id="shPreview" style="margin-top:10px">预览她点开会看到什么</button>
+    <button class="m-add" id="shPreview" style="margin-top:10px">预览对方点开会看到什么</button>
     </div>
 
     <div class="sheet-foot">
@@ -1192,11 +1208,11 @@
 <!-- 她的答复 -->
 <div id="replyMask" class="mask center">
   <div class="reply-card">
-    <div class="rc-e">She said yes</div>
+    
     <div class="rc-b" id="rcBody"></div>
-    <div class="rc-h">把这句话发给他，今天就正式开始了。</div>
+    <div class="rc-h" id="rcHint">把这句话原样发回去，今天就算说定了。</div>
     <div class="acts" style="margin-top:16px">
-      <button class="act" id="rcCopy">复 制 这 句</button>
+      <button class="act" id="rcCopy">复 制 这 句 话</button>
       <button class="act" id="rcClose">好 了</button>
     </div>
   </div>
@@ -1210,7 +1226,7 @@
       这里的一切，最初是<br/>
       <b>李坤怿</b> 做给 <b>肖瑶</b> 的。
     </div>
-    <div class="o-date">Est. 2026 . 4 . 15</div>
+    <div class="o-date">2026 年 4 月 15 日</div>
     <div class="o-line"></div>
     <div class="o-note">
       以后无论多少人用它安排过心动，<br/>
@@ -1239,6 +1255,12 @@
 var now = new Date();
 function $(id){ return document.getElementById(id); }
 function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+// 卡片和情话里写的是 {ta}，出屏之前换成设置里的称呼。
+// 原来这些文案里写死了"她"，女生想排一天就出戏，同性情侣直接没法用。
+function ta(){
+  try{ return (cfg && cfg.to) ? cfg.to : '对方'; }catch(e){ return '对方'; }
+}
+function fill(s){ return String(s == null ? '' : s).replace(/\{ta\}/g, ta()); }
 function strip(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 function dayDiff(a,b){ return Math.round((strip(b)-strip(a))/86400000); }
 function parseDate(s){ var p = String(s).split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
@@ -1520,9 +1542,10 @@ function syncThemeIcon(pref){
 
 /* ---------- 2 设置与链接编码 ---------- */
 refreshNow();
-var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'', couple:'' };
+var DEFAULT_CFG = { gate:false, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto', mbtiA:'', mbtiB:'', couple:'' };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
+var BK_KEY = 'xindong_backup_v1';   // 上次导出备份的时间 + 当时打了多少次卡
 
 function normCfg(c){
   if (!c || typeof c !== 'object') return null;
@@ -1530,7 +1553,7 @@ function normCfg(c){
   if (!Array.isArray(c.taste)) c.taste = [];
   if (!Array.isArray(c.love)) c.love = [];
   if (!Array.isArray(c.spots)) c.spots = [];
-  if (typeof c.gate !== 'boolean') c.gate = true;
+  if (typeof c.gate !== 'boolean') c.gate = false;
   if (typeof c.anni !== 'string') c.anni = '';
   if (typeof c.from !== 'string') c.from = '';
   if (typeof c.to !== 'string') c.to = '';
@@ -1589,11 +1612,15 @@ function baseUrl(){ return location.origin + location.pathname; }
 
 /* 称呼进标题 */
 (function(){
+  // 两种口吻：排计划的时候，网站是帮你张罗的朋友（"我帮你排"）；
+  // 只有拆封蜡那一刻，说话的人才是他。
   if (cfg.to){
-    $('h1').textContent = cfg.to + '，今天怎么心动？';
-    document.title = cfg.to + '，今天怎么心动？';
+    $('h1').textContent = '今天带' + cfg.to + '去哪？';
+    document.title = '今天带' + cfg.to + '去哪？';
+    $('sub').textContent = '我帮你排好，你再发给' + cfg.to;
+  } else {
+    $('sub').textContent = '我帮你把今天排好，你只管发出去';
   }
-  if (sharedCfg && !sharedPlan) $('sub').textContent = '为你一人定制的心动菜单 · 专属版';
 })();
 
 /* ---------- 3 数据源 Sources（未来接 API 只改这一层） ---------- */
@@ -1823,7 +1850,7 @@ var POI_KIND = {
   aquarium:  { cat:'游', u:110, tw:[10,17],d:'在水母缸前多站一会儿' },
   theme_park:{ cat:'游', u:180, tw:[10,16],d:'排最长的那个队，值得' },
   park:      { cat:'行', u:70, tw:[7,19],  d:'沿着走一圈，不赶时间' },
-  garden:    { cat:'行', u:60, tw:[8,18],  d:'挑一朵今天最好看的，拍给她' },
+  garden:    { cat:'行', u:60, tw:[8,18],  d:'挑一朵今天最好看的，拍给{ta}' },
   water_park:{ cat:'游', u:150, tw:[10,17],d:'谁先把谁弄湿都不许生气' },
   cinema:    { cat:'游', u:130, tw:[10,21],d:'她挑片，我买爆米花和靠后排' },
   theatre:   { cat:'游', u:130, tw:[14,20],d:'散场之后走一段再打车' }
@@ -2364,7 +2391,13 @@ var Backup = (function(){
 
 /* ---------- 4 纪念数字 ---------- */
 function renderStats(){
-  $('days').textContent = cfg.anni ? (dayDiff(parseDate(cfg.anni), now)+1) : '—';
+  var hero = document.querySelector('.hero-stat');
+  if (!cfg.anni){
+    // 首屏最大的那个数字如果是个空横杠，第一印象就废了。没设日子就先不摆这个位置
+    if (hero) hero.classList.add('unset');
+    $('days').textContent = '';
+  } else if (hero) hero.classList.remove('unset');
+  $('days').textContent = cfg.anni ? (dayDiff(parseDate(cfg.anni), now)+1) : '';
   var html = cfg.miles.map(function(m){
     var d = parseDate(m.date), label, val;
     if (m.mode === 'annual'){
@@ -2380,7 +2413,7 @@ function renderStats(){
     }
     return '<div class="mstone"><span>'+label+'</span><span class="val">'+val+'<em>天</em></span></div>';
   }).join('');
-  if (!html && !isGuest) html = '<div class="mstone"><span>还没设置你们的日子，点右上角 ⚙︎ 开始</span><span class="val"></span></div>';
+  // 空的时候什么都不摆——大数字那一行已经在说"设一个开始的日子"了
   $('mstones').innerHTML = html;
 }
 renderStats();
@@ -2514,20 +2547,20 @@ renderChips('locs', [NEAR, CITY, FAR], 'loc');
 
 // 条件区折叠（默认展开；点过一键之后自动收起，越少选择越好）
 (function(){
-  var btn = $('foldBtn'), box = $('setup'), caret = $('foldCaret');
+  var btn = $('foldBtn'), caret = $('foldCaret');
   var open = false;
   function label(){
-    // 收起的时候把当前条件写在标题上：不展开也知道现在按什么在抽
-    return [state.day, state.start, state.budget, state.loc.replace(/^\S+\s/, '')].join(' · ');
+    // 收起的时候把当前条件写在开关上：不展开也知道现在按什么在排
+    return '调一调 · ' + [state.day, state.start, state.budget, state.loc.replace(/^\S+\s/, '')].join(' · ');
   }
   function set(v){
     open = v;
-    box.classList.toggle('collapsed', !open);
+    document.body.classList.toggle('tuning', open);
     caret.textContent = open ? '▲' : '▼';
     btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    $('foldTxt').textContent = open ? '今天的条件' : label();
+    $('foldTxt').textContent = open ? '收起，回到一键' : label();
   }
-  btn.onclick = function(){ set(box.classList.contains('collapsed')); };
+  btn.onclick = function(){ set(!open); };
   window._setFold = set;
   window._foldSync = function(){ if (!open) $('foldTxt').textContent = label(); };
   set(false);          // 默认收起——绝大多数时候直接按"一键"就够了
@@ -2575,39 +2608,39 @@ var POOL = [
   {cat:'游', t:'在家电影马拉松', d:'片单一人选一部，不许嫌弃', w:'雨', loc:[NEAR], b:0, tw:[13,22], u:150},
   {cat:'彩蛋', t:'窗边拍立得', d:'听雨，拍一张今天的我们', w:'雨', loc:[NEAR], b:0, u:20},
   {cat:'行', t:'晚饭后压马路', d:'走没走过的那条路', w:'晴', loc:[NEAR], b:0, tw:[18,21], u:50},
-  {cat:'游', t:'一起做顿饭', d:'她指挥，我打杂，谁洗碗待议', w:'皆', loc:[NEAR], b:0, tw:[16,20], u:100},
+  {cat:'游', t:'一起做顿饭', d:'{ta}指挥，我打杂，谁洗碗待议', w:'皆', loc:[NEAR], b:0, tw:[16,20], u:100},
   {cat:'彩蛋', t:'翻旧照片', d:'从最早那张开始，讲当天发生了什么', w:'雨', loc:[NEAR], b:0, u:40},
   {cat:'游', t:'美术馆看展', d:'各选一幅最喜欢的，讲给对方听', w:'皆', loc:[CITY], b:0, tw:[10,16], u:90},
   {cat:'游', t:'唱片店淘歌', d:'给对方挑一首"这就是你"的歌', w:'皆', loc:[CITY], b:0, tw:[11,20], u:60},
   {cat:'行', t:'老街区漫步', d:'专挑没走过的巷子钻', w:'晴', loc:[CITY], b:0, tw:[10,20], u:80},
   {cat:'行', t:'长堤走走', d:'风替我说想你', w:'晴', loc:[CITY], b:0, noCold:1, tw:[9,19], u:60},
-  {cat:'游', t:'游船夜航', d:'上层甲板风大，外套先给她', w:'晴', loc:[CITY], b:1, noCold:1, tw:[18,21], u:80},
+  {cat:'游', t:'游船夜航', d:'上层甲板风大，外套先给{ta}', w:'晴', loc:[CITY], b:1, noCold:1, tw:[18,21], u:80},
   {cat:'彩蛋', t:'大头贴合影', d:'认真拍一版，再拍最丑一版', w:'皆', loc:[CITY], b:0, tw:[11,21], u:25},
   {cat:'彩蛋', t:'顺手买束花', d:'不为节日，就是今天想送', w:'皆', loc:[CITY], b:1, tw:[10,20], u:20},
   {cat:'彩蛋', t:'写心愿纸条', d:'各写一张封好，生日当天拆', w:'皆', loc:[CITY,FAR], b:0, u:20},
   {cat:'游', t:'书店躲雨', d:'各选一本，交换读第一页', w:'雨', loc:[CITY], b:0, tw:[10,20], u:70},
   {cat:'游', t:'陶艺手作课', d:'做丑了统一称为抽象派', w:'雨', loc:[CITY], b:1, tw:[10,18], u:120},
   {cat:'游', t:'水族馆散步', d:'在水母缸前多站一会儿', w:'雨', loc:[CITY], b:1, tw:[10,17], u:110},
-  {cat:'游', t:'KTV 小包', d:'专属点歌权移交给她', w:'雨', loc:[CITY], b:0, tw:[13,22], u:120},
-  {cat:'游', t:'看一场电影', d:'她挑片，我买爆米花和靠后排', w:'皆', loc:[CITY], b:0, tw:[11,21], u:130},
+  {cat:'游', t:'KTV 小包', d:'专属点歌权移交给{ta}', w:'雨', loc:[CITY], b:0, tw:[13,22], u:120},
+  {cat:'游', t:'看一场电影', d:'{ta}挑片，我买爆米花和靠后排', w:'皆', loc:[CITY], b:0, tw:[11,21], u:130},
   {cat:'行', t:'山径轻徒步', d:'走到观景台就算登顶成功', w:'晴', loc:[FAR], b:0, noHot:1, tw:[8,14], u:150},
   {cat:'游', t:'果园采摘', d:'摘满一小篮才准下班', w:'晴', loc:[FAR], b:0, tw:[9,15], u:110},
-  {cat:'游', t:'花田风车打卡', d:'照片配额：她九张我一张', w:'晴', loc:[FAR], b:0, tw:[9,16], u:90},
+  {cat:'游', t:'花田风车打卡', d:'照片配额：{ta}九张我一张', w:'晴', loc:[FAR], b:0, tw:[9,16], u:90},
   {cat:'彩蛋', t:'夜观星空', d:'认不出星座就现场编一个', w:'晴', loc:[FAR], b:0, noCold:1, tw:[20,23], u:60},
   {cat:'游', t:'温泉半日', d:'泡到手指起皱为止', w:'皆', loc:[FAR], b:1, tw:[10,20], u:150},
   {cat:'游', t:'民宿发呆', d:'什么都不安排也是一种安排', w:'雨', loc:[FAR], b:2, tw:[12,20], u:180},
-  {cat:'彩蛋', t:'共撑一把伞', d:'伞记得往她那边偏', w:'雨', loc:[NEAR,CITY,FAR], b:0, u:20},
+  {cat:'彩蛋', t:'共撑一把伞', d:'伞记得往{ta}那边偏', w:'雨', loc:[NEAR,CITY,FAR], b:0, u:20},
   {cat:'食', t:'楼下宵夜摊', d:'一人一串，禁止互抢', w:'皆', loc:[NEAR,CITY], b:0, tw:[19,24], u:60},
   {cat:'食', t:'便利店关东煮', d:'两个人四串，再来一罐热的', w:'皆', loc:[NEAR,CITY], b:0, tw:[19,24], u:30},
   {cat:'食', t:'24 小时面馆', d:'一人一碗，汤要喝完', w:'皆', loc:[CITY], b:0, tw:[21,24], u:45},
-  {cat:'游', t:'夜里开车兜一圈', d:'放她的歌单，路随便挑', w:'皆', loc:[CITY,FAR], b:0, tw:[20,24], u:60},
+  {cat:'游', t:'夜里开车兜一圈', d:'放{ta}的歌单，路随便挑', w:'皆', loc:[CITY,FAR], b:0, tw:[20,24], u:60},
   {cat:'彩蛋', t:'阳台上看夜色', d:'不说话也行，站一会儿', w:'皆', loc:[NEAR], b:0, tw:[20,24], u:25},
   {cat:'食', t:'街口面包房', d:'刚出炉的那盘先来两个', w:'皆', loc:[NEAR], b:0, tw:[8,19], u:35},
   {cat:'食', t:'奶茶对比评测', d:'两家各买一杯，盲测打分', w:'皆', loc:[NEAR,CITY], b:0, tw:[11,21], u:40},
   {cat:'食', t:'煮一锅热汤面', d:'雨天的标准答案', w:'雨', loc:[NEAR], b:0, tw:[17,22], u:60},
-  {cat:'食', t:'火锅暖场', d:'辣度以她的意见为准', w:'雨', loc:[NEAR,CITY], b:0, tw:[11,21], u:110},
-  {cat:'食', t:'老字号小馆', d:'点一道她没吃过的招牌菜', w:'皆', loc:[CITY], b:0, tw:[11,19], u:80},
-  {cat:'食', t:'甜品二人份', d:'一份两勺，第一口让她先尝', w:'皆', loc:[NEAR,CITY], b:0, tw:[13,21], u:45},
+  {cat:'食', t:'火锅暖场', d:'辣度以{ta}的意见为准', w:'雨', loc:[NEAR,CITY], b:0, tw:[11,21], u:110},
+  {cat:'食', t:'老字号小馆', d:'点一道{ta}没吃过的招牌菜', w:'皆', loc:[CITY], b:0, tw:[11,19], u:80},
+  {cat:'食', t:'甜品二人份', d:'一份两勺，第一口让{ta}先尝', w:'皆', loc:[NEAR,CITY], b:0, tw:[13,21], u:45},
   {cat:'食', t:'水边咖啡座', d:'一直坐到夕阳收工', w:'晴', loc:[CITY], b:0, tw:[13,17], u:70},
   {cat:'食', t:'临水小酒馆', d:'一杯就好，微醺刚刚好', w:'雨', loc:[CITY], b:1, tw:[19,22], u:90},
   {cat:'食', t:'高层景观餐厅', d:'订靠窗位，卡着日落入座', w:'皆', loc:[CITY], b:2, tw:[17,20], u:110},
@@ -2615,7 +2648,7 @@ var POOL = [
   {cat:'食', t:'农家菜午餐', d:'现摘现炒，白饭管够', w:'晴', loc:[FAR], b:0, tw:[11,13], u:80},
   {cat:'食', t:'山脚小馆', d:'招牌是什么就吃什么', w:'皆', loc:[FAR], b:0, tw:[11,19], u:80},
   {cat:'食', t:'服务区小吃巡礼', d:'出逃路上的仪式感', w:'皆', loc:[FAR], b:0, tw:[9,20], u:40},
-  {cat:'食', t:'带上野餐篮', d:'三明治 + 她爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15], u:90}
+  {cat:'食', t:'带上野餐篮', d:'三明治 + {ta}爱喝的那款', w:'晴', loc:[FAR], b:0, tw:[10,15], u:90}
 ];
 // 偏好词 → 在卡片文字里找什么。宁可宽松一点，命中就加分，不命中也不排除
 var TASTE_OPTS = ['辣','清淡','甜品','咖啡','烧烤','火锅','日料','海鲜','面食','小酒'];
@@ -2668,8 +2701,8 @@ var CAT_EN = { '行':'Stroll', '游':'Play', '食':'Taste', '彩蛋':'Surprise' 
 var BUDGET_RANK = { '穷开心':0, '小奢侈':1, '豪华版':2 };
 var BUDGET_NOTE = {
   '穷开心':'本日计划走心不走钱包，快乐照常供应。',
-  '小奢侈':'今日允许一点小挥霍，例如为她加一份甜品。',
-  '豪华版':'豪华版已生效：她看什么，就是什么。'
+  '小奢侈':'今日允许一点小挥霍，例如为{ta}加一份甜品。',
+  '豪华版':'豪华版已生效：{ta}看什么，就是什么。'
 };
 var ENDINGS = [
   '行程可以临时改，牵你的手不改。',
@@ -2794,8 +2827,8 @@ function durOf(it){ return it.u || (it.cat==='食' ? 75 : (it.cat==='彩蛋' ? 3
 function cardHTML(it){
   var tag = it.own ? 'Ours · 私藏' : (it.near ? 'Nearby · 附近' : CAT_EN[it.cat]+' · '+it.cat);
   return '<div class="cat'+(it.own ? ' own' : '')+'">'+tag+'</div>'+
-         '<div class="t">'+esc(it.t)+'</div>'+
-         '<div class="d">'+esc(it.d)+'</div>'+
+         '<div class="t">'+esc(fill(it.t))+'</div>'+
+         '<div class="d">'+esc(fill(it.d))+'</div>'+
          '<div class="meta">'+esc(it.meta || ('约 '+durOf(it)+' 分钟'))+'</div>'+
          (statLine(pidOf(it)) ? '<div class="rate">'+esc(statLine(pidOf(it)))+'</div>' : '')+
          (it.tip ? '<div class="tip">'+esc(it.tip)+'</div>' : '');
@@ -2962,6 +2995,7 @@ function buildPlan(){
       to: cfg.to || '',
       note: '',
       b: state.budget,
+      ask: 0,
       e: pick(ENDINGS),
       s: r.stops
     },
@@ -3009,10 +3043,10 @@ function renderPlan(plan, items){
         'aria-label="'+(mk ? '取消打卡' : '到这儿了，打个卡')+'">'+(mk ? '✓' : '')+'</button>'+
       '<div class="c-main">'+
         '<div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
-        '<div class="row"><span class="t">'+esc(s.t)+'</span>'+
+        '<div class="row"><span class="t">'+esc(fill(s.t))+'</span>'+
         '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
         (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
-        '<div class="d">'+esc(s.d)+'</div>'+
+        '<div class="d">'+esc(fill(s.d))+'</div>'+
         (s.x ? '<div class="x">'+esc(s.x)+'</div>' : '')+
         (mk ? stampHTML(i, mk) : '')+
       '</div></div>';
@@ -3036,8 +3070,8 @@ function renderPlan(plan, items){
     withThumb(im.getAttribute('data-ph'), function(url){ if (url) im.src = url; });
   });
   renderProgress(plan, marks);
-  $('m-note').innerHTML = esc(BUDGET_NOTE[plan.b] || '今天怎么走都算数。') +
-    '<div class="sig">'+esc(plan.e || pick(ENDINGS))+'</div>';
+  $('m-note').innerHTML = esc(fill(BUDGET_NOTE[plan.b] || '今天怎么走都算数。')) +
+    '<div class="sig">'+esc(fill(plan.e || pick(ENDINGS)))+'</div>';
   $('menu').classList.remove('hidden');
 
   if (plan.note){
@@ -3134,7 +3168,7 @@ function toggleCheck(i){
   var marks2 = checksOf(currentPlan), n = 0;
   for (var k in marks2) if (marks2.hasOwnProperty(k)) n++;
   var allDone = n >= currentPlan.s.length;
-  if (allDone) hearts(16);
+  if (allDone){ hearts(16); nagBackup(); }
 
   // 这一站自己就有坐标（来自附近真实地点）就不打扰；完全没有坐标才顺手问一次定位，
   // 但是在后台问，不挡着打勾
@@ -3351,11 +3385,11 @@ function planText(plan){
   if (plan.note) lines.push('「' + plan.note + '」');
   lines.push('');
   plan.s.forEach(function(s,i){
-    lines.push((ROMAN[i]||(i+1)) + ' ' + fmtClock(s.m) + '–' + fmtClock(s.m+s.u) + ' ' + s.t + ' — ' + s.d +
+    lines.push((ROMAN[i]||(i+1)) + ' ' + fmtClock(s.m) + '–' + fmtClock(s.m+s.u) + ' ' + fill(s.t) + ' — ' + fill(s.d) +
       (s.x ? '（' + s.x + '）' : ''));
   });
   lines.push('');
-  lines.push(plan.e || '');
+  lines.push(fill(plan.e || ''));
   return lines.join('\n');
 }
 $('combine').onclick = function(){
@@ -3364,6 +3398,7 @@ $('combine').onclick = function(){
   renderPlan(built.plan, built.items);
   logUpsert(built.plan);
   $('ownerActs').classList.remove('hidden');
+  syncPartnerCopy();
   $('menu').scrollIntoView({behavior:'smooth', block:'nearest'});
 };
 
@@ -3429,6 +3464,7 @@ $('quickBtn').onclick = function(){
   $('ownerActs').classList.remove('hidden');
   if (window._setFold) window._setFold(false);
   if (window.Petals) Petals.burst(14);
+  syncPartnerCopy();
   setTimeout(function(){ $('menu').scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
   toast('排好了。哪一站不合意，点那一行的「换」');
 };
@@ -3437,10 +3473,25 @@ $('quickBtn').onclick = function(){
 function planLink(plan){
   return baseUrl() + '?s=' + b64e({ k:'plan', p:plan, c:publicCfg() });
 }
+function partnerName(){ return cfg.to || (currentPlan && currentPlan.to) || ''; }
+// 把"她"换成称呼：女生想排一天不该出戏，同性情侣也得能用
+function syncPartnerCopy(){
+  var who = partnerName();
+  var so = $('shareOpen');
+  if (so) so.textContent = who ? ('把 今 天 送 给 ' + who) : '把 今 天 送 出 去';
+  var t = $('sheetTitle');
+  if (t) t.textContent = who ? ('把今天送给' + who) : '把今天送出去';
+  var h = $('sheetHint');
+  if (h) h.textContent = (who || '对方') + '点开先看到一个封蜡，拆开才是你排好的今天';
+  var nl = $('noteLabel');
+  if (nl) nl.textContent = who ? ('想对' + who + '说的一句话') : '想说的一句话';
+}
 function openSheet(){
   if (!currentPlan){ toast('先生成一份计划'); return; }
+  syncPartnerCopy();
   $('shFrom').value = currentPlan.from || cfg.from || '';
   $('shNote').value = currentPlan.note || '';
+  $('shAsk').checked = !!currentPlan.ask;
   $('shOut').value = '';
   $('shMake').textContent = '生成惊喜链接';
   $('sheet').classList.add('show');
@@ -3452,8 +3503,8 @@ $('sheet').onclick = function(e){ if (e.target === $('sheet')) $('sheet').classL
   var box = $('noteTpl');
   NOTE_TPL.forEach(function(t){
     var b = document.createElement('button');
-    b.type = 'button'; b.textContent = t;
-    b.onclick = function(){ $('shNote').value = t; };
+    b.type = 'button'; b.textContent = fill(t);
+    b.onclick = function(){ $('shNote').value = fill(t); };
     box.appendChild(b);
   });
 })();
@@ -3461,6 +3512,7 @@ function syncPlanFromSheet(){
   if (!currentPlan) return null;
   currentPlan.from = $('shFrom').value.trim();
   currentPlan.note = $('shNote').value.trim();
+  currentPlan.ask = $('shAsk').checked ? 1 : 0;
   renderPlan(currentPlan, currentItems);
   logUpsert(currentPlan);
   return currentPlan;
@@ -3551,7 +3603,7 @@ function drawPoster(plan){
   }
   for (var i=0;i<plan.s.length;i++){
     mc.font = F_D;
-    var dl = wrapLines(mc, plan.s[i].d, INNER - 20);
+    var dl = wrapLines(mc, fill(plan.s[i].d), INNER - 20);
     blocks.push({k:'stop', i:i, lines:dl});
     y += 30 + 42 + 40 + dl.length*36 + 4 + (plan.s[i].x ? 32 : 0);
   }
@@ -3597,7 +3649,7 @@ function drawPoster(plan){
     x.fillText((ROMAN[b.i]||(b.i+1)) + '  ' + (CAT_EN[s.c]||'STOP').toUpperCase(), PAD, cy);
     cy += 42;
     x.fillStyle = '#F3EBE0'; x.font = F_T;
-    x.fillText(s.t, PAD, cy);
+    x.fillText(fill(s.t), PAD, cy);
     x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px ' + CV_LATIN;
     x.fillText(fmtClock(s.m)+'–'+fmtClock(s.m+s.u), W-PAD, cy);
     cy += 40;
@@ -3614,7 +3666,7 @@ function drawPoster(plan){
   x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
   x.beginPath(); x.moveTo(PAD, cy - 26); x.lineTo(W-PAD, cy - 26); x.stroke();
   x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px ' + CV_SERIF;
-  x.fillText(plan.e || '', W/2, cy);
+  x.fillText(fill(plan.e || ''), W/2, cy);
   cy += 46;
   x.fillStyle = 'rgba(240,232,220,.5)'; x.font = '400 22px ' + CV_SANS;
   x.fillText(plan.from ? ('—— ' + plan.from) : '—— 今天想见你的人', W/2, cy);
@@ -4102,8 +4154,51 @@ function checkTotal(){
   });
   return n;
 }
+// 打卡、照片、足迹都在这台手机的浏览器里，而大多数人是在微信里打开的。
+// 这是最会让人翻脸的一种丢失，所以别把提醒藏在设置最底下。
+function backupState(){
+  try{ return JSON.parse(localStorage.getItem(BK_KEY) || 'null'); }catch(e){ return null; }
+}
+function markBackup(n){
+  try{ localStorage.setItem(BK_KEY, JSON.stringify({ at:Date.now(), n:n })); }catch(e){}
+}
+function renderBackupWarn(all){
+  var el = $('fpWarn');
+  if (!el) return;
+  if (!all){ el.textContent = ''; return; }
+  var bk = backupState();
+  var since = bk ? (all - bk.n) : all;
+  var days = bk ? Math.floor((Date.now() - bk.at) / 86400000) : 0;
+  if (bk && since < 5){
+    el.style.color = 'var(--ink-soft)';
+    el.textContent = '上次备份：' + (days <= 0 ? '今天' : (days + ' 天前')) +
+      (since ? ('，之后又打了 ' + since + ' 次卡') : '');
+    return;
+  }
+  el.style.color = '';
+  el.innerHTML = (bk ? ('上次备份是 ' + days + ' 天前，之后又打了 ' + since + ' 次卡。')
+                     : ('这 ' + all + ' 次打卡和照片只在这台手机里，清一次缓存就没了。')) +
+    '<button id="fpBackup">导出一份</button>';
+  var b = $('fpBackup');
+  if (b) b.onclick = function(){ $('cfgExport').click(); };
+}
+
+// 走完一天、而且离上次备份又攒了不少的时候，主动催一次
+function nagBackup(){
+  if (isGuest) return;
+  var all = checkTotal(), bk = backupState();
+  if ((bk ? (all - bk.n) : all) < 5) return;
+  setTimeout(function(){
+    toast('这 ' + all + ' 次打卡只在这台手机里，去设置导一份出来');
+  }, 2800);
+}
+
 function renderFootprints(){
   if (isGuest) return;
+  // 一次都没生成过计划、也没打过卡：整块先不出现。空格子比没有更伤
+  var virgin = !logRead().length && !checkTotal();
+  $('memo').classList.toggle('hidden', virgin);
+  if (virgin) return;
   var pins = collectPins();
   var uniq = distinctPlaces(pins);
   var shots = pins.filter(function(p){ return p.ph; });
@@ -4123,6 +4218,7 @@ function renderFootprints(){
   } else {
     $('fpStat').textContent = '还没有打过卡。出门之后在计划里点一下每一站左边的圈。';
   }
+  renderBackupWarn(all);
 
   // 一次都没打过卡的时候，地图和照片条先不出现——空着占半屏没有意义
   $('mapWrap').classList.toggle('hidden', !pins.length);
@@ -4245,7 +4341,9 @@ renderFootprints();
   $('sealBtn').textContent = sharedPlan.from ? sharedPlan.from.charAt(0) : '♥';
   document.title = who + '把' + label + '给你排好了';
   $('sub').textContent = who + ' 为你排好的一天';
-  inv.classList.remove('hidden');
+  // 要先问一句的话，信封等她答应完再出现，一次只做一件事
+  if (sharedPlan.ask) window._showInvite = function(){ inv.classList.remove('hidden'); };
+  else inv.classList.remove('hidden');
 
   function open(){
     hearts(18);
@@ -4257,11 +4355,19 @@ renderFootprints();
   }
   $('sealBtn').onclick = open;
   $('iSkip').onclick = open;
+  // 封蜡下面立刻放一个"跳过"，等于给情书配了跳过片头。等几秒再给。
+  // 拆开之后整个信封会被移除，所以这里要确认它还在。
+  setTimeout(function(){
+    var sk = $('iSkip');
+    if (sk) sk.classList.remove('hidden');
+  }, 7000);
 })();
 
 $('acceptBtn').onclick = function(){
   hearts(18);
-  $('rcBody').textContent = '「' + pick(REPLIES) + '」';
+  var who = (sharedPlan && sharedPlan.from) || '他';
+  $('rcHint').textContent = '把这句话原样发回给' + who + '，今天就算说定了。';
+  $('rcBody').textContent = '「' + fill(pick(REPLIES)) + '」';
   $('replyMask').classList.add('show');
 };
 $('rcCopy').onclick = function(){
@@ -4296,8 +4402,10 @@ $('mineBtn').onclick = function(){
 };
 
 /* ---------- 12 开场 / 设置 / 彩蛋 / 情话 ---------- */
+// 开场那句问话只在"她拆开邀请"的时候出现，而且要发的人自己勾了才有。
+// 排计划的人打开网站不该被问——他是送的那个人。
 (function(){
-  if (!cfg.gate || sharedPlan) return;
+  if (!(sharedPlan && sharedPlan.ask)) return;
   var gate = $('gate');
   gate.classList.remove('hidden');
   var yes = $('yesBtn'), no = $('noBtn');
@@ -4316,8 +4424,10 @@ $('mineBtn').onclick = function(){
   function accept(){
     hearts(14);
     setTimeout(function(){ gate.classList.add('done'); }, 500);
-    setTimeout(function(){ gate.remove(); }, 1400);
-    if (firstRun) setTimeout(openPanel, 1600);
+    setTimeout(function(){
+      gate.remove();
+      if (window._showInvite) window._showInvite();
+    }, 1400);
   }
   yes.onclick = accept;
 })();
@@ -4435,7 +4545,6 @@ function spotRow(s){
 }
 function openPanel(){
   $('cfgAnni').value = cfg.anni;
-  $('cfgGate').checked = cfg.gate;
   $('cfgFrom').value = cfg.from || '';
   $('cfgTo').value = cfg.to || '';
   $('cfgAvoid').value = cfg.avoid || '';
@@ -4457,6 +4566,10 @@ function openPanel(){
   panel.classList.add('show');
 }
 $('gearBtn').onclick = openPanel;
+(function(){
+  var hero = document.querySelector('.hero-stat');
+  if (hero) hero.onclick = function(){ if (hero.classList.contains('unset')) openPanel(); };
+})();
 panel.onclick = function(e){ if (e.target === panel) panel.classList.remove('show'); };
 $('panelClose').onclick = function(){ panel.classList.remove('show'); };
 $('sheetClose2').onclick = function(){ $('sheet').classList.remove('show'); };
@@ -4480,10 +4593,10 @@ $('addSpot').onclick = function(){
 function collectCfg(){
   var anni = $('cfgAnni').value;
   if (anni) cfg.anni = anni;
-  cfg.gate = $('cfgGate').checked;
   cfg.from = $('cfgFrom').value.trim();
   cfg.to = $('cfgTo').value.trim();
   cfg.avoid = $('cfgAvoid').value.trim();
+  syncPartnerCopy();
   cfg.mbtiA = $('cfgMbtiA').value;
   cfg.mbtiB = $('cfgMbtiB').value;
   cfg.taste = panelPick.taste.slice();
@@ -4568,6 +4681,8 @@ $('cfgExport').onclick = function(){
     a.remove();
     setTimeout(function(){ URL.revokeObjectURL(url); }, 4000);
     var kb = Math.round(blob.size / 1024);
+    markBackup(checkTotal());
+    renderFootprints();
     toast('导出了 ' + name + '（' + (kb > 1024 ? (kb/1024).toFixed(1) + ' MB' : kb + ' KB') + '）');
   });
 };
@@ -4645,7 +4760,7 @@ $('shareBtn').onclick = function(){
   // 纪念日当天自动亮出来：4月15日 & 12月6日
   var md = (now.getMonth()+1) + '-' + now.getDate();
   if (md === '4-15' || md === '12-6'){
-    foot.textContent = 'Handcrafted with love · Est. 2026 ♥';
+    foot.textContent = '为了一个人做的 ♥';
     setTimeout(showOrigin, 1200);
   }
 })();
@@ -4659,7 +4774,7 @@ $('sweetBtn').onclick = function(){
     while (line === lastSweet && guard++ < 8) line = pick(SWEETS);
     lastSweet = line;
     el.style.animation = 'none'; void el.offsetWidth; el.style.animation = '';
-    el.textContent = '「' + line + '」';
+    el.textContent = '「' + fill(line) + '」';
   });
 };
 
