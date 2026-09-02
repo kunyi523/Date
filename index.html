@@ -1,10 +1,35 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="zh-CN" data-theme="day">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 <meta name="color-scheme" content="light dark" />
-<meta name="theme-color" content="#1D1620" />
+<meta name="theme-color" content="#140F19" media="(prefers-color-scheme: dark)" />
+<meta name="theme-color" content="#F8F3EA" media="(prefers-color-scheme: light)" />
+<script>
+/* 先把主题定下来再让 CSS 上色，否则会闪一下另一套配色。
+   顺序：分享链接里带的 > 本机存的 > 跟随系统。 */
+(function(){
+  var t = 'auto';
+  try{
+    var c = JSON.parse(localStorage.getItem('xindong_cfg_v1') || '{}');
+    if (c && c.theme) t = c.theme;
+  }catch(e){}
+  try{
+    var m = location.search.match(/[?&][sc]=([^&]+)/);
+    if (m){
+      var raw = decodeURIComponent(m[1]).replace(/-/g,'+').replace(/_/g,'/');
+      while (raw.length % 4) raw += '=';
+      var box = JSON.parse(decodeURIComponent(escape(atob(raw))));
+      var shared = box && (box.c || box);
+      if (shared && shared.theme) t = shared.theme;
+    }
+  }catch(e){}
+  var dark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+  var night = t === 'night' || (t !== 'day' && dark);
+  document.documentElement.setAttribute('data-theme', night ? 'night' : 'day');
+})();
+</script>
 <title>今天，怎么心动？</title>
 <meta name="description" content="情侣今日约会计划：选好预算、天气和想跑多远，一键抽出今天的玩乐与美食，再把整份计划封进一个链接，送给你想见的那个人。" />
 <meta property="og:type" content="website" />
@@ -16,15 +41,45 @@
 <style>
   /* ───────── 设计令牌（改样式请先改这里，别在组件里写死数值）
      完整说明见 DESIGN.md。写法参考 brands-design-md 的 DESIGN.md 约定。 */
-  :root{
-    /* 颜色 */
-    --paper:#F5F0E6; --paper2:#EFE8DA;
-    --ink:#2B2130; --ink-soft:rgba(43,33,48,.62);
-    --gold:#A9853F; --gold-bright:#C9A96A; --rose:#9C6B76;
-    --card:#251C29; --card-top:#33283A; --card-ivory:#FBF7EE;
-    --on-dark:#F0E8DC; --on-dark-soft:rgba(240,232,220,.6); --on-dark-line:rgba(240,232,220,.14);
-    --line:rgba(43,33,48,.16); --gold-line:rgba(201,169,106,.4);
+  /* ── 两套配色。html[data-theme] 由脚本按「跟随系统 / 晨光 / 夜色」写入 ── */
+  /* 晨光：暖象牙 + 香槟金 + 一点胭脂，发丝线更细、阴影更散 */
+  html[data-theme="day"]{
+    --paper:#F8F3EA; --paper2:#F1EADD;
+    --ink:#34293B; --ink-soft:rgba(52,41,59,.58);
+    --gold:#A98446; --gold-bright:#C9A96A; --gold-soft:rgba(169,132,70,.5);
+    --rose:#A4737E; --rose-soft:rgba(164,115,126,.14);
+    --card:#2A2130; --card-top:#392C40; --card-ivory:#FDFAF4;
+    --on-dark:#F2EBE1; --on-dark-soft:rgba(242,235,225,.62); --on-dark-line:rgba(242,235,225,.13);
+    --line:rgba(52,41,59,.12); --gold-line:rgba(201,169,106,.42);
+    --glow-a:rgba(201,169,106,.20); --glow-b:rgba(164,115,126,.13);
+    --shadow-flat:0 1px 3px rgba(52,41,59,.05), 0 4px 12px rgba(52,41,59,.04);
+    --shadow-card:0 2px 6px rgba(52,41,59,.08), 0 14px 34px rgba(52,41,59,.16);
+    --shadow-raised:0 2px 8px rgba(52,41,59,.10), 0 18px 44px rgba(52,41,59,.20);
+    --shadow-overlay:0 8px 24px rgba(52,41,59,.14), 0 28px 64px rgba(52,41,59,.26);
+    --shadow-pressed:inset 0 3px 10px rgba(0,0,0,.42), 0 1px 3px rgba(52,41,59,.10);
+    --shadow-inset:inset 0 2px 6px rgba(0,0,0,.28);
+    --shadow-seal:0 10px 26px rgba(52,41,59,.24), inset 0 -5px 12px rgba(0,0,0,.22), inset 0 3px 9px rgba(255,255,255,.34);
+  }
+  /* 夜色：近黑丝绒紫 + 更亮一档的金，让金在黑上有光泽 */
+  html[data-theme="night"]{
+    --paper:#140F19; --paper2:#1D1622;
+    --ink:#F4ECE2; --ink-soft:rgba(244,236,226,.56);
+    --gold:#CBAB6E; --gold-bright:#DFC591; --gold-soft:rgba(203,171,110,.45);
+    --rose:#B98C97; --rose-soft:rgba(185,140,151,.12);
+    --card:#211A27; --card-top:#2E2436; --card-ivory:#241C2B;
+    --on-dark:#F4ECE2; --on-dark-soft:rgba(244,236,226,.6); --on-dark-line:rgba(244,236,226,.12);
+    --line:rgba(244,236,226,.11); --gold-line:rgba(203,171,110,.42);
+    --glow-a:rgba(203,171,110,.16); --glow-b:rgba(185,140,151,.10);
+    --shadow-flat:0 1px 3px rgba(0,0,0,.34), 0 4px 14px rgba(0,0,0,.22);
+    --shadow-card:0 2px 8px rgba(0,0,0,.40), 0 16px 38px rgba(0,0,0,.34);
+    --shadow-raised:0 2px 10px rgba(0,0,0,.44), 0 20px 48px rgba(0,0,0,.40);
+    --shadow-overlay:0 10px 28px rgba(0,0,0,.48), 0 30px 70px rgba(0,0,0,.46);
+    --shadow-pressed:inset 0 3px 12px rgba(0,0,0,.62), 0 1px 3px rgba(0,0,0,.3);
+    --shadow-inset:inset 0 2px 7px rgba(0,0,0,.5);
+    --shadow-seal:0 12px 30px rgba(0,0,0,.5), inset 0 -5px 12px rgba(0,0,0,.34), inset 0 3px 9px rgba(255,255,255,.26);
+  }
 
+  :root{
     /* 字体 */
     --serif:'Noto Serif SC',serif; --latin:'Cormorant Garamond',serif;
     --sans:'Noto Sans SC',-apple-system,sans-serif;
@@ -42,6 +97,7 @@
     --text-body-sm:13.5px;
     --text-caption:12.5px;
     --text-micro:11.5px;
+    --text-input:16px;     /* 低于 16px，iOS 一点输入框就会把整页放大 */
 
     /* 字距：西文小标一律拉开，中文正文不拉 */
     --track-eyebrow:5px; --track-label:4px; --track-tag:3px;
@@ -54,25 +110,19 @@
 
     /* 圆角：这个牌子是"活字印刷"的气质，除了封蜡和抽屉都接近直角 */
     --radius-sm:3px; --radius-md:6px; --radius-lg:8px;
-    --radius-sheet:16px; --radius-full:999px;
+    --radius-sheet:20px; --radius-full:999px;
 
-    /* 阴影 */
-    --shadow-flat:0 2px 5px rgba(43,33,48,.08);
-    --shadow-card:0 12px 22px rgba(43,33,48,.30), 0 3px 6px rgba(43,33,48,.18);
-    --shadow-raised:0 12px 24px rgba(43,33,48,.34), 0 3px 6px rgba(43,33,48,.2);
-    --shadow-overlay:0 18px 36px rgba(43,33,48,.4);
-    --shadow-pressed:inset 0 4px 12px rgba(0,0,0,.55), 0 2px 5px rgba(43,33,48,.18);
-    --shadow-inset:inset 0 2px 6px rgba(0,0,0,.4);
-    --shadow-seal:0 14px 30px rgba(43,33,48,.38), inset 0 -5px 12px rgba(0,0,0,.28), inset 0 3px 8px rgba(255,255,255,.3);
-
-    /* 动效：只用这三档 */
-    --dur-fast:.16s; --dur-base:.25s; --dur-slow:.7s;
-    --ease:ease;
+    /* 动效：只用这几档，曲线只用一条 */
+    --dur-fast:.16s; --dur-base:.25s; --dur-slow:.7s; --dur-veil:.42s;
+    --ease:cubic-bezier(.22,.61,.36,1);
 
     /* 触摸目标下限 */
     --tap:44px;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  /* 去掉 iOS 上点按的 300ms 等待，手感差别很明显 */
+  button, .chip, .card, .swap, label{touch-action:manipulation}
+  button{-webkit-appearance:none; appearance:none}
   body{
     margin:0; min-height:100vh; color:var(--ink);
     background:
@@ -82,18 +132,43 @@
     font-family:'Noto Sans SC',-apple-system,sans-serif; font-weight:400;
     display:flex; justify-content:center; padding-bottom:64px;
   }
-  .app{width:100%; max-width:430px; padding:30px 22px 0}
+  .app{
+    width:100%; max-width:430px;
+    padding:calc(30px + env(safe-area-inset-top)) calc(22px + env(safe-area-inset-right)) 0
+            calc(22px + env(safe-area-inset-left));
+  }
 
-  .topbar{display:flex; justify-content:space-between; align-items:flex-start}
+  .topbar{display:flex; justify-content:space-between; align-items:flex-start; gap:10px}
+  .top-acts{display:flex; gap:8px; flex:none}
+  .gear.icon{min-width:var(--tap); padding:7px 0; font-size:var(--text-body); text-align:center; color:var(--gold)}
+  /* 换主题时用一层同色的幕布过一下，比让几十个元素各自过渡颜色便宜得多 */
+  #veil{position:fixed; inset:0; z-index:95; background:var(--paper); opacity:0;
+    pointer-events:none; transition:opacity var(--dur-veil) var(--ease)}
+  #veil.on{opacity:1}
   .eyebrow{font-family:var(--latin); font-size:var(--text-body-sm); letter-spacing:5px; color:var(--gold); text-transform:uppercase; margin-bottom:8px}
   .gear{border:1px solid var(--line); background:var(--card-ivory); color:var(--ink-soft); font-size:var(--text-caption);
     min-height:var(--tap); padding:7px 13px; border-radius:var(--radius-sm); cursor:pointer; font-family:inherit}
   h1{font-family:var(--serif); font-weight:900; font-size:var(--text-display-xl); line-height:1.25; margin:0 0 6px}
   .sub{font-size:var(--text-body-sm); color:var(--rose); margin-bottom:26px}
 
-  .hero-stat{border-top:1px solid var(--ink); border-bottom:1px solid var(--line); padding:16px 2px; display:flex; align-items:baseline; justify-content:space-between}
+  .rule-fade{
+    background-image:linear-gradient(90deg, transparent, var(--gold-soft) 14%, var(--gold-soft) 86%, transparent);
+    background-repeat:no-repeat; background-size:100% 1px;
+  }
+  .hero-stat{
+    border-bottom:1px solid var(--line); padding:17px 2px 16px;
+    display:flex; align-items:baseline; justify-content:space-between;
+    background-image:linear-gradient(90deg, transparent, var(--gold-soft) 14%, var(--gold-soft) 86%, transparent);
+    background-repeat:no-repeat; background-size:100% 1px; background-position:top;
+  }
   .hero-stat small{font-size:var(--text-caption); letter-spacing:3px; color:var(--ink-soft)}
-  .hero-stat .num{font-family:var(--serif); font-weight:900; font-size:var(--text-hero); color:var(--gold)}
+  .hero-stat .num{position:relative; font-family:var(--serif); font-weight:900; font-size:var(--text-hero); color:var(--gold)}
+  .hero-stat .num::before{
+    content:""; position:absolute; inset:-20px -30px; border-radius:var(--radius-full);
+    background:radial-gradient(circle, var(--glow-a), transparent 70%);
+    pointer-events:none; animation:breathe 7s ease-in-out infinite;
+  }
+  @keyframes breathe{0%,100%{opacity:.3; transform:scale(.94)}50%{opacity:.8; transform:scale(1.06)}}
   .hero-stat .num i{font-style:normal; font-size:var(--text-body); font-weight:600; color:var(--ink); opacity:.65; margin:0 4px}
   .mstones{margin-bottom:10px}
   .mstone{display:flex; justify-content:space-between; align-items:baseline; padding:11px 2px; border-bottom:1px solid var(--line); font-size:var(--text-body-sm)}
@@ -109,11 +184,28 @@
     cursor:pointer; transition:all var(--dur-fast) var(--ease); font-family:inherit; letter-spacing:.5px;
     box-shadow:var(--shadow-flat);
   }
-  .chip.on{background:var(--ink); border-color:var(--gold); color:var(--gold-bright); box-shadow:var(--shadow-inset)}
+  .chip.on{background:linear-gradient(160deg, var(--card-top), var(--card)); border-color:var(--gold); color:var(--gold-bright); box-shadow:var(--shadow-inset)}
+  .chip:active{transform:scale(.97)}
+  .deal:active, .m-add:active, .act:active, .sweet-btn:active{transform:scale(.99)}
   .temp-row{display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap}
   .temp-btn{padding:8px 13px; border-radius:var(--radius-sm); border:1px dashed var(--gold); background:transparent; color:var(--gold); font-size:var(--text-body-sm); cursor:pointer; font-family:inherit}
   .temp-read{font-size:var(--text-body-sm); color:var(--ink); min-height:1em; line-height:1.7}
   .temp-read b{font-family:var(--serif); font-size:var(--text-caption); color:var(--rose); font-weight:600; margin-left:4px}
+
+  /* ————— 花枝 ————— */
+  .orn{display:block; margin:var(--space-7) auto; color:var(--gold); opacity:.55}
+  .orn.sm{width:96px; height:24px; opacity:.45}
+  .orn.md{width:132px; height:32px}
+  .orn.lg{width:158px; height:38px}
+  /* 抬头背后那朵：极低透明度，缓慢自转，纯 transform 不占布局 */
+  .hero-wrap{position:relative}
+  .hero-bloom{
+    position:absolute; right:-22px; top:16px; width:126px; height:126px;
+    color:var(--gold); opacity:.085; pointer-events:none; transform:rotate(-12deg);
+  }
+  .menu .m-orn{display:block; margin:8px auto 12px; width:120px; height:28px; color:var(--gold-bright); opacity:.6}
+  .love-note .ln-orn{display:block; margin:0 auto 10px; width:26px; height:26px; color:var(--gold); opacity:.75}
+  #invite .i-orn{width:150px; height:36px; color:var(--gold); opacity:.6; margin-bottom:18px}
 
   /* ————— 一键 ————— */
   .quick{
@@ -125,11 +217,6 @@
   }
   .quick .qt{font-family:var(--serif); font-size:var(--text-title-lg); font-weight:600; letter-spacing:3px; display:block}
   .quick .qd{font-size:var(--text-caption); color:rgba(240,232,220,.55); letter-spacing:.5px; margin-top:4px; display:block}
-  .quick::before{
-    content:""; position:absolute; top:0; bottom:0; width:55%;
-    background:linear-gradient(115deg, transparent, rgba(255,255,255,.13), transparent);
-    left:-60%; animation:sheen 3.6s ease-in-out infinite;
-  }
   .fold{display:flex; align-items:center; justify-content:space-between; width:100%; margin-top:16px; padding:11px 0;
     border:none; border-top:1px solid var(--line); border-bottom:1px solid var(--line); background:transparent;
     color:var(--ink-soft); font-size:var(--text-body-sm); font-family:inherit; cursor:pointer; letter-spacing:1px}
@@ -138,7 +225,11 @@
   .setup.collapsed{display:none}
 
   .part{margin-top:34px}
-  .part-head{display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--ink); padding-bottom:8px}
+  .part-head{
+    display:flex; align-items:baseline; justify-content:space-between; padding-bottom:9px;
+    background-image:linear-gradient(90deg, transparent, var(--gold-soft) 10%, var(--gold-soft) 90%, transparent);
+    background-repeat:no-repeat; background-size:100% 1px; background-position:bottom;
+  }
   .part-head .t{font-family:var(--serif); font-weight:900; font-size:var(--text-display-sm)}
   .part-head .en{font-family:var(--latin); font-size:var(--text-caption); letter-spacing:4px; color:var(--gold); text-transform:uppercase}
   .deal{
@@ -155,12 +246,14 @@
     border:1px solid rgba(201,169,106,.25); border-top-color:rgba(255,255,255,.14);
     box-shadow:var(--shadow-card);
     transition:transform var(--dur-fast) var(--ease), box-shadow var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
-    opacity:0; transform:translateY(16px); animation:dealIn .45s ease forwards;
+    animation:dealIn .5s var(--ease) both;
   }
-  .card:nth-child(2){animation-delay:.06s}.card:nth-child(3){animation-delay:.12s}
-  .card:nth-child(4){animation-delay:.18s}.card:nth-child(5){animation-delay:.24s}
-  .card:nth-child(6){animation-delay:.3s}
-  @keyframes dealIn{to{opacity:1; transform:translateY(0)}}
+  .card:nth-child(2){animation-delay:.05s}.card:nth-child(3){animation-delay:.1s}
+  .card:nth-child(4){animation-delay:.15s}.card:nth-child(5){animation-delay:.2s}
+  .card:nth-child(6){animation-delay:.25s}
+  /* 初始状态写在 keyframes 里，不写在 .card 上：开了「减少动态效果」之后动画被禁用，
+     写在 .card 上的 opacity:0 会让卡片永远不出现。 */
+  @keyframes dealIn{from{opacity:0; transform:translate3d(0,18px,0)}to{opacity:1; transform:none}}
   .card .cat{font-family:var(--latin); font-size:var(--text-micro); letter-spacing:3px; color:var(--rose); text-transform:uppercase}
   .card .cat.own{color:var(--gold-bright)}
   .card .t{font-family:var(--serif); font-weight:600; font-size:var(--text-title); margin:6px 0 5px}
@@ -209,7 +302,8 @@
   .menu .m-eyebrow{font-family:var(--latin); text-align:center; font-size:var(--text-caption); letter-spacing:5px; color:var(--gold-bright); text-transform:uppercase}
   .menu h2{font-family:var(--serif); font-weight:900; text-align:center; font-size:var(--text-display-md); margin:8px 0 2px}
   .menu .m-date{font-family:var(--latin); text-align:center; font-size:var(--text-body-sm); font-style:italic; color:rgba(240,232,220,.55); margin-bottom:18px}
-  .course{padding:14px 4px; border-top:1px solid rgba(240,232,220,.14)}
+  .course{padding:14px 4px; border-top:1px solid var(--on-dark-line); animation:courseIn .55s var(--ease) both}
+  @keyframes courseIn{from{opacity:0; transform:translate3d(0,12px,0)}to{opacity:1; transform:none}}
   .course .no{font-family:var(--latin); font-size:var(--text-caption); letter-spacing:3px; color:var(--gold-bright)}
   .course .row{display:flex; justify-content:space-between; align-items:baseline; margin-top:3px; gap:10px}
   .course .t{font-family:var(--serif); font-weight:600; font-size:var(--text-title-lg)}
@@ -251,7 +345,7 @@
   .memo-row .mb.done{border-color:var(--gold); color:var(--gold)}
   .memo-empty{font-size:var(--text-body-sm); color:var(--ink-soft); padding:14px 0; line-height:1.8}
 
-  footer{margin-top:40px; text-align:center; font-family:var(--latin); font-size:var(--text-micro); letter-spacing:3px; color:rgba(43,33,48,.4); text-transform:uppercase}
+  footer{margin-top:22px; text-align:center; font-family:var(--latin); font-size:var(--text-micro); letter-spacing:3px; color:var(--ink-soft); opacity:.7; text-transform:uppercase}
   .hidden{display:none!important}
   button:focus-visible{outline:2px solid var(--gold); outline-offset:2px}
 
@@ -297,33 +391,67 @@
     text-shadow:0 1px 0 rgba(255,255,255,.25);
   }
   .seal::before{
-    content:""; position:absolute; inset:9px; border-radius:var(--radius-full);
-    border:1px solid rgba(58,42,22,.35); pointer-events:none;
+    content:""; position:absolute; inset:8px; border-radius:var(--radius-full);
+    border:1px solid rgba(58,42,22,.32); pointer-events:none;
   }
-  .seal::after{
-    content:""; position:absolute; inset:15px; border-radius:var(--radius-full);
-    border:1px dashed rgba(58,42,22,.22); pointer-events:none;
-  }
+  .seal-bloom{position:absolute; inset:13px; color:rgba(58,42,22,.42); pointer-events:none}
+  .seal #sealChar{position:relative; z-index:1}
   @keyframes beat{0%,100%{transform:scale(1)}14%{transform:scale(1.09)}28%{transform:scale(1)}42%{transform:scale(1.06)}}
   #invite .i-hint{font-size:var(--text-body-sm); color:var(--ink-soft); margin-top:22px; letter-spacing:2px}
-  #invite .i-skip{margin-top:26px; border:none; background:transparent; color:rgba(43,33,48,.4);
-    font-size:var(--text-caption); font-family:inherit; letter-spacing:1px; cursor:pointer; text-decoration:underline}
+  #invite .i-skip{margin-top:22px; min-height:var(--tap); border:none; background:transparent; color:var(--ink-soft);
+    font-size:var(--text-caption); font-family:inherit; letter-spacing:1px; cursor:pointer; text-decoration:underline;
+    text-underline-offset:4px}
 
   /* ————— 弹层通用 ————— */
-  .mask{position:fixed; inset:0; z-index:55; background:rgba(43,33,48,.55); display:none}
+  .mask{position:fixed; inset:0; z-index:55; background:rgba(16,11,20,.58); display:none}
   .mask.show{display:block}
   .mask.center{align-items:center; justify-content:center; padding:26px}
   .mask.center.show{display:flex}
+  /* 底部抽屉：iOS 上 vh 会被地址栏坑，所以优先用 dvh；内层滚动要 contain，
+     不然一滚到底就把整页带着一起滚。 */
   .panel-card{
-    position:absolute; left:0; right:0; bottom:0; max-height:88vh; overflow:auto;
-    background:var(--paper); border-radius:var(--radius-sheet) var(--radius-sheet) 0 0; padding:22px 20px 34px;
+    position:absolute; left:0; right:0; bottom:0;
+    max-height:90vh; max-height:90dvh;
+    display:flex; flex-direction:column;
+    background:var(--paper); border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;
+    box-shadow:var(--shadow-overlay);
+    animation:sheetUp var(--dur-base) var(--ease) both;
   }
-  .panel-card h3{font-family:var(--serif); font-weight:900; font-size:var(--text-display-sm); margin:0 0 4px}
+  @keyframes sheetUp{from{transform:translate3d(0,26px,0)}to{transform:none}}
+  .sheet-head{
+    position:relative; flex:none; display:flex; align-items:flex-start; justify-content:space-between; gap:12px;
+    padding:20px 20px 12px; border-bottom:1px solid var(--line); background:var(--paper);
+    border-radius:var(--radius-sheet) var(--radius-sheet) 0 0;
+  }
+  .sheet-head .grip{position:absolute; top:8px; left:50%; transform:translateX(-50%);
+    width:38px; height:4px; border-radius:var(--radius-full); background:var(--line)}
+  .sheet-close{flex:none; min-width:var(--tap); min-height:var(--tap); border:1px solid var(--line);
+    background:transparent; color:var(--ink-soft); border-radius:var(--radius-sm);
+    font-size:var(--text-body); cursor:pointer; font-family:inherit}
+  .sheet-body{
+    flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    overscroll-behavior:contain; padding:4px 20px 20px;
+  }
+  .sheet-foot{
+    flex:none; display:flex; gap:10px; padding:12px 20px;
+    padding-bottom:calc(12px + env(safe-area-inset-bottom));
+    border-top:1px solid var(--line); background:var(--paper);
+  }
+  .panel-card h3{font-family:var(--serif); font-weight:900; font-size:var(--text-display-sm); margin:0 0 2px}
   .panel-card .hint{font-size:var(--text-caption); color:var(--ink-soft); margin-bottom:18px; line-height:1.7}
-  .f-label{font-size:var(--text-caption); font-weight:700; margin:16px 0 7px; letter-spacing:1px}
+  .group{margin-top:var(--space-7)}
+  .group:first-child{margin-top:var(--space-5)}
+  .group-t{display:flex; align-items:center; gap:10px; margin-bottom:2px;
+    font-family:var(--latin); font-size:var(--text-caption); letter-spacing:var(--track-label);
+    color:var(--gold); text-transform:uppercase}
+  .group-t::after{content:""; flex:1; height:1px; background:var(--line)}
+  .group-t b{font-family:var(--serif); font-size:var(--text-body-sm); letter-spacing:1px;
+    color:var(--ink); font-weight:600}
+  .f-label{font-size:var(--text-caption); font-weight:700; margin:14px 0 7px; letter-spacing:1px}
   input[type=date], input[type=text], select, textarea{
-    width:100%; padding:10px 11px; border-radius:var(--radius-sm); border:1px solid rgba(43,33,48,.3);
-    background:var(--card-ivory); color:var(--ink); font-size:var(--text-body); font-family:inherit;
+    width:100%; padding:11px 12px; border-radius:var(--radius-sm); border:1px solid rgba(43,33,48,.26);
+    background:var(--card-ivory); color:var(--ink); font-size:var(--text-input); font-family:inherit;
+    min-height:var(--tap);
   }
   textarea{resize:none; line-height:1.7}
   .grid2{display:grid; grid-template-columns:1fr 1fr; gap:8px}
@@ -363,47 +491,41 @@
 
   /* ————— 夜间：深丝绒紫黑 + 香槟金 + 象牙白 ————— */
   html{color-scheme:light dark}
-  @media (prefers-color-scheme: dark){
-    :root{
-      --paper:#1D1620; --paper2:#261E2A;
-      --ink:#F2EAE0; --ink-soft:rgba(242,234,224,.6);
-      --gold:#C9A96A; --line:rgba(242,234,224,.14);
-      --card-ivory:#2A2130;
-    }
-    .chip{border-color:rgba(242,234,224,.25); box-shadow:var(--shadow-flat)}
-    .chip.on{background:rgba(201,169,106,.14); border-color:var(--gold-bright); color:var(--gold-bright); box-shadow:var(--shadow-inset)}
-    .gear{color:var(--ink-soft)}
-    .hero-stat{border-top-color:var(--gold)}
-    .part-head{border-bottom-color:rgba(242,234,224,.4)}
-    .p-save{background:#3A2E42; color:var(--gold-bright)}
-    input[type=date], input[type=text], select, textarea{border-color:rgba(242,234,224,.25)}
-    .m-row{background:rgba(42,33,48,.5)}
-    #noBtn{border-color:rgba(242,234,224,.3)}
-    .love-note{background:rgba(42,33,48,.75)}
-    footer{color:rgba(242,234,224,.35)}
-  }
+  html[data-theme="night"] .chip{border-color:rgba(244,236,226,.2)}
+  html[data-theme="night"] .chip.on{background:rgba(203,171,110,.13); border-color:var(--gold-bright); color:var(--gold-bright)}
+  html[data-theme="night"] .p-save{background:#3A2E42; color:var(--gold-bright)}
+  html[data-theme="night"] input[type=date], html[data-theme="night"] input[type=text],
+  html[data-theme="night"] select, html[data-theme="night"] textarea{border-color:rgba(244,236,226,.2)}
+  html[data-theme="night"] .m-row{background:rgba(45,35,52,.5)}
+  html[data-theme="night"] #noBtn{border-color:rgba(244,236,226,.24)}
+  html[data-theme="night"] .love-note{background:rgba(45,35,52,.7)}
+  html[data-theme="night"] footer{color:rgba(244,236,226,.32)}
+  html[data-theme="night"] .seal{color:#1B1420}
 
-  /* ————— 动态氛围 ————— */
-  .orbs{position:fixed; inset:0; z-index:-1; overflow:hidden; pointer-events:none}
-  .orbs span{
-    position:absolute; width:340px; height:340px; border-radius:var(--radius-full);
-    filter:blur(70px); opacity:.5;
-  }
-  .orbs span:nth-child(1){background:rgba(201,169,106,.28); top:-12%; right:-14%; animation:drift1 16s ease-in-out infinite alternate}
-  .orbs span:nth-child(2){background:rgba(156,107,118,.22); top:36%; left:-20%; animation:drift2 20s ease-in-out infinite alternate}
-  @keyframes drift1{to{transform:translate(-50px, 70px) scale(1.15)}}
-  @keyframes drift2{to{transform:translate(70px, -50px) scale(1.1)}}
+  /* ————— 动态氛围 —————
+     光斑原来用 filter:blur(70px) 做，两个 340px 的模糊层在手机上一直在重绘；
+     现在改成两团纯渐变（不用 filter），飘的花瓣交给一张 canvas，只有一个合成层。 */
+  .orbs{position:fixed; inset:0; z-index:-2; overflow:hidden; pointer-events:none}
+  .orbs span{position:absolute; width:min(120vw,620px); height:min(120vw,620px); border-radius:var(--radius-full)}
+  .orbs span:nth-child(1){top:-32%; right:-26%;
+    background:radial-gradient(circle at 50% 50%, var(--glow-a), transparent 68%)}
+  .orbs span:nth-child(2){top:34%; left:-34%;
+    background:radial-gradient(circle at 50% 50%, var(--glow-b), transparent 68%)}
+  #petals{position:fixed; inset:0; z-index:-1; pointer-events:none}
 
-  .reveal{opacity:0; transform:translateY(18px); transition:opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease)}
+  .reveal{opacity:0; transform:translate3d(0,18px,0); transition:opacity var(--dur-slow) var(--ease), transform var(--dur-slow) var(--ease)}
   .reveal.in{opacity:1; transform:none}
 
-  .final, .act.primary{position:relative; overflow:hidden}
-  .final::before{
-    content:""; position:absolute; top:0; bottom:0; width:55%;
-    background:linear-gradient(115deg, transparent, rgba(255,255,255,.14), transparent);
-    left:-60%; animation:sheen 3.4s ease-in-out infinite;
+  /* 高光扫过原来动的是 left，会每帧触发一次布局（静置 3 秒 75 次）。
+     改成动 transform，交给合成器，布局次数归零。 */
+  .final, .act.primary, .quick{position:relative; overflow:hidden}
+  .final::before, .quick::before{
+    content:""; position:absolute; top:0; bottom:0; left:0; width:55%;
+    background:linear-gradient(115deg, transparent, rgba(255,255,255,.11), transparent);
+    transform:translate3d(-160%,0,0); will-change:transform;
+    animation:sheen 5.6s var(--ease) infinite;
   }
-  @keyframes sheen{0%,55%{left:-60%}85%,100%{left:120%}}
+  @keyframes sheen{0%,58%{transform:translate3d(-160%,0,0)}88%,100%{transform:translate3d(320%,0,0)}}
 
   /* ————— 彩蛋：初衷 ————— */
   #origin{cursor:pointer; user-select:none}
@@ -449,7 +571,35 @@
 </style>
 </head>
 <body>
+<!-- 线条花枝：茶花五瓣 + 两片叶子，只描边不填色，跟着 currentColor 换主题 -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <symbol id="bloom" viewBox="-16 -16 32 32">
+    <g fill="none" stroke="currentColor" stroke-width="1.05" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(72)"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(144)"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(216)"/>
+      <path d="M0 -2.4 C -4.3 -5.6 -4.8 -11.6 0 -14.2 C 4.8 -11.6 4.3 -5.6 0 -2.4 Z" transform="rotate(288)"/>
+      <circle cx="0" cy="0" r="2.1"/>
+    </g>
+  </symbol>
+  <symbol id="sprig" viewBox="0 0 148 36">
+    <g fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M2 21 C 24 21 42 16 60 15"/>
+      <path d="M146 21 C 124 21 106 16 88 15"/>
+      <path d="M28 20.4 C 32 13.6 41 12.4 45.5 15.6 C 41 20 32.5 23 28 20.4 Z"/>
+      <path d="M33 18.6 C 37 17.4 41.5 16.2 45 15.7"/>
+      <path d="M120 20.4 C 116 13.6 107 12.4 102.5 15.6 C 107 20 115.5 23 120 20.4 Z"/>
+      <path d="M115 18.6 C 111 17.4 106.5 16.2 103 15.7"/>
+      <path d="M60 15 C 66 15 68 11 74 11"/>
+      <path d="M88 15 C 82 15 80 11 74 11"/>
+    </g>
+    <use href="#bloom" x="59" y="-4" width="30" height="30"/>
+  </symbol>
+</svg>
+
 <div class="orbs"><span></span><span></span></div>
+<canvas id="petals" aria-hidden="true"></canvas>
 
 <!-- 开场互动（自己打开时） -->
 <div id="gate" class="hidden">
@@ -463,10 +613,14 @@
 
 <!-- 她点开分享链接时看到的信封 -->
 <div id="invite" class="hidden">
+  <svg class="i-orn" aria-hidden="true"><use href="#sprig"/></svg>
   <div class="i-eyebrow">A surprise for you</div>
   <h2 id="iTitle">有人为你准备了今天</h2>
   <div class="i-meta" id="iMeta"></div>
-  <button class="seal" id="sealBtn" aria-label="拆开今天">♥</button>
+  <button class="seal" id="sealBtn" aria-label="拆开今天">
+    <svg class="seal-bloom" aria-hidden="true"><use href="#bloom"/></svg>
+    <span id="sealChar">♥</span>
+  </button>
   <div class="i-hint">轻点封蜡，拆开今天</div>
   <button class="i-skip" id="iSkip">直接看计划</button>
 </div>
@@ -476,14 +630,22 @@
     <header>
       <div class="topbar">
         <div class="eyebrow">Private Reserve</div>
-        <button class="gear" id="gearBtn">⚙︎ 设置</button>
+        <div class="top-acts">
+          <button class="gear icon" id="themeBtn" aria-label="切换晨光/夜色"><span id="themeIcon">☾</span></button>
+          <button class="gear" id="gearBtn">⚙︎ 设置</button>
+        </div>
       </div>
       <h1 id="h1">今天，怎么心动？</h1>
       <div class="sub" id="sub">为你一人定制的心动菜单</div>
     </header>
 
-    <div class="hero-stat"><small>在 一 起</small><div class="num"><i>第</i><span id="days">—</span><i>天</i></div></div>
-    <div class="mstones" id="mstones"></div>
+    <div class="hero-wrap">
+      <svg class="hero-bloom" aria-hidden="true"><use href="#bloom"/></svg>
+      <div class="hero-stat"><small>在 一 起</small><div class="num"><i>第</i><span id="days">—</span><i>天</i></div></div>
+      <div class="mstones" id="mstones"></div>
+    </div>
+
+    <svg class="orn md" aria-hidden="true"><use href="#sprig"/></svg>
 
     <button class="quick" id="quickBtn">
       <span class="qt">一 键 定 今 天</span>
@@ -541,6 +703,7 @@
     <button class="final" id="combine" disabled>生 成 最 终 计 划</button>
 
     <div class="love-note hidden" id="loveNote">
+      <svg class="ln-orn" aria-hidden="true"><use href="#bloom"/></svg>
       <div class="ln-e">A word for you</div>
       <div class="ln-b" id="lnBody"></div>
       <div class="ln-s" id="lnSign"></div>
@@ -548,6 +711,7 @@
 
     <div class="menu hidden" id="menu">
       <div class="m-eyebrow">Menu du jour</div>
+      <svg class="m-orn" aria-hidden="true"><use href="#sprig"/></svg>
       <h2 id="m-title">最终约会计划</h2>
       <div class="m-date" id="m-date"></div>
       <div id="m-courses"></div>
@@ -577,54 +741,78 @@
     </div>
   </div>
 
+  <svg class="orn sm" aria-hidden="true" style="margin-top:var(--space-9)"><use href="#sprig"/></svg>
   <footer id="origin">Handcrafted with love · Est. 2026</footer>
 </div>
 
 <!-- 设置面板 -->
 <div id="panel" class="mask">
   <div class="panel-card">
-    <h3>设置</h3>
-    <div class="hint">名字、日期、纪念日都在这里改。保存后只存在<b>你自己这台手机</b>里，别人打开链接看到的是他们自己的设置，互不干扰。</div>
-
-    <div class="f-label">怎么称呼你们</div>
-    <div class="grid2">
-      <input type="text" id="cfgFrom" maxlength="8" placeholder="你（署名）" />
-      <input type="text" id="cfgTo" maxlength="8" placeholder="她 / 他（称呼）" />
+    <div class="sheet-head">
+      <span class="grip"></span>
+      <div>
+        <h3>设置</h3>
+        <div class="hint" style="margin:2px 0 0">只存在你这台手机里，填一次就够了</div>
+      </div>
+      <button class="sheet-close" id="panelClose" aria-label="关闭设置">✕</button>
     </div>
 
-    <div class="f-label">在一起的日子（大数字从这天开始算）</div>
-    <input type="date" id="cfgAnni" />
+    <div class="sheet-body">
+      <div class="group">
+        <div class="group-t">Us<b>你们</b></div>
+        <div class="f-label">怎么称呼</div>
+        <div class="grid2">
+          <input type="text" id="cfgFrom" maxlength="8" placeholder="你（署名）" />
+          <input type="text" id="cfgTo" maxlength="8" placeholder="她 / 他（称呼）" />
+        </div>
+      </div>
 
-    <div class="f-label">口味（可多选，抽卡会往这边偏）</div>
-    <div class="chips" id="cfgTaste"></div>
+      <div class="group">
+        <div class="group-t">Days<b>日子</b></div>
+        <div class="f-label">在一起的日子（大数字从这天开始算）</div>
+        <input type="date" id="cfgAnni" />
+        <div class="f-label">纪念日</div>
+        <div id="mList"></div>
+        <button class="m-add" id="addMile">＋ 添加一条纪念日</button>
+      </div>
 
-    <div class="f-label">喜欢的场景（可多选）</div>
-    <div class="chips" id="cfgLove"></div>
+      <div class="group">
+        <div class="group-t">Taste<b>口味与喜好</b></div>
+        <div class="f-label">口味（可多选，抽卡会往这边偏）</div>
+        <div class="chips" id="cfgTaste"></div>
+        <div class="f-label">喜欢的场景（可多选）</div>
+        <div class="chips" id="cfgLove"></div>
+        <div class="f-label">不想碰的</div>
+        <input type="text" id="cfgAvoid" placeholder="逗号分开，如：香菜, 排队, 太吵" />
+        <div class="hint" style="margin:6px 0 0">写在这里的词，出现在卡片上就不会被抽到。</div>
+      </div>
 
-    <div class="f-label">不想碰的</div>
-    <input type="text" id="cfgAvoid" placeholder="逗号分开，如：香菜, 排队, 太吵" />
-    <div class="hint" style="margin:6px 0 0">写在这里的词，出现在卡片上就不会被抽到。</div>
+      <div class="group">
+        <div class="group-t">Ours<b>私藏地点</b></div>
+        <div class="hint" style="margin-bottom:8px">写进来的地方会变成卡片跟着一起抽，而且优先抽到。比如"城南那家烧烤"、"她第一次说喜欢我的那家咖啡馆"。</div>
+        <div id="sList"></div>
+        <button class="m-add" id="addSpot">＋ 添加一个私藏</button>
+      </div>
 
-    <div class="f-label">你们的私藏地点</div>
-    <div class="hint" style="margin-bottom:8px">写进来的地方会变成卡片跟着一起抽，而且优先抽到。比如"城南那家烧烤"、"她第一次说喜欢我的那家咖啡馆"。</div>
-    <div id="sList"></div>
-    <button class="m-add" id="addSpot">＋ 添加一个私藏</button>
+      <div class="group">
+        <div class="group-t">Mood<b>明暗与开场</b></div>
+        <div class="f-label">这个网站的明暗</div>
+        <div class="chips" id="cfgTheme"></div>
+        <label class="switch-row" for="cfgGate">
+          <span>开场互动（"您愿意和我约会吗"）</span>
+          <input type="checkbox" id="cfgGate" class="switch" />
+        </label>
+      </div>
 
-    <div class="f-label">纪念日列表</div>
-    <div id="mList"></div>
-    <button class="m-add" id="addMile">＋ 添加一条纪念日</button>
+      <div class="group">
+        <div class="group-t">Share<b>只把设置带给她</b></div>
+        <div class="hint" style="margin-bottom:8px">这个链接只带名字、日期和明暗，不含计划。想送计划的话，先生成计划，再点「把今天送给她」。</div>
+        <button class="m-add" id="shareBtn">生成设置链接</button>
+        <input type="text" id="shareOut" readonly placeholder="链接会出现在这里，长按全选复制" style="margin-top:8px" />
+      </div>
+    </div>
 
-    <label class="switch-row" for="cfgGate">
-      <span>开场互动（"您愿意和我约会吗"）</span>
-      <input type="checkbox" id="cfgGate" class="switch" />
-    </label>
-
-    <div class="f-label" style="margin-top:20px">🔗 只把设置带给她</div>
-    <div class="hint" style="margin-bottom:8px">这个链接只带名字和日期，不含计划。她每次点开看到的都是这一份，谁也改不了。想送计划的话，先生成计划，再点「把今天送给她」。</div>
-    <button class="m-add" id="shareBtn">生成设置链接</button>
-    <input type="text" id="shareOut" readonly placeholder="链接会出现在这里，长按全选复制" style="margin-top:8px; font-size:12px" />
-
-    <div class="panel-actions">
+    <div class="sheet-foot">
       <button class="p-save" id="saveCfg">保 存</button>
       <button class="p-reset" id="resetCfg">恢复默认</button>
     </div>
@@ -634,9 +822,15 @@
 <!-- 分享计划面板 -->
 <div id="sheet" class="mask">
   <div class="panel-card">
-    <h3>把今天送给她</h3>
-    <div class="hint">生成的链接会把这份计划整个封在里面。她点开先看到一个信封，拆开才是你排好的今天——她那边改不了，也不需要装任何东西。</div>
-
+    <div class="sheet-head">
+      <span class="grip"></span>
+      <div>
+        <h3>把今天送给她</h3>
+        <div class="hint" style="margin:2px 0 0">她点开先看到一个封蜡，拆开才是你排好的今天</div>
+      </div>
+      <button class="sheet-close" id="sheetClose2" aria-label="关闭">✕</button>
+    </div>
+    <div class="sheet-body">
     <div class="f-label">署名</div>
     <input type="text" id="shFrom" maxlength="8" placeholder="留空就是「有人」" />
 
@@ -645,15 +839,16 @@
     <div class="row3" id="noteTpl"></div>
 
     <button class="m-add" id="shMake" style="margin-top:14px">生成惊喜链接</button>
-    <input type="text" id="shOut" readonly placeholder="链接会出现在这里" style="margin-top:8px; font-size:12px" />
+    <input type="text" id="shOut" readonly placeholder="链接会出现在这里" style="margin-top:8px" />
 
     <div class="acts" style="margin-top:10px">
       <button class="act" id="shCopy">复 制 链 接</button>
       <button class="act" id="shSys">系 统 分 享</button>
     </div>
     <button class="m-add" id="shPreview" style="margin-top:10px">预览她点开会看到什么</button>
+    </div>
 
-    <div class="panel-actions">
+    <div class="sheet-foot">
       <button class="p-save" id="shPoster">存 成 图 片</button>
       <button class="p-reset" id="shClose">关闭</button>
     </div>
@@ -700,6 +895,7 @@
   </div>
 </div>
 
+<div id="veil" aria-hidden="true"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -805,6 +1001,7 @@ function copyText(text, okMsg){
   return done;
 }
 function hearts(n){
+  if (window.Petals) Petals.burst(Math.round((n || 14) * 1.6));
   for (var i=0;i<(n||14);i++){
     var h = document.createElement('span');
     h.className = 'heart'; h.textContent = '♥';
@@ -822,9 +1019,175 @@ function param(name){
   return m ? m[1] : null;
 }
 
+/* ---------- 1b 花瓣：一整块 canvas，一个合成层 ----------
+   原来的氛围是两个 filter:blur(70px) 的光斑，手机上一直在重绘。
+   现在飘的东西都画在这一张画布上：常驻十几片慢慢落，拆信封/出计划时再撒一把。 */
+var Petals = (function(){
+  var cv, ctx, W = 0, H = 0, dpr = 1, list = [], raf = null, still = false;
+  var AMBIENT = 10, sprite = [], SPRITE = 48, last = 0, STEP = 1000/30;
+
+  function reduced(){
+    return window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  }
+  function rand(a, b){ return a + Math.random()*(b-a); }
+  function make(burst){
+    return {
+      x: rand(0, W),
+      y: burst ? rand(-0.15, 0.35)*H : rand(-0.2, 1)*H,
+      s: burst ? rand(4, 8) : rand(3.4, 7.5),
+      vy: burst ? rand(1.1, 2.6) : rand(0.14, 0.4),
+      vx: burst ? rand(-1.4, 1.4) : rand(-0.14, 0.14),
+      sway: rand(0.4, 1.3),
+      phase: rand(0, Math.PI*2),
+      rot: rand(0, Math.PI*2),
+      vr: rand(-0.012, 0.012),
+      a: burst ? rand(.42, .8) : rand(.06, .17),
+      fade: burst ? rand(0.0016, 0.004) : 0,
+      tone: Math.random() < .62 ? 0 : 1
+    };
+  }
+  function size(){
+    if (!cv) return;
+    // 花瓣是柔和的色块，1.5 倍已经够，2 倍只是多烧一半的像素
+    dpr = Math.min(window.devicePixelRatio || 1, 1.5);
+    W = cv.clientWidth; H = cv.clientHeight;
+    cv.width = Math.round(W*dpr); cv.height = Math.round(H*dpr);
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  }
+  function tone(i){
+    var s = getComputedStyle(document.documentElement);
+    return (i ? s.getPropertyValue('--rose') : s.getPropertyValue('--gold-bright')).trim() || '#C9A96A';
+  }
+  // 窄一点、尖一点，才像花瓣不像圆点
+  function shape(c, s){
+    var w = s*0.52;
+    c.beginPath();
+    c.moveTo(0, -s);
+    c.bezierCurveTo(w, -s*0.42, w*0.86, s*0.66, 0, s);
+    c.bezierCurveTo(-w*0.86, s*0.66, -w, -s*0.42, 0, -s);
+    c.closePath();
+  }
+  // 每种颜色先离屏画一片，之后每帧只做 drawImage，比每帧算贝塞尔便宜得多
+  function refreshColors(){
+    var cols = [tone(0), tone(1)];
+    sprite = cols.map(function(col){
+      var off = document.createElement('canvas');
+      off.width = off.height = SPRITE;
+      var c = off.getContext('2d');
+      c.translate(SPRITE/2, SPRITE/2);
+      c.fillStyle = col;
+      shape(c, SPRITE/2 - 2);
+      c.fill();
+      return off;
+    });
+  }
+  function frame(ts){
+    raf = null;
+    if (still || document.hidden) return;
+    if (ts - last < STEP){ raf = requestAnimationFrame(frame); return; }   // 压到 30fps
+    last = ts;
+    ctx.clearRect(0, 0, W, H);
+    for (var i = list.length - 1; i >= 0; i--){
+      var p = list[i];
+      p.phase += 0.024;
+      p.y += p.vy*2;
+      p.x += (p.vx + Math.sin(p.phase)*p.sway*0.5)*2;
+      p.rot += p.vr*2;
+      if (p.fade){
+        p.a -= p.fade*2;
+        if (p.a <= 0 || p.y > H + 40){ list.splice(i, 1); continue; }
+      } else if (p.y > H + 30){
+        p.y = -30; p.x = rand(0, W);
+      }
+      var img = sprite[p.tone];
+      if (!img) continue;
+      var d = p.s*2;
+      ctx.save();
+      ctx.translate(p.x, p.y);
+      ctx.rotate(p.rot);
+      ctx.globalAlpha = Math.max(0, p.a);
+      ctx.drawImage(img, -d/2, -d/2, d, d);
+      ctx.restore();
+    }
+    ctx.globalAlpha = 1;
+    raf = requestAnimationFrame(frame);
+  }
+  function kick(){ if (!raf && !still && cv) raf = requestAnimationFrame(frame); }
+
+  return {
+    init: function(){
+      cv = document.getElementById('petals');
+      if (!cv || !cv.getContext) return;
+      ctx = cv.getContext('2d');
+      size();
+      refreshColors();
+      if (reduced()){ still = true; return; }
+      for (var i = 0; i < AMBIENT; i++) list.push(make(false));
+      kick();
+      var t;
+      window.addEventListener('resize', function(){
+        clearTimeout(t);
+        t = setTimeout(function(){ size(); }, 200);
+      }, { passive: true });
+      document.addEventListener('visibilitychange', function(){
+        if (!document.hidden) kick();
+      });
+    },
+    theme: refreshColors,
+    burst: function(n){
+      if (!cv || still) return;
+      for (var i = 0; i < (n || 22); i++) list.push(make(true));
+      kick();
+    }
+  };
+})();
+
+/* ---------- 1c 主题：晨光 / 夜色 / 跟随系统 ---------- */
+var THEME_OPTS = ['跟随系统','晨光','夜色'];
+var THEME_KEY = { '跟随系统':'auto', '晨光':'day', '夜色':'night' };
+function themeLabel(v){
+  for (var k in THEME_KEY) if (THEME_KEY[k] === v) return k;
+  return '跟随系统';
+}
+function prefersDark(){
+  return !!(window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+}
+function resolvedTheme(pref){
+  return pref === 'night' || (pref !== 'day' && prefersDark()) ? 'night' : 'day';
+}
+function paintTheme(pref, animate){
+  var next = resolvedTheme(pref);
+  var root = document.documentElement;
+  if (root.getAttribute('data-theme') === next){ syncThemeIcon(pref); return; }
+  var icon = function(){
+    root.setAttribute('data-theme', next);
+    if (window.Petals) Petals.theme();
+    syncThemeIcon(pref);
+  };
+  var veil = $('veil');
+  if (!animate || !veil){ icon(); return; }
+  // 用一层当前底色的幕布过渡，避免几十个元素各自做颜色动画
+  veil.style.background = getComputedStyle(root).getPropertyValue('--paper');
+  veil.classList.add('on');
+  setTimeout(function(){
+    icon();
+    veil.style.background = getComputedStyle(root).getPropertyValue('--paper');
+    setTimeout(function(){ veil.classList.remove('on'); }, 30);
+  }, 300);
+}
+function syncThemeIcon(pref){
+  var el = $('themeIcon');
+  if (!el) return;
+  var now = document.documentElement.getAttribute('data-theme');
+  el.textContent = now === 'night' ? '☾' : '☀';
+  var btn = $('themeBtn');
+  if (btn) btn.title = '现在是' + (now === 'night' ? '夜色' : '晨光') +
+    '（设置：' + themeLabel(pref) + '）';
+}
+
 /* ---------- 2 设置与链接编码 ---------- */
 refreshNow();
-var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[] };
+var DEFAULT_CFG = { gate:true, anni:'', miles:[], from:'', to:'', taste:[], love:[], avoid:'', spots:[], theme:'auto' };
 var CFG_KEY = 'xindong_cfg_v1';
 var LOG_KEY = 'xindong_log_v1';
 
@@ -839,11 +1202,13 @@ function normCfg(c){
   if (typeof c.from !== 'string') c.from = '';
   if (typeof c.to !== 'string') c.to = '';
   if (typeof c.avoid !== 'string') c.avoid = '';
+  if (c.theme !== 'day' && c.theme !== 'night') c.theme = 'auto';
   return c;
 }
-// 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑
+// 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑。
+// theme 要带上——她收到的应该是我调好的那一套明暗。
 function publicCfg(){
-  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to };
+  return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to, theme:cfg.theme };
 }
 // ?s= 是新版（可带整份计划），?c= / #c= 是老版（只有设置），两者都要认
 function readShare(){
@@ -1370,17 +1735,31 @@ function planDate(){
 }
 function isToday(){ return dayDiff(now, planDate()) === 0; }
 
+// 选中态只改 class，不重建整行 DOM——原来每点一下都要把一行按钮拆了重搭
+function syncChips(box, items, key){
+  for (var i=0;i<box.children.length;i++){
+    var on = state[key] === items[i];
+    box.children[i].classList.toggle('on', on);
+    box.children[i].setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+}
 function renderChips(id, items, key, allowOff){
-  var box = $(id);
+  var box = $(id), i;
+  var same = box.children.length === items.length;
+  if (same) for (i=0;i<items.length;i++){
+    if (box.children[i].textContent !== items[i]){ same = false; break; }
+  }
+  if (same){ syncChips(box, items, key); return; }
   box.innerHTML = '';
   items.forEach(function(v){
     var b = document.createElement('button');
+    b.type = 'button';
     b.className = 'chip' + (state[key]===v ? ' on' : '');
     b.textContent = v;
     b.setAttribute('aria-pressed', state[key]===v ? 'true' : 'false');
     b.onclick = function(){
       state[key] = (allowOff && state[key]===v) ? null : v;
-      renderChips(id, items, key, allowOff);
+      syncChips(box, items, key);
       onConditionChange();
     };
     box.appendChild(b);
@@ -1860,7 +2239,8 @@ function renderPlan(plan, items){
     ' — ' + (plan.to ? ('For ' + plan.to) : 'For the one and only');
   $('m-courses').innerHTML = plan.s.map(function(s,i){
     var cat = CAT_EN[s.c] || 'Stop';
-    return '<div class="course"><div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
+    return '<div class="course" style="animation-delay:'+(i*0.07).toFixed(2)+'s">'+
+      '<div class="no">'+(ROMAN[i]||(i+1))+' · '+cat+'</div>'+
       '<div class="row"><span class="t">'+esc(s.t)+'</span>'+
       '<span class="time">'+fmtClock(s.m)+'–'+fmtClock(s.m+s.u)+
       (canSwap ? '<button class="swap" data-i="'+i+'">换</button>' : '')+'</span></div>'+
@@ -1968,6 +2348,7 @@ $('quickBtn').onclick = function(){
   logUpsert(built.plan);
   $('ownerActs').classList.remove('hidden');
   if (window._setFold) window._setFold(false);
+  if (window.Petals) Petals.burst(14);
   setTimeout(function(){ $('menu').scrollIntoView({behavior:'smooth', block:'start'}); }, 80);
   toast('排好了。哪一站不合意，点那一行的「换」');
 };
@@ -2271,7 +2652,8 @@ renderMemo();
   inv.classList.remove('hidden');
 
   function open(){
-    hearts(16);
+    hearts(18);
+    if (window.Petals) setTimeout(function(){ Petals.burst(24); }, 260);
     renderPlan(sharedPlan);
     $('guestActs').classList.remove('hidden');
     setTimeout(function(){ inv.classList.add('done'); }, 420);
@@ -2391,6 +2773,26 @@ function renderPanelChips(id, opts, key){
     box.appendChild(b);
   });
 }
+// 主题三选一：跟随系统 / 晨光 / 夜色。点了立刻生效，不用等保存
+function renderThemeChips(){
+  var box = $('cfgTheme');
+  box.innerHTML = '';
+  THEME_OPTS.forEach(function(label){
+    var val = THEME_KEY[label];
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + ((cfg.theme || 'auto') === val ? ' on' : '');
+    b.textContent = label;
+    b.setAttribute('aria-pressed', (cfg.theme || 'auto') === val ? 'true' : 'false');
+    b.onclick = function(){
+      cfg.theme = val;
+      paintTheme(val, true);
+      renderThemeChips();
+      if (!isGuest) saveCfgLocal();
+    };
+    box.appendChild(b);
+  });
+}
 function spotRow(s){
   var row = document.createElement('div');
   row.className = 'm-row';
@@ -2432,6 +2834,7 @@ function openPanel(){
   panelPick.love = (cfg.love || []).slice();
   renderPanelChips('cfgTaste', TASTE_OPTS, 'taste');
   renderPanelChips('cfgLove', LOVE_OPTS, 'love');
+  renderThemeChips();
   var list = $('mList');
   list.innerHTML = '';
   cfg.miles.forEach(function(m){ list.appendChild(mileRow(m)); });
@@ -2442,6 +2845,18 @@ function openPanel(){
 }
 $('gearBtn').onclick = openPanel;
 panel.onclick = function(e){ if (e.target === panel) panel.classList.remove('show'); };
+$('panelClose').onclick = function(){ panel.classList.remove('show'); };
+$('sheetClose2').onclick = function(){ $('sheet').classList.remove('show'); };
+
+// 顶栏那个太阳/月亮：在晨光和夜色之间来回；想回到"跟随系统"去设置里选
+$('themeBtn').onclick = function(){
+  var now = document.documentElement.getAttribute('data-theme');
+  cfg.theme = now === 'night' ? 'day' : 'night';
+  paintTheme(cfg.theme, true);
+  if (!isGuest) saveCfgLocal();
+  if ($('cfgTheme').children.length) renderThemeChips();
+  toast(cfg.theme === 'night' ? '换成夜色了' : '换成晨光了');
+};
 $('addMile').onclick = function(){
   $('mList').appendChild(mileRow({label:'', date:'', mode:'since'}));
 };
@@ -2535,6 +2950,17 @@ $('sweetBtn').onclick = function(){
     el.textContent = '「' + line + '」';
   });
 };
+
+// 氛围与主题
+Petals.init();
+paintTheme(cfg.theme, false);
+(function(){
+  if (!window.matchMedia) return;
+  var mq = window.matchMedia('(prefers-color-scheme: dark)');
+  var onChange = function(){ if ((cfg.theme || 'auto') === 'auto') paintTheme('auto', true); };
+  if (mq.addEventListener) mq.addEventListener('change', onChange);
+  else if (mq.addListener) mq.addListener(onChange);
+})();
 
 rebuildCards();
 // 卡池：如果配了 ?api=，开局就去拿一次，拿不到静默用本地
