@@ -186,6 +186,21 @@ async function getPlaces(env, url) {
   return json({ places: aggregate(results || [], mbti) });
 }
 
+/**
+ * 按 IP 限流。
+ *
+ * 只按 by_id 限流是没用的：by_id 是前端自己随机生成的，换一个就绕过去了。
+ * 所以真正拦得住的是 IP，Cloudflare 直接把它放在 CF-Connecting-IP 里。
+ * IP 不入库（存进去就等于存了位置），只存一个哈希，而且只留一小时。
+ */
+async function ipHash(request, env) {
+  const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
+  const salt = (env && env.IP_SALT) || 'xindong';
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + '|' + ip));
+  return [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
+}
+const IP_PER_HOUR = 40;
+
 async function postReview(env, request) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
@@ -193,12 +208,24 @@ async function postReview(env, request) {
   const rec = clean(body);
   if (!rec) return json({ error: 'bad review' }, 400);
 
-  // 一台设备一小时最多 20 条，挡住手滑和刷分
-  const since = Date.now() - 3600e3;
+  const now = Date.now();
+  const since = now - 3600e3;
+
+  // 先按 IP 拦：换 by_id 绕不过去
+  const ip = await ipHash(request, env);
+  await env.DB.prepare('DELETE FROM hits WHERE at <= ?').bind(since).run();
+  const { results: byIp } = await env.DB.prepare(
+    'SELECT COUNT(*) AS c FROM hits WHERE ip = ? AND at > ?'
+  ).bind(ip, since).all();
+  if ((byIp?.[0]?.c || 0) >= IP_PER_HOUR) return json({ error: 'slow down' }, 429);
+
+  // 再按设备拦：同一对情侣手滑连点也不该刷满
   const { results: recent } = await env.DB.prepare(
     'SELECT COUNT(*) AS c FROM reviews WHERE by_id = ? AND at > ?'
   ).bind(rec.by, since).all();
   if ((recent?.[0]?.c || 0) >= 20) return json({ error: 'slow down' }, 429);
+
+  await env.DB.prepare('INSERT INTO hits (ip, at) VALUES (?, ?)').bind(ip, now).run();
 
   // 同一台设备对同一个地点只保留最新一条
   await env.DB.prepare(

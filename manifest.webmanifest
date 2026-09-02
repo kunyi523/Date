@@ -1,0 +1,19 @@
+{
+  "name": "今天，怎么心动？",
+  "short_name": "怎么心动",
+  "description": "一个人动动手指把一天排好，然后送给另一个人。",
+  "lang": "zh-CN",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#140F19",
+  "theme_color": "#140F19",
+  "categories": ["lifestyle", "travel"],
+  "icons": [
+    { "src": "icon-180.png", "sizes": "180x180", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

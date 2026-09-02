@@ -1,0 +1,12 @@
+{
+  "name": "xindong-server",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node test.mjs",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "sql.js": "^1.13.0"
+  }
+}

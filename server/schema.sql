@@ -20,6 +20,14 @@ CREATE TABLE IF NOT EXISTS reviews (
   PRIMARY KEY (pid, by_id)           -- 同一台设备对同一个地点只留最新一条
 );
 
+-- 限流用的击打记录。只存 IP 的哈希（存原始 IP 等于存了位置），
+-- 而且每次写入前先把一小时以前的删掉，所以这张表永远是很小的一张临时表。
+CREATE TABLE IF NOT EXISTS hits (
+  ip TEXT    NOT NULL,
+  at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_hits ON hits (ip, at);
+
 CREATE INDEX IF NOT EXISTS idx_reviews_pid  ON reviews (pid, hidden);
 CREATE INDEX IF NOT EXISTS idx_reviews_by   ON reviews (by_id, at);
 CREATE INDEX IF NOT EXISTS idx_reviews_at   ON reviews (at);
