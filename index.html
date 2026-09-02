@@ -4780,13 +4780,8 @@ $('mineBtn').onclick = function(){
       .concat(weave(doorless(candidates(false)), doorless(candidates(true))));
     if (!pool.length){ toast('这附近这个点没什么开着的，晚点再试'); return; }
     // 起点卡已经是一家奶茶店了，后面两站再来两顿饭，那不叫计划。
-    // 所以先只挑没出现过的类别；一轮下来凑不够两站，才放开重复。
-    // 换句话说：一个"营业时间要打电话确认"的玩，好过第三顿饭。
-    // 类别字段在两处不一样：手写卡和 POI 用 cat，起点卡用 c。
-    // 上一版我只看了 cat，起点卡的"食"从来没记进去，于是"先挑没出现过的类别"
-    // 整个空转——三站全是饭就是这么来的。
-    // 类别字段在两处不一样：手写卡和 POI 用 cat，起点卡用 c。
-    // 上一版我只看了 cat，起点卡那个"食"从来没记进去。
+    // 类别字段在两处不一样：手写卡和 POI 用 cat，起点卡用 c——
+    // 只看 cat 的话起点那个"食"记不进去，按类别避重就整个空转。
     function catOf(x){ return x && (x.cat || x.c); }
     var start = startCard();
     var stops = [], r, i, j;
