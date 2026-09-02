@@ -449,14 +449,16 @@
       <div class="label">Weather<b>天气</b></div>
       <div class="chips" id="weathers"></div>
       <div class="temp-row">
-        <button class="temp-btn" id="tempBtn">📍 定位识别天气和气温</button>
+        <button class="temp-btn" id="tempBtn">📍 定位：识别天气，并找附近真实的地方</button>
         <div class="temp-read" id="tempRead"></div>
       </div>
       <div class="chips" id="temps" style="margin-top:10px"></div>
 
       <div class="label">Where<b>想跑多远</b></div>
       <div class="chips" id="locs"></div>
-      <div class="temp-read" id="timeHint" style="margin-top:14px"></div>
+      <div class="chips hidden" id="fars" style="margin-top:8px"></div>
+      <div class="temp-read" id="nearRead" style="margin-top:12px"></div>
+      <div class="temp-read" id="timeHint" style="margin-top:12px"></div>
     </div>
   </div>
 
@@ -837,10 +839,10 @@ var API = (function(){
     timeout: 7000
   };
 })();
-function jget(url, cb){
+function jget(url, cb, ms){
   var done = false;
   function finish(err, data){ if (!done){ done = true; cb(err, data); } }
-  setTimeout(function(){ finish(new Error('timeout'), null); }, API.timeout);
+  setTimeout(function(){ finish(new Error('timeout'), null); }, ms || API.timeout);
   try{
     if (window.fetch){
       fetch(url).then(function(r){ return r.json(); })
@@ -916,6 +918,297 @@ var Sources = {
   }
 };
 
+/* ---------- 3b 附近真实的地方（OpenStreetMap，不需要 key） ----------
+   近处/市区：以你为圆心找周边；出逃半日：先在你选的公里数附近挑一个镇当目的地，
+   再围着那个镇找吃喝玩乐 —— 也就是"先定新的位，再生成"。
+   营业时间用 OSM 的 opening_hours，缺失就按这一类的常规时段排。
+   拿不到数据、超时、被拒绝，全都静默回落到手写卡池。 */
+// 公共 Overpass 会限流，所以准备两个入口，第一个不行就换第二个
+var OVERPASS_HOSTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://maps.mail.ru/osm/tools/overpass/api/interpreter'
+];
+var NOMINATIM = 'https://nominatim.openstreetmap.org/reverse';
+var POI_TTL = 7*24*3600*1000;
+var nearby = { key:'', loading:false, place:'', destKm:0 };
+
+function haversine(la1, lo1, la2, lo2){
+  var R = 6371000, p = Math.PI/180;
+  var dla = (la2-la1)*p, dlo = (lo2-lo1)*p;
+  var a = Math.sin(dla/2)*Math.sin(dla/2) +
+          Math.cos(la1*p)*Math.cos(la2*p)*Math.sin(dlo/2)*Math.sin(dlo/2);
+  return 2*R*Math.asin(Math.sqrt(a));
+}
+function overpass(q, cb){
+  var i = 0;
+  function attempt(){
+    jget(OVERPASS_HOSTS[i] + '?data=' + encodeURIComponent(q), function(err, data){
+      var ok = !err && data && data.elements && !data.remark;
+      if (ok || i >= OVERPASS_HOSTS.length - 1) return cb(ok ? null : (err || new Error('overpass busy')), data);
+      i++;
+      attempt();
+    }, 26000);
+  }
+  attempt();
+}
+function poiQuery(lat, lon, r){
+  var at = '(around:'+Math.round(r)+','+lat.toFixed(5)+','+lon.toFixed(5)+')';
+  return '[out:json][timeout:25];(' +
+    'nwr["amenity"~"^(restaurant|cafe|bar|ice_cream)$"]["name"]'+at+';' +
+    'nwr["tourism"~"^(museum|gallery|attraction|viewpoint|zoo|aquarium|theme_park)$"]["name"]'+at+';' +
+    'nwr["leisure"~"^(park|garden|water_park)$"]["name"]'+at+';' +
+    'nwr["amenity"~"^(cinema|theatre)$"]["name"]'+at+';' +
+    ');out center 160;';
+}
+function townQuery(lat, lon, km){
+  var d = km/111, dl = km/(111*Math.cos(lat*Math.PI/180) || 1);
+  var bbox = (lat-d).toFixed(4)+','+(lon-dl).toFixed(4)+','+(lat+d).toFixed(4)+','+(lon+dl).toFixed(4);
+  return '[out:json][timeout:25];node["place"~"^(city|town)$"]["name"]('+bbox+');out 300;';
+}
+
+// opening_hours 只解析常见写法：24/7、Mo-Fr 09:00-18:00、多段用 ; 或 , 分隔。
+// 看不懂就返回 null，让调用方退回该类型的常规时段。
+var OH_DAYS = { Su:0, Mo:1, Tu:2, We:3, Th:4, Fr:5, Sa:6 };
+function parseHours(str, dow){
+  if (!str) return null;
+  var s = String(str).replace(/\s+/g,' ').trim();
+  if (s === '24/7') return [0, 23];
+  var rules = s.split(';'), i, j, best = null;
+  for (i=0;i<rules.length;i++){
+    var rule = rules[i].trim();
+    if (!rule || /off|closed/i.test(rule)) continue;
+    var dayPart = '', timePart = rule;
+    var m = rule.match(/^((?:Mo|Tu|We|Th|Fr|Sa|Su|PH|,|-|\s)+)\s+(\d.*)$/);
+    if (m){ dayPart = m[1]; timePart = m[2]; }
+    if (dayPart){
+      var ok = false, groups = dayPart.split(',');
+      for (j=0;j<groups.length;j++){
+        var g = groups[j].trim();
+        if (!g || g === 'PH') continue;
+        var rg = g.match(/^(Mo|Tu|We|Th|Fr|Sa|Su)-(Mo|Tu|We|Th|Fr|Sa|Su)$/);
+        if (rg){
+          var a = OH_DAYS[rg[1]], b = OH_DAYS[rg[2]], d2 = dow;
+          if (a <= b){ if (d2 >= a && d2 <= b) ok = true; }
+          else if (d2 >= a || d2 <= b) ok = true;
+        } else if (OH_DAYS[g] === dow) ok = true;
+      }
+      if (!ok) continue;
+    }
+    var t = timePart.match(/(\d{1,2}):(\d{2})\s*-\s*(\d{1,2}):(\d{2})/);
+    if (!t) continue;
+    var open = +t[1], close = +t[3];
+    if (close === 0 || close < open) close = 24;      // 跨零点按到 24 点算
+    if (!best || open < best[0]) best = [open, Math.max(close-1, open)];
+  }
+  return best;
+}
+
+// OSM 标签 → 我们的卡片。文案是自己写的，只有事实（距离、菜系、营业时间）来自数据。
+var POI_KIND = {
+  restaurant:{ cat:'食', u:80, tw:[11,20], d:'两个人点三道菜，剩下的留给下次' },
+  cafe:      { cat:'食', u:60, tw:[9,20],  d:'找靠窗的位置，坐到不想走' },
+  bar:       { cat:'食', u:90, tw:[19,23], d:'一杯就好，微醺刚刚好' },
+  ice_cream: { cat:'食', u:35, tw:[11,21], d:'一份两勺，第一口让她先尝' },
+  museum:    { cat:'游', u:90, tw:[9,16],  d:'各挑一件最喜欢的，讲给对方听' },
+  gallery:   { cat:'游', u:80, tw:[10,17], d:'看不懂就一起编，反正没人考' },
+  attraction:{ cat:'行', u:75, tw:[9,17],  d:'先合一张影，再慢慢逛' },
+  viewpoint: { cat:'行', u:50, tw:[9,19],  d:'等天色沉下来再走' },
+  zoo:       { cat:'游', u:140, tw:[9,16], d:'在最喜欢的那只面前多站一会儿' },
+  aquarium:  { cat:'游', u:110, tw:[10,17],d:'在水母缸前多站一会儿' },
+  theme_park:{ cat:'游', u:180, tw:[10,16],d:'排最长的那个队，值得' },
+  park:      { cat:'行', u:70, tw:[7,19],  d:'沿着走一圈，不赶时间' },
+  garden:    { cat:'行', u:60, tw:[8,18],  d:'挑一朵今天最好看的，拍给她' },
+  water_park:{ cat:'游', u:150, tw:[10,17],d:'谁先把谁弄湿都不许生气' },
+  cinema:    { cat:'游', u:130, tw:[10,21],d:'她挑片，我买爆米花和靠后排' },
+  theatre:   { cat:'游', u:130, tw:[14,20],d:'散场之后走一段再打车' }
+};
+var CUISINE_CN = {
+  chinese:'中餐', sichuan:'川菜', hunan:'湘菜', cantonese:'粤菜', dumpling:'饺子',
+  noodle:'面', hotpot:'火锅', barbecue:'烧烤', japanese:'日料', sushi:'寿司',
+  ramen:'拉面', korean:'韩餐', italian:'意餐', pizza:'披萨', french:'法餐',
+  thai:'泰餐', indian:'印度菜', burger:'汉堡', seafood:'海鲜', vegetarian:'素食',
+  coffee_shop:'咖啡', dessert:'甜品', bubble_tea:'奶茶', breakfast:'早餐'
+};
+function cuisineText(tags){
+  var raw = tags.cuisine || '';
+  var parts = raw.split(';');
+  for (var i=0;i<parts.length;i++){
+    var k = parts[i].trim().toLowerCase();
+    if (CUISINE_CN[k]) return CUISINE_CN[k];
+  }
+  return '';
+}
+function travelText(m, drive){
+  if (drive) return '车程约 ' + Math.max(1, Math.round(m/500)) + ' 分钟';
+  if (m < 1100) return '步行 ' + Math.max(1, Math.round(m/75)) + ' 分钟';
+  return '骑车/打车 ' + Math.max(2, Math.round(m/300)) + ' 分钟';
+}
+function poiToCard(el, center, dow, drive){
+  var tg = el.tags || {};
+  var name = tg['name:zh'] || tg.name;      // OSM 里有些中国的地方只填了英文名
+  if (!name) return null;
+  var kind = POI_KIND[tg.amenity] || POI_KIND[tg.tourism] || POI_KIND[tg.leisure];
+  if (!kind) return null;
+  var c = el.center || el;
+  if (typeof c.lat !== 'number') return null;
+  var m = haversine(center[0], center[1], c.lat, c.lon);
+  var hours = parseHours(tg.opening_hours, dow);
+  var facts = [travelText(m, drive)];
+  var cui = cuisineText(tg);
+  if (cui) facts.push(cui);
+  if (hours) facts.push(hours[1] >= 23 ? '营业到很晚' : ('营业到 ' + (hours[1]+1) + ' 点'));
+  return {
+    cat: kind.cat, t: name, d: kind.d,
+    w: (kind.cat === '行' || tg.leisure) ? '晴' : '皆',
+    loc: [state.loc], b: 0, u: kind.u,
+    tw: hours || kind.tw,
+    meta: facts.join(' · '),
+    near: 1, dist: Math.round(m),
+    rank: (tg.opening_hours ? 1 : 0) + (cui ? .6 : 0) + (tg.wikidata ? 1.2 : 0) - m/2500
+  };
+}
+// 同名的只留最近的一家（星巴克这种连锁会刷满整个列表），再按食/非食各留 14 个
+function pickNearby(list){
+  list.sort(function(a,b){ return b.rank - a.rank; });
+  var seen = {}, food = [], other = [];
+  for (var i=0;i<list.length;i++){
+    var c = list[i];
+    if (seen[c.t]) continue;
+    seen[c.t] = 1;
+    if (c.cat === '食'){ if (food.length < 14) food.push(c); }
+    else if (other.length < 14) other.push(c);
+  }
+  return food.concat(other);
+}
+
+function cacheGet(key){
+  try{
+    var raw = localStorage.getItem('xindong_poi2_' + key);
+    if (!raw) return null;
+    var box = JSON.parse(raw);
+    if (!box || Date.now() - box.at > POI_TTL) return null;
+    return box;
+  }catch(e){ return null; }
+}
+function cacheSet(key, box){
+  try{ localStorage.setItem('xindong_poi2_' + key, JSON.stringify(box)); }catch(e){}
+}
+function nearStatus(txt, spin, retry){
+  $('nearRead').innerHTML = (spin ? '⏳ ' : '') + esc(txt);
+  if (retry) addNearAgain(retry);
+}
+// 失败了给一个重试；出逃半日的话这个按钮还能用来换一个目的地
+function addNearAgain(label){
+  var b = document.createElement('button');
+  b.className = 'temp-btn'; b.style.marginLeft = '8px'; b.style.padding = '4px 10px';
+  b.textContent = label;
+  b.onclick = function(){ fetchNearby(true); };
+  $('nearRead').appendChild(b);
+}
+// 出逃半日：不管那边地图上有没有店，"开车去某某镇"本身就是这一天的第一站
+function destCard(place, km){
+  return {
+    cat:'行', t:'开车去' + place, d:'路上放她的歌单，到了先找个地方停车',
+    w:'皆', loc:[FAR], b:0, u:Math.max(30, Math.round(km/60*60)), tw:[7,16],
+    meta:'约 ' + km + ' 公里 · 车程约 ' + Math.max(20, Math.round(km/60*60)) + ' 分钟',
+    near:1, dest:1, dist:km*1000, rank:9
+  };
+}
+function applyNearby(cards, place, km){
+  NEARBY_CARDS = cards;
+  nearby.place = place || '';
+  nearby.destKm = km || 0;
+  rebuildCards();
+  var here = nearby.city ? (nearby.city + ' · ') : '';
+  if (place){
+    $('nearRead').innerHTML = '📍 目的地 <b>' + esc(place) + '</b>（约 ' + km + ' 公里）· ' +
+      (cards.length > 1 ? ('那边找到 ' + (cards.length-1) + ' 个地方，已混进卡池')
+                        : '那边地图上记录不多，用手写卡池排，路线照样成立');
+    addNearAgain('换个目的地');
+    return;
+  }
+  if (!cards.length){ nearStatus(here + '附近没找到能用的地方，先用手写卡池', false, '重新找一次'); return; }
+  $('nearRead').innerHTML = '📍 ' + esc(here) + '找到 <b>' + cards.length + '</b> 个真实地点，已混进卡池';
+  addNearAgain('重新找一次');
+}
+// 目的地打分：真的是个镇/县/市的排前面，"某某街道"这种城市街区往后放
+function scoreTown(t, km, target){
+  var name = t.name || '', s = 0;
+  if (/(镇|古镇)$/.test(name)) s += 2.2;
+  if (/(市|县)$/.test(name)) s += 1.4;
+  if (/(街道|新区|社区)$/.test(name)) s -= 3;
+  if (t.wiki) s += 1;
+  if (t.place === 'city') s += .4;
+  s -= Math.abs(km - target) / target * 2.2;
+  return s;
+}
+function fetchNearby(force){
+  if (!state.lat) return;
+  var far = state.loc === FAR;
+  var key = state.lat.toFixed(2) + '_' + state.lon.toFixed(2) + '_' +
+            (far ? ('far' + farKm()) : (state.loc === NEAR ? 'near' : 'city'));
+  if (nearby.loading) return;
+  if (key === nearby.key && !force) return;
+  var hit = cacheGet(key);
+  if (hit && !force){
+    nearby.key = key;
+    applyNearby(hit.cards, hit.place, hit.km);
+    return;
+  }
+  nearby.loading = true;
+  nearStatus(far ? ('正在 ' + farKm() + ' 公里内挑一个目的地…') : '正在找你附近的地方…', true);
+  var dow = planDate().getDay();
+
+  function loadPOI(lat, lon, radius, place, km, drive){
+    overpass(poiQuery(lat, lon, radius), function(err, data){
+      nearby.loading = false;
+      var els = (data && data.elements) || [];
+      if (err && !place){
+        nearStatus('地图数据这会儿没拿到（公共服务限流），手写卡池照样能排', false, '重新找一次');
+        return;
+      }
+      var cards = [], i;
+      for (i=0;i<els.length;i++){
+        var c = poiToCard(els[i], [lat, lon], dow, drive);
+        if (c) cards.push(c);
+      }
+      cards = pickNearby(cards);
+      if (place) cards.unshift(destCard(place, km));
+      nearby.key = key;
+      cacheSet(key, { at:Date.now(), cards:cards, place:place, km:km });
+      applyNearby(cards, place, km);
+    });
+  }
+
+  if (!far){
+    loadPOI(state.lat, state.lon, state.loc === NEAR ? 1600 : 7000, '', 0, false);
+    return;
+  }
+  // 出逃半日：先挑目的地
+  overpass(townQuery(state.lat, state.lon, farKm() * 1.25), function(err, data){
+    var els = (data && data.elements) || [];
+    var cand = [];
+    for (var i=0;i<els.length;i++){
+      var e = els[i];
+      if (!e.tags || !e.tags.name) continue;
+      var km = haversine(state.lat, state.lon, e.lat, e.lon) / 1000;
+      if (km < farKm() * 0.45 || km > farKm() * 1.3) continue;
+      cand.push({ name:e.tags.name, place:e.tags.place, wiki:!!e.tags.wikidata, lat:e.lat, lon:e.lon, km:km });
+    }
+    if (!cand.length){
+      nearby.loading = false;
+      nearStatus(err ? '地图数据这会儿没拿到（公共服务限流），手写卡池照样能排'
+                     : '这个距离上没找到合适的目的地，换个公里数试试', false, '重新找一次');
+      return;
+    }
+    cand.sort(function(a,b){ return scoreTown(b, b.km, farKm()) - scoreTown(a, a.km, farKm()); });
+    var top = cand.slice(0, 5);
+    var dest = top[Math.floor(Math.random()*top.length)];
+    nearStatus('目的地选好了：' + dest.name + '（约 ' + Math.round(dest.km) + ' 公里），正在找那边的吃喝玩乐…', true);
+    loadPOI(dest.lat, dest.lon, 3500, dest.name, Math.round(dest.km), true);
+  });
+}
+
 /* ---------- 4 纪念数字 ---------- */
 function renderStats(){
   $('days').textContent = cfg.anni ? (dayDiff(parseDate(cfg.anni), now)+1) : '—';
@@ -984,10 +1277,12 @@ var VIBE_PREF = {
 var DAY_OPTS = ['今天','明天','这周末'];
 var START_OPTS = ['现在出发','上午','中午','下午','傍晚'];
 var START_MIN = { '上午':9*60, '中午':11*60+30, '下午':14*60, '傍晚':18*60 };
+var FAR_OPTS = ['30 公里','50 公里','80 公里'];
 var state = {
-  day:'今天', start:'现在出发',
+  day:'今天', start:'现在出发', far:'50 公里',
   budget:'小奢侈', vibe:'随便都好', weather:'☀️ 晴', temp:null, loc:CITY, lat:null, lon:null
 };
+function farKm(){ return parseInt(state.far, 10) || 50; }
 
 // 计划是给哪一天排的（跟"今天几号"分开：晚上排明天是常事）
 function planDate(){
@@ -1021,10 +1316,13 @@ function renderWhen(){
   if (!isToday() && state.start === '现在出发') state.start = '上午';
   renderChips('days', DAY_OPTS, 'day');
   renderChips('starts', isToday() ? START_OPTS : START_OPTS.slice(1), 'start');
+  $('fars').classList.toggle('hidden', state.loc !== FAR);
+  if (state.loc === FAR) renderChips('fars', FAR_OPTS, 'far');
   renderTimeHint();
 }
 function onConditionChange(){
   renderWhen();
+  if (state.lat) fetchNearby();
   // 条件变了，已经抽出来的卡就不作数了，免得生成一份和条件不符的计划
   ['A','B'].forEach(function(k){
     var D = decks[k];
@@ -1060,13 +1358,19 @@ renderChips('locs', [NEAR, CITY, FAR], 'loc');
   window._setFold = set;
 })();
 
-// 定位 → 天气 + 气温
+// 定位 → 天气 + 气温 + 附近真实的地方
 $('tempBtn').onclick = function(){
   var read = $('tempRead');
   if (!navigator.geolocation){ read.textContent = '设备不支持定位，手动选吧'; return; }
   read.textContent = '定位中…';
   navigator.geolocation.getCurrentPosition(function(pos){
     state.lat = pos.coords.latitude; state.lon = pos.coords.longitude;
+    fetchNearby(true);
+    jget(NOMINATIM + '?format=jsonv2&zoom=12&accept-language=zh&lat=' + state.lat + '&lon=' + state.lon,
+      function(e, j){
+        var a = j && j.address;
+        if (a) nearby.city = a.city || a.town || a.county || a.state || '';
+      }, 9000);
     Sources.weather(state.lat, state.lon, function(err, w){
       if (err || !w){ read.textContent = '天气获取失败，手动选吧'; return; }
       var code = w.code, t = w.temp, wx;
@@ -1291,6 +1595,7 @@ function scoreCard(it){
   var pref = VIBE_PREF[state.vibe];
   if (pref && pref.indexOf(it.cat) > -1) s += 1;
   if (it.near) s += 0.8;                      // 附近真实地点比手写卡稍微优先
+  if (it.dest) s += 5;                        // 出逃半日的那一站"开车去某某镇"必须领头
   return s;
 }
 function avoidList(){
@@ -1398,6 +1703,17 @@ function scheduleStops(items){
     var latest = out[i+1].m - GAP - out[i].u;
     if (kept[i].tw) latest = Math.min(latest, kept[i].tw[1]*60);
     if (latest > out[i].m) out[i].m = latest;
+  }
+  // 收得太狠的情况：只要有一站是晚上的（比如观星），上面那一轮会把一整天都拖到傍晚。
+  // 所以再拉回来：第一站最多比出发时间晚两个半小时，剩下的空档就留在中间。
+  var MAX_LEAD = 150;
+  if (out.length && out[0].m - earliestStart() > MAX_LEAD){
+    var shift = out[0].m - (earliestStart() + MAX_LEAD), t2 = earliestStart();
+    for (i=0;i<out.length;i++){
+      var lo2 = kept[i].tw ? kept[i].tw[0]*60 : 0;
+      out[i].m = Math.max(t2, lo2, out[i].m - shift);
+      t2 = out[i].m + out[i].u + GAP;
+    }
   }
   return { stops:out, kept:kept, dropped:dropped };
 }
@@ -1512,6 +1828,33 @@ $('combine').onclick = function(){
   $('menu').scrollIntoView({behavior:'smooth', block:'nearest'});
 };
 
+// 沿着时间轴往前走着挑：每一步只要那些"从现在这个点起等不超过两小时"就能开始的卡，
+// 这样挑出来的三站天然是连着的，不会出现上午一站、晚上一站中间空六小时。
+function greedyPick(plays, foods){
+  var cursor = earliestStart(), order = ['play','food','play'], out = [], used = {};
+  if (LAST_END - cursor < 240) order = ['food','play'];
+  for (var i=0;i<order.length;i++){
+    var list = order[i] === 'food' ? foods : plays, hit = -1;
+    for (var j=0;j<list.length;j++){
+      var it = list[j];
+      if (!it || used[it.t]) continue;
+      var lo = it.tw ? it.tw[0]*60 : cursor;
+      var hi = it.tw ? it.tw[1]*60 : LAST_END;
+      var start = Math.max(cursor, lo);
+      if (start > hi) continue;
+      if (start - cursor > 120) continue;
+      if (start + durOf(it) > LAST_END) continue;
+      hit = j; break;                          // list 已按分数排好，第一个可行的就是最合适的
+    }
+    if (hit < 0) continue;
+    var chosen = list[hit];
+    used[chosen.t] = 1;
+    out.push({ isFood: order[i] === 'food', i: hit });
+    cursor = Math.max(cursor, chosen.tw ? chosen.tw[0]*60 : cursor) + durOf(chosen) + 15;
+  }
+  return out;
+}
+
 /* 一键：条件用当前的，卡自动抽自动选，直接出计划 */
 $('quickBtn').onclick = function(){
   refreshNow();
@@ -1529,14 +1872,9 @@ $('quickBtn').onclick = function(){
     return;
   }
   deal('A'); deal('B');
-  // 玩乐挑 2 张（尽量不同类型），美食挑 1 张
-  var pickA = [0];
-  for (var i=1;i<decks.A.dealt.length;i++){
-    if (decks.A.dealt[i].cat !== decks.A.dealt[0].cat){ pickA.push(i); break; }
-  }
-  if (pickA.length === 1 && decks.A.dealt.length > 1) pickA.push(1);
-  pickA.forEach(function(i){ decks.A.sel[i] = true; });
-  decks.B.sel[0] = true;
+  var picks = greedyPick(decks.A.dealt, decks.B.dealt);
+  if (!picks.length){ picks = [{isFood:false, i:0}, {isFood:true, i:0}]; }
+  picks.forEach(function(p){ decks[p.isFood ? 'B' : 'A'].sel[p.i] = true; });
   // 让卡片上的"已入选"和数据对上
   ['A','B'].forEach(function(k){
     var box = $(decks[k].el);
