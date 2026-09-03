@@ -194,7 +194,7 @@ async function getPlaces(env, url) {
  */
 async function ipHash(request, env) {
   const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
-  const salt = (env && env.IP_SALT) || 'xindong';
+  const salt = (env && (env.IP_SALT || 'xindong-default-salt')) || 'xindong';
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + '|' + ip));
   return [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
 }

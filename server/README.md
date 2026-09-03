@@ -4,6 +4,14 @@
 等后台上线之后自动补交。这个后台只做前端做不到的两件事：
 **把所有情侣的评分合并起来**，以及**让两个人共用同一张足迹地图**。
 
+## 部署源（2026-09-03 起）
+
+Worker `xindong` 的构建源应指向 **`kunyi523/Date`，根目录 `server/`**，部署命令 `npm run deploy`
+（先跑 D1 迁移再发布）。以后合并 Date 的 main 就自动重新部署，`kunyi523/xindong` 那份副本不再维护。
+
+迁移按文件名顺序只执行一次：**不要改已经执行过的迁移文件**（比如 0001），要改表就加新文件（0002…）。
+`test.mjs` 现在也按同样顺序跑全部迁移，改了老迁移本地就会暴露。
+
 ## 部署：点一下就好（推荐）
 
 [![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/kunyi523/Date/tree/main/server)
@@ -17,7 +25,8 @@
 想临时指到别处（比如本地调试）加 `?api=http://localhost:8787`；
 想彻底断开走纯本地加 `?api=off`。
 
-**还剩一件小事**：IP 哈希用的盐还是默认值 `change-me-after-deploy`。
+**还剩一件小事**：IP 哈希用的盐。配置文件里不再写它（`keep_vars = true`，面板上设的值部署后保留），
+没设的话代码里有个默认值，能跑但弱。
 它只用来防止有人从库里反推 IP（IP 本身不入库，只存哈希、只留一小时），
 所以不紧急，但建议换掉。在 Cloudflare 面板 → Workers & Pages → `xindong`
 → Settings → Variables，把 `IP_SALT` 改成任意一串字符即可；或者：

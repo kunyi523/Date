@@ -56,10 +56,7 @@ CREATE INDEX IF NOT EXISTS idx_reviews_at   ON reviews (at);
 -- 桌上二维码的核销计数。商家唯一能看到的数字，也是唯一的归因来源。
 -- 只有店铺标识和时间：没有用户、没有位置、没有打卡记录。
 CREATE TABLE IF NOT EXISTS redeems (
-  shop       TEXT    NOT NULL,
-  at         INTEGER NOT NULL,
-  -- 这台手机以前在这家店出示过没有。够画出"回头"那一栏，
-  -- 又不需要任何能认出人的东西。
-  first_time INTEGER NOT NULL DEFAULT 0
+  shop TEXT    NOT NULL,
+  at   INTEGER NOT NULL
 );
 CREATE INDEX IF NOT EXISTS idx_redeems ON redeems (shop, at);
