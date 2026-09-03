@@ -1,10 +1,14 @@
 const { launch, BASE, wait, ok, done } = require('./_lib');
 (async () => {
   const b = await launch();
+  // 中英文各量一遍：英文标签比中文长，最容易把 chips / 按钮撑出视口
+  const urls = process.argv[2] ? [process.argv[2]] : [BASE + '/index.html', BASE + '/index.html?lang=en'];
+  for (const url of urls){
   const p = await b.newPage();
   await p.emulate({ viewport:{width:440,height:956,deviceScaleFactor:3,isMobile:true,hasTouch:true}, userAgent:'iPhone' });
-  await p.goto(process.argv[2] || (BASE + '/index.html'), { waitUntil:'networkidle2' });
+  await p.goto(url, { waitUntil:'networkidle2' });
   await wait(1500);
+  if (/lang=en/.test(url)){ await p.evaluate(() => { _setFold(true); openPanel(); }); await wait(400); }
   const r = await p.evaluate(() => {
     const de = document.documentElement;
     const vw = de.clientWidth;
@@ -27,8 +31,11 @@ const { launch, BASE, wait, ok, done } = require('./_lib');
       非fixed溢出元素: bad,
     };
   });
-  ok(r.溢出 === 0, '文档不比视口宽（否则 iOS 会缩放）', '视口 ' + r.视口宽 + ' 文档 ' + r.文档宽);
-  ok(r.花瓣画布 && /^440x/.test(r.花瓣画布.css), '花瓣画布不撑破视口', r.花瓣画布 && r.花瓣画布.css);
+  const tag = /lang=en/.test(url) ? '[en] ' : '';
+  ok(r.溢出 === 0, tag + '文档不比视口宽（否则 iOS 会缩放）', '视口 ' + r.视口宽 + ' 文档 ' + r.文档宽 + (r.非fixed溢出元素.length ? ' ' + JSON.stringify(r.非fixed溢出元素.slice(0,3)) : ''));
+  ok(r.花瓣画布 && /^440x/.test(r.花瓣画布.css), tag + '花瓣画布不撑破视口', r.花瓣画布 && r.花瓣画布.css);
+  await p.close();
+  }
   await b.close();
   done();
 })().catch(e=>{ console.error('FATAL', e); process.exit(1); });
