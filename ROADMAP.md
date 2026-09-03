@@ -78,7 +78,7 @@ UI/UX 保留，规矩在 `DESIGN.md`，那一份不动。
   点进去 `cfg.from/to` 对调（她=原 to，发给原 from），零输入。`mineBtn` 改名同义。
   验收：客人流程走完点它，`cfg.to` 等于发件人名字，`body` 不再是 guest。✓ 2026-09-03
 
-- [ ] **1. 测试进仓库 + GitHub Actions**
+- [x] **1. 测试进仓库 + GitHub Actions** ✓ 2026-09-03（`test/` 五套 + `server/test.mjs`，`.github/workflows/test.yml`）
   把冒烟测试写进 `test/`（puppeteer-core，Chrome 由 Action 装）：主流程出计划、客人拆信到接手、
   排程 3300 组合越界 0、`?shop=` 三站且不要定位、缩放溢出 0。`.github/workflows/test.yml` 在 PR 上跑。
   **没有这条，自动合并就是盲飞，所以它排第一。**
@@ -141,7 +141,11 @@ UI/UX 保留，规矩在 `DESIGN.md`，那一份不动。
 ## 日志（代理每次追加一行）
 
 - 2026-09-03 · 方向定为海外双语 + 传播唯一目标；完成第 0 条；写下这份手册。
-  下次注意：`/tmp/ptest` 里的测试随环境销毁，第 1 条要把它们真正搬进仓库。
+- 2026-09-03 · 完成第 1 条：测试搬进 `test/`（sched / smoke / shop / layout / daylight），
+  GitHub Actions 在 PR 和 main 上跑站点 + 后端两组。本地全绿。
+  下次注意：`shop.js` 和 `smoke.js` 会碰真实的 Overpass，CI 上可能慢或被限流；
+  站点测试都有 30 秒等待和无网络兜底，正常应通过。若 CI 红且是网络原因，先重跑一次再判断。
+  从第 2 条（英文界面）开始，每个 PR 必须 CI 绿才合并。
 
 ---
 
