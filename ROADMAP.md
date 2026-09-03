@@ -17,15 +17,17 @@ UI/UX 保留，规矩在 `DESIGN.md`，那一份不动。
    后端 `cd server && npm install && node test.mjs`。本地没有 Chrome 就跳过，靠 PR 上的 CI。
    跑不过就修，修不好就写进「日志」、不合并
 5. 提交、推送、开 PR（用 ManagePullRequest 工具）。PR 正文写：做了什么、怎么验的、没做什么
-6. 等 CI：用 ManagePullRequest 的 `get_ci_status` 查（或 cursor-subscriptions 的 `subscribe_github_ci` 等），
-   一般 3 分钟。三项都要绿：`test / 站点冒烟`、`test / 后端`、`Cloudflare Pages`
-7. **如果「授权状态」里合并为"是"且 CI 绿**：合并到 main。
-   **合并只能用 Github MCP 的 `merge_pull_request`（owner `kunyi523`, repo `Date`, 方法 `squash`）——
-   `gh` 命令是只读的，`gh pr merge` 会失败。** 合并即上线（GitHub Pages + Cloudflare Pages 都跟着 main）。
-   CI 红就只留 PR，把红的原因写进 PR 正文和「日志」
+6. **合并不用你做。** `.github/workflows/automerge.yml` 会在 `test` 跑完、PR 上所有检查全绿
+   （`test / 站点冒烟`、`test / 后端`、`Cloudflare Pages`）后自动 squash 合并 `cursor/*` 分支的 PR，
+   开成 draft 也没关系，它会先标成 ready。合并即上线（GitHub Pages + Cloudflare Pages + Worker 都跟着 main）。
+   你开完 PR 这次运行就可以结束了，不必等 CI。
+7. 如果你有 Github MCP 且想立刻验证：`get_ci_status` 看三项是否绿。CI 红就把原因写进 PR 正文和「日志」，
+   不要去改 automerge 的规则绕过它
 8. 在「任务清单」把这条勾掉，在「日志」写一行（日期、做了什么、下次注意什么）——
    这两处改动可以直接放进同一个 PR
-9. 一次只做一条。做完就停，等下一次唤醒。**如果醒来发现有自己上次开的、CI 已绿但没合的 PR，先合它再做新的**
+9. 一次只做一条。做完就停，等下一次唤醒。**醒来先看有没有上次开的、还没合的 PR**：
+   CI 红的先修（在同一分支上推提交，CI 重跑绿了会自动合）；已经绿却没合的，说明 automerge 出了问题，
+   写进「日志」，然后再做新的
 
 **绝不做的事**（没有任何例外）：
 - 改 `DESIGN.md` 里的视觉规则、改配色令牌、动花和明暗主题
@@ -76,7 +78,7 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 
 | 项 | 状态 | 说明 |
 |---|---|---|
-| 代理可以把 CI 绿的 PR 合并到 main | **是**（人合并 #22 即为授权；撤销就把这里改回"否"） | 合并 = 上线。第 1 条任务（CI）做完之前，只合并 CI 已存在且绿的 PR |
+| CI 绿的 `cursor/*` PR 自动合并到 main | **是**（人合并 #22 即为授权。由 `.github/workflows/automerge.yml` 执行；**撤销 = 删掉或禁用那个文件**） | 合并 = 上线。三项检查全绿才合，任一红都不合 |
 | Worker 从 `kunyi523/Date` 的 `server/` 自动部署 | **是**（2026-09-03 已切：仓库 Date、根目录 `server`、部署命令 `npm run deploy`、只构建 main） | 合并 main 即部署后端。代理验证方法：Cloudflare-builds 工具看 xindong 最新构建来自 Date 且 success；D1 里 `SELECT name FROM d1_migrations` 含 `0002_redeems_first_time.sql`。第 4/5/9 条以此为依赖 |
 | 代理可以从主人账号对外发内容 | **否**，永远 | 文案写进 `launch/`，人发 |
 
@@ -114,13 +116,16 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
   **有意没做：按 `navigator.language` 自动切**——卡池还是中文，自动切会让英文系统的华人用户看到一半英一半中，
   等第 3 条卡池双语之后再开。`test/smoke.js` 有英文收件人全流程 7 条断言。
 
-- [ ] **2b. 英文界面：发件人那一面 + 设置里的开关**
+- [x] **2b. 英文界面：发件人那一面 + 设置里的开关** ✓ 2026-09-03
   同一套 `t()`，把首页 hero、一键定今天、条件区、计划卡的固定文字（"约 x 分钟""换一张"等）、
   分享面板、设置面板、所有 toast 翻成英文。设置里加一个「语言 / Language」开关（写 `xd_lang` 后 reload）。
   **不动布局、不动令牌。** 卡池文案（t/d/meta）、`ENDINGS`、`SWEETS` 不碰，留给第 3 条。
   验收：`?lang=en` 打开首页 → 排一份 → 分享，全程无中文（正则扫 `[\u4e00-\u9fa5]`，排除卡池文案和人名）；
   `?lang=zh` 一字不变；smoke 测试加发件人英文断言。
   依赖：2a
+  做法：HTML 里的固定文字挂 `data-i18n` / `data-i18n-ph`，脚本开头同步换一遍；JS 里动态拼的用 `t() || '中文'`；
+  条件 / 设置里的选项值（今天、小奢侈、☀️ 晴…）**仍是中文 key**，只在显示时过 `optLabel()`。
+  有意没翻：海报（第 6 条）、附近真实地点的卡片描述 / 距离行和 `?shop=` 商家那一路（卡池文案 / 不再投入）、评分面板。
 
 - [ ] **3. 卡池双语 + 按收件人语言显示**
   每张手写卡加 `t_en` / `d_en`；`ENDINGS` / `REPLIES` / `SWEETS` 同样。
@@ -183,11 +188,21 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 - 2026-09-03 · 完成 2a（语言层 + 客人那一面，PR 见 GitHub）。`t()` 在中文下返回 null 的设计让中文路径零风险，
   2b 照同样写法往发件人那一面铺就行。英文回话句是手写的，别用翻译腔。
   **下一次唤醒做 2b。** 自动按浏览器语言切换要等第 3 条做完再开。
+- 2026-09-03 · 完成 2b（发件人那一面 + 设置里的「语言 / Language」开关）。`I18N.en` 现在 350 来条；
+  HTML 固定文字走 `data-i18n`，动态的走 `t() || '中文'`，选项值仍是中文 key（`sched.js` 直接拿它们当 key，别改）。
+  验证：smoke 36 条（英文发件人首页 → 条件区 → 设置 → 一键 → 分享面板逐屏扫中文 = 0；语言开关切回中文；
+  中文首屏逐字不变），layout 中英各一遍，本地全绿；另把中文 DOM 和 main 逐字比过，除新加的语言组外完全一致。
+  **这次运行的环境里没有 Github MCP（只有 open_git_pr），合并不了**——PR 开着，正文写了原因。
+  下次唤醒先按「每次被唤醒时照这个做」第 9 步：CI 绿就先合这个 PR，再做第 3 条。
+  下次注意：第 3 条卡池双语时，`optLabel()` 那套不适用于卡片——卡片要加 `t_en/d_en` 字段，`cardHTML`/`renderPlan`/`planText` 按 `LANG` 取。
 - 2026-09-03 · 人把 Worker 构建源切到 Date/server 了（Deploy command 重连后会被重置成 `npx wrangler deploy`，
   已改回 `npm run deploy`——那个不跑迁移）。这次合并就是第一次从 Date 触发的后端构建；
   做第 4 条之前先按「授权状态」那行的两个方法验一下它确实成功了。
 
 ---
+- 2026-09-03 · 定时自动化第一次运行成功，做完 2b（#29，36 条断言），但**它合不了**：那个环境没有 Github MCP，
+  `gh` 只读。它按手册留了 PR，判断正确。解决：加 `.github/workflows/automerge.yml`，检查全绿的 `cursor/*` PR
+  由 GitHub 自己合，不再依赖代理手里有什么工具。手册第 6/7/9 步随之改写。
 
 ## 明确不做
 
@@ -201,5 +216,8 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 
 - 一个 `index.html`，JS 按编号小节排好，改动前先看小节标题；有意只用 ES5
 - 样式一律走 `:root` 令牌，规矩见 `DESIGN.md`
+- 文案双语（小节 1b）：`t(key)` 中文下返回 `null`，所以写法永远是 `t('key') || '中文原句'`；
+  HTML 里的固定文字挂 `data-i18n`（placeholder 用 `data-i18n-ph`，aria 用 `data-i18n-aria`）；
+  条件 / 设置里的选项值是中文 key，显示时用 `optLabel()`，**不要把 key 换成英文**（排程和测试都认中文 key）
 - 时间相关的改动跑多时段自测：每一站必须落在自己的营业时段内，需要天光的不排在日落后
 - 后端在 `server/`，`node test.mjs` 64 条断言；schema 在 `migrations/`

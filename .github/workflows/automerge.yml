@@ -1,0 +1,59 @@
+# 代理开的 PR，检查全绿就自动合并。
+#
+# 为什么要它：定时自动化那个环境里没有 Github MCP，gh 又是只读的，代理自己合不了，
+# 每天的 PR 会停在那儿等人。手册的规则是「授权为是 + CI 绿 → 合并」，这个 workflow
+# 就是把执行者从代理换成 GitHub 本身。撤销授权 = 删掉或禁用这个文件。
+#
+# 三道闸：
+#   1. 只认 cursor/ 开头的分支（代理的命名约定；人手开的 PR 不碰）
+#   2. 等 PR 上「所有」检查通过——不只 test，还包括 Cloudflare Pages 预览
+#   3. 任何一项失败立刻退出，不合
+#
+# 用 GITHUB_TOKEN 合并后推到 main 不会再触发 Actions（GitHub 防递归），
+# 但 Cloudflare 的 GitHub App（Pages 和 Workers Builds）照常收到推送，部署正常。
+name: automerge
+
+on:
+  workflow_run:
+    workflows: ["test"]
+    types: [completed]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  merge:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+      REPO: ${{ github.repository }}
+      BRANCH: ${{ github.event.workflow_run.head_branch }}
+    steps:
+      - name: 找到这条分支上打开的 PR（只认 cursor/ 分支）
+        id: pr
+        run: |
+          case "$BRANCH" in
+            cursor/*) ;;
+            *) echo "不是代理的分支：$BRANCH，跳过"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0 ;;
+          esac
+          N=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number')
+          if [ -z "$N" ] || [ "$N" = "null" ]; then
+            echo "分支 $BRANCH 没有打开的 PR，跳过"; echo "skip=1" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "number=$N" >> "$GITHUB_OUTPUT"
+          echo "PR #$N"
+
+      - name: 等所有检查全绿（含 Cloudflare Pages），任一失败即退出
+        if: steps.pr.outputs.skip != '1'
+        run: gh pr checks "${{ steps.pr.outputs.number }}" --repo "$REPO" --watch --fail-fast
+
+      - name: 合并（squash，删分支）
+        if: steps.pr.outputs.skip != '1'
+        run: |
+          N="${{ steps.pr.outputs.number }}"
+          gh pr ready "$N" --repo "$REPO" 2>/dev/null || true
+          gh pr merge "$N" --repo "$REPO" --squash --delete-branch
+          echo "已合并 #$N"
