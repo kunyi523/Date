@@ -1,0 +1,47 @@
+name: test
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  site:
+    name: 站点冒烟
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - name: 起静态服务
+        run: |
+          python3 -m http.server 8099 > /tmp/http.log 2>&1 &
+          for i in $(seq 1 20); do curl -sf http://localhost:8099/index.html > /dev/null && break; sleep 0.5; done
+      - name: 装依赖
+        working-directory: test
+        run: npm install --no-audit --no-fund
+      - name: 跑测试
+        working-directory: test
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+        run: npm test
+
+  server:
+    name: 后端
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: 装依赖
+        working-directory: server
+        run: npm install --no-audit --no-fund
+      - name: 跑测试
+        working-directory: server
+        run: node test.mjs

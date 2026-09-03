@@ -1,0 +1,11 @@
+{
+  "name": "xindong-tests",
+  "private": true,
+  "description": "站点冒烟测试。先起一个静态服务指向仓库根目录，再 npm test。",
+  "scripts": {
+    "test": "node sched.js && node smoke.js && node shop.js && node layout.js && TZ=America/Toronto node daylight.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
+  }
+}
