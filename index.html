@@ -1352,6 +1352,65 @@ function ta(){
   try{ return (cfg && cfg.to) ? cfg.to : '对方'; }catch(e){ return '对方'; }
 }
 function fill(s){ return String(s == null ? '' : s).replace(/\{ta\}/g, ta()); }
+
+/* ---------- 1b 语言 ----------
+   只认 ?lang= 和存下来的偏好，先不按浏览器语言自动切：卡池文案还是中文，
+   自动切会让英文系统的华人用户看到一半英一半中。等卡池双语（任务 3）再开自动。
+   t() 在中文下返回 null，调用方用 `t(...) || '中文原句'`——中文路径一个字节都不变。 */
+var LANG = (function(){
+  var q = null;
+  try{ q = new URLSearchParams(location.search).get('lang'); }catch(e){}
+  if (q === 'en' || q === 'zh'){ try{ localStorage.setItem('xd_lang', q); }catch(e){} return q; }
+  try{ var st = localStorage.getItem('xd_lang'); if (st === 'en' || st === 'zh') return st; }catch(e){}
+  return 'zh';
+})();
+var I18N = { en: {
+  'invite.someone': 'Someone',
+  'invite.title': '{who} planned\n{day} for you',
+  'invite.title.past': '{who} once planned\na day for you',
+  'invite.meta': '{date} · {n} stops · from {time}',
+  'invite.skip': 'Just show me the plan',
+  'invite.sub': 'A day {who} planned for you',
+  'invite.doc': '{who} planned {day} for you',
+  'act.accept': "I'm in ♥",
+  'act.keep': 'Save to my phone',
+  'act.mine': 'My turn next time',
+  'reply.hint': 'Send this line back to {who} — then it\'s a date.',
+  'reply.copy': 'Copy this line',
+  'reply.next': 'Your turn next time →',
+  'reply.close': 'Done',
+  'reply.copied': 'Copied — send it back',
+  'toast.kept': 'Saved. Open this link any time to see your day.',
+  'toast.nostore': 'This device won\'t keep local data — bookmark the link instead',
+  'toast.handoff': 'Your turn. Plan one and send it to {who}.',
+  'toast.handoff.plain': 'Your turn: tap “Plan today”',
+  'day.today': 'today', 'day.tomorrow': 'tomorrow', 'day.dayafter': 'the day after tomorrow',
+  'day.yesterday': 'yesterday'
+}};
+function t(key, vars){
+  if (LANG !== 'en') return null;
+  var str = I18N.en[key];
+  if (str == null) return null;
+  vars = vars || {};
+  return str.replace(/\{(\w+)\}/g, function(_, k){ return vars[k] == null ? '' : vars[k]; });
+}
+var MON_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+function enDate(sv){ var d = parseDate(sv); return MON_EN[d.getMonth()] + ' ' + d.getDate(); }
+var REPLIES_EN = [
+  'Yes. What time do we leave? I\'m already picking an outfit.',
+  'Deal. This day is booked.',
+  'I\'m in. You handle the plan, I\'ll handle being happy.',
+  'Okay — but I get to pick the music.'
+];
+// 页面一加载就把静态按钮换成英文（中文时什么都不做）
+if (LANG === 'en'){
+  document.documentElement.setAttribute('lang', 'en');
+  document.addEventListener('DOMContentLoaded', function(){
+    var m = { iSkip:'invite.skip', acceptBtn:'act.accept', keepBtn:'act.keep', mineBtn:'act.mine',
+              rcCopy:'reply.copy', rcNext:'reply.next', rcClose:'reply.close' };
+    for (var id in m){ var el = document.getElementById(id); if (el) el.textContent = t(m[id]); }
+  });
+}
 function strip(d){ return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
 function dayDiff(a,b){ return Math.round((strip(b)-strip(a))/86400000); }
 function parseDate(s){ var p = String(s).split('-'); return new Date(+p[0], +p[1]-1, +p[2]); }
@@ -1361,6 +1420,13 @@ var WEEKDAY = ['周日','周一','周二','周三','周四','周五','周六'];
 // 计划是给哪天的，用人话说。跨天之后同一个链接会自动从"明天"变成"今天"
 function dayLabel(s){
   var diff = dayDiff(now, parseDate(s));
+  if (LANG === 'en'){
+    if (diff === 0) return t('day.today');
+    if (diff === 1) return t('day.tomorrow');
+    if (diff === 2) return t('day.dayafter');
+    if (diff === -1) return t('day.yesterday');
+    return enDate(s);
+  }
   if (diff === 0) return '今天';
   if (diff === 1) return '明天';
   if (diff === 2) return '后天';
@@ -3736,7 +3802,7 @@ $('quickBtn').onclick = function(){
 
 /* ---------- 9 分享（链接 / 文字 / 海报） ---------- */
 function planLink(plan){
-  return baseUrl() + '?s=' + b64e({ k:'plan', p:plan, c:publicCfg() });
+  return baseUrl() + '?s=' + b64e({ k:'plan', p:plan, c:publicCfg() }) + (LANG === 'en' ? '&lang=en' : '');
 }
 function partnerName(){ return cfg.to || (currentPlan && currentPlan.to) || ''; }
 // 把"她"换成称呼：女生想排一天不该出戏，同性情侣也得能用
@@ -4626,20 +4692,21 @@ renderFootprints();
   $('memo').classList.add('hidden');
 
   var inv = $('invite');
-  var who = sharedPlan.from ? sharedPlan.from : '有人';
+  var who = sharedPlan.from ? sharedPlan.from : (t('invite.someone') || '有人');
   // 她可能隔一天才点开，所以"今天/明天/9月5日"是按她打开的那一刻算的
   var label = dayLabel(sharedPlan.ymd);
   var past = dayDiff(now, parseDate(sharedPlan.ymd)) < 0;
   $('iTitle').textContent = past
-    ? (who + ' 给你排过\n那一天')
-    : (who + ' 把' + label + '\n给你排好了');
+    ? (t('invite.title.past', {who:who}) || (who + ' 给你排过\n那一天'))
+    : (t('invite.title', {who:who, day:label}) || (who + ' 把' + label + '\n给你排好了'));
   var first = sharedPlan.s[0];
-  $('iMeta').textContent = cnDate(sharedPlan.ymd) + ' · ' +
-    sharedPlan.s.length + ' 站 · 从 ' + fmtClock(first.m) + ' 开始';
+  $('iMeta').textContent =
+    t('invite.meta', {date:enDate(sharedPlan.ymd), n:sharedPlan.s.length, time:fmtClock(first.m)}) ||
+    (cnDate(sharedPlan.ymd) + ' · ' + sharedPlan.s.length + ' 站 · 从 ' + fmtClock(first.m) + ' 开始');
   // 封蜡上盖他的名字，没署名就盖一颗心
   $('sealBtn').textContent = sharedPlan.from ? sharedPlan.from.charAt(0) : '♥';
-  document.title = who + '把' + label + '给你排好了';
-  $('sub').textContent = who + ' 为你排好的一天';
+  document.title = t('invite.doc', {who:who, day:label}) || (who + '把' + label + '给你排好了');
+  $('sub').textContent = t('invite.sub', {who:who}) || (who + ' 为你排好的一天');
   // 要先问一句的话，信封等她答应完再出现，一次只做一件事
   if (sharedPlan.ask) window._showInvite = function(){ inv.classList.remove('hidden'); };
   else inv.classList.remove('hidden');
@@ -4665,12 +4732,12 @@ renderFootprints();
 $('acceptBtn').onclick = function(){
   hearts(18);
   var who = (sharedPlan && sharedPlan.from) || '他';
-  $('rcHint').textContent = '把这句话原样发回给' + who + '，今天就算说定了。';
-  $('rcBody').textContent = '「' + fill(pick(REPLIES)) + '」';
+  $('rcHint').textContent = t('reply.hint', {who:who}) || ('把这句话原样发回给' + who + '，今天就算说定了。');
+  $('rcBody').textContent = LANG === 'en' ? ('“' + pick(REPLIES_EN) + '”') : ('「' + fill(pick(REPLIES)) + '」');
   $('replyMask').classList.add('show');
 };
 $('rcCopy').onclick = function(){
-  copyText($('rcBody').textContent.replace(/[「」]/g,''), '已复制，发给他吧');
+  copyText($('rcBody').textContent.replace(/[「」“”]/g,''), t('reply.copied') || '已复制，发给他吧');
 };
 $('rcClose').onclick = function(){ $('replyMask').classList.remove('show'); };
 $('replyMask').onclick = function(e){ if (e.target === $('replyMask')) $('replyMask').classList.remove('show'); };
@@ -4682,9 +4749,9 @@ $('keepBtn').onclick = function(){
       for (var i=0;i<a.length;i++){ if (a[i].sig === sig) has = true; }
       if (!has){ a.unshift({ sig:sig, ymd:sharedPlan.ymd, done:false, plan:sharedPlan }); logWrite(a); }
     }
-    toast('存好了。以后直接打开这个网址就有你们的日子');
+    toast(t('toast.kept') || '存好了。以后直接打开这个网址就有你们的日子');
   } else {
-    toast('这台设备不让存本地数据，把链接收藏起来吧');
+    toast(t('toast.nostore') || '这台设备不让存本地数据，把链接收藏起来吧');
   }
 };
 // 这是整个产品唯一的增长回路：收到的人变成下一个发的人。
@@ -4707,7 +4774,8 @@ function handoff(){
   renderStats(); renderMemo();
   if (window._setFold) window._setFold(true);
   var who = (sharedPlan && sharedPlan.from) || '';
-  toast(who ? ('轮到你了。排好直接发给' + who + '。') : '轮到你了：直接点「一键定今天」');
+  toast(who ? (t('toast.handoff', {who:who}) || ('轮到你了。排好直接发给' + who + '。'))
+            : (t('toast.handoff.plain') || '轮到你了：直接点「一键定今天」'));
   window.scrollTo({top:0, behavior:'smooth'});
 }
 $('mineBtn').onclick = handoff;
