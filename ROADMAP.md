@@ -77,7 +77,7 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 | 项 | 状态 | 说明 |
 |---|---|---|
 | 代理可以把 CI 绿的 PR 合并到 main | **是**（人合并 #22 即为授权；撤销就把这里改回"否"） | 合并 = 上线。第 1 条任务（CI）做完之前，只合并 CI 已存在且绿的 PR |
-| Worker 从 `kunyi523/Date` 的 `server/` 自动部署 | **切换中**（人在 Cloudflare 面板改构建源；`server/` 已就位：真 database_id、迁移历史已修、`npm run deploy`） | 切好后合并 main 即部署后端。代理验证方法：Cloudflare-builds 工具看 xindong 有没有来自 Date 的新构建且 success。第 4/5/9 条以此为依赖 |
+| Worker 从 `kunyi523/Date` 的 `server/` 自动部署 | **是**（2026-09-03 已切：仓库 Date、根目录 `server`、部署命令 `npm run deploy`、只构建 main） | 合并 main 即部署后端。代理验证方法：Cloudflare-builds 工具看 xindong 最新构建来自 Date 且 success；D1 里 `SELECT name FROM d1_migrations` 含 `0002_redeems_first_time.sql`。第 4/5/9 条以此为依赖 |
 | 代理可以从主人账号对外发内容 | **否**，永远 | 文案写进 `launch/`，人发 |
 
 ---
@@ -183,6 +183,9 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 - 2026-09-03 · 完成 2a（语言层 + 客人那一面，PR 见 GitHub）。`t()` 在中文下返回 null 的设计让中文路径零风险，
   2b 照同样写法往发件人那一面铺就行。英文回话句是手写的，别用翻译腔。
   **下一次唤醒做 2b。** 自动按浏览器语言切换要等第 3 条做完再开。
+- 2026-09-03 · 人把 Worker 构建源切到 Date/server 了（Deploy command 重连后会被重置成 `npx wrangler deploy`，
+  已改回 `npm run deploy`——那个不跑迁移）。这次合并就是第一次从 Date 触发的后端构建；
+  做第 4 条之前先按「授权状态」那行的两个方法验一下它确实成功了。
 
 ---
 
