@@ -79,7 +79,7 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 | 项 | 状态 | 说明 |
 |---|---|---|
 | CI 绿的 `cursor/*` PR 自动合并到 main | **是**（人合并 #22 即为授权。由 `.github/workflows/automerge.yml` 执行；**撤销 = 删掉或禁用那个文件**） | 合并 = 上线。三项检查全绿才合，任一红都不合 |
-| Worker 从 `kunyi523/Date` 的 `server/` 自动部署 | **切换中**（人在 Cloudflare 面板改构建源；`server/` 已就位：真 database_id、迁移历史已修、`npm run deploy`） | 切好后合并 main 即部署后端。代理验证方法：Cloudflare-builds 工具看 xindong 有没有来自 Date 的新构建且 success。第 4/5/9 条以此为依赖 |
+| Worker 从 `kunyi523/Date` 的 `server/` 自动部署 | **是**（2026-09-03 已切：仓库 Date、根目录 `server`、部署命令 `npm run deploy`、只构建 main） | 合并 main 即部署后端。代理验证方法：Cloudflare-builds 工具看 xindong 最新构建来自 Date 且 success；D1 里 `SELECT name FROM d1_migrations` 含 `0002_redeems_first_time.sql`。第 4/5/9 条以此为依赖 |
 | 代理可以从主人账号对外发内容 | **否**，永远 | 文案写进 `launch/`，人发 |
 
 ---
@@ -195,6 +195,9 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
   **这次运行的环境里没有 Github MCP（只有 open_git_pr），合并不了**——PR 开着，正文写了原因。
   下次唤醒先按「每次被唤醒时照这个做」第 9 步：CI 绿就先合这个 PR，再做第 3 条。
   下次注意：第 3 条卡池双语时，`optLabel()` 那套不适用于卡片——卡片要加 `t_en/d_en` 字段，`cardHTML`/`renderPlan`/`planText` 按 `LANG` 取。
+- 2026-09-03 · 人把 Worker 构建源切到 Date/server 了（Deploy command 重连后会被重置成 `npx wrangler deploy`，
+  已改回 `npm run deploy`——那个不跑迁移）。这次合并就是第一次从 Date 触发的后端构建；
+  做第 4 条之前先按「授权状态」那行的两个方法验一下它确实成功了。
 
 ---
 - 2026-09-03 · 定时自动化第一次运行成功，做完 2b（#29，36 条断言），但**它合不了**：那个环境没有 Github MCP，
