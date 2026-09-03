@@ -56,7 +56,7 @@ UI/UX 保留，规矩在 `DESIGN.md`，那一份不动。
 | 项 | 状态 | 说明 |
 |---|---|---|
 | 代理可以把 CI 绿的 PR 合并到 main | **是**（人合并 #22 即为授权；撤销就把这里改回"否"） | 合并 = 上线。第 1 条任务（CI）做完之前，只合并 CI 已存在且绿的 PR |
-| 代理可以推送 `kunyi523/xindong` 更新 Worker | **否** | 短链、计数依赖它。替代方案：人在 Cloudflare 面板把 xindong 的构建源改成 `kunyi523/Date`、根目录 `server/`，以后合并 Date 自动部署 |
+| Worker 从 `kunyi523/Date` 的 `server/` 自动部署 | **切换中**（人在 Cloudflare 面板改构建源；`server/` 已就位：真 database_id、迁移历史已修、`npm run deploy`） | 切好后合并 main 即部署后端。代理验证方法：Cloudflare-builds 工具看 xindong 有没有来自 Date 的新构建且 success。第 4/5/9 条以此为依赖 |
 | 代理可以从主人账号对外发内容 | **否**，永远 | 文案写进 `launch/`，人发 |
 
 ---
@@ -146,6 +146,10 @@ UI/UX 保留，规矩在 `DESIGN.md`，那一份不动。
   下次注意：`shop.js` 和 `smoke.js` 会碰真实的 Overpass，CI 上可能慢或被限流；
   站点测试都有 30 秒等待和无网络兜底，正常应通过。若 CI 红且是网络原因，先重跑一次再判断。
   从第 2 条（英文界面）开始，每个 PR 必须 CI 绿才合并。
+- 2026-09-03 · 后端准备好从 Date 直接部署（#25）：查线上 D1 发现 redeems 没有 first_time 列——
+  我此前把新列加进了已执行的 0001，wrangler 不会重跑它。改成 0002 ALTER，test.mjs 按顺序跑全部迁移。
+  **教训：永远不要改已执行过的迁移文件，加新文件。** database_id 换真、IP_SALT 出配置 + keep_vars。
+  人正在面板把构建源切到 Date/server。做第 4 条之前先用 Cloudflare-builds 工具确认有来自 Date 的成功构建。
 
 ---
 
