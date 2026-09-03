@@ -13,11 +13,19 @@ UI/UX 保留，规矩在 `DESIGN.md`，那一份不动。
 1. `git fetch origin main && git checkout main && git pull`
 2. 读这份文件。看「任务清单」，找**第一条**未勾选、且"依赖"已满足的任务
 3. 开分支 `cursor/<任务名>-cb25`，只做这一条，做小做完
-4. 跑 `test/`（第 1 条任务做完之后才有）。跑不过就修，修不好就写进「日志」、不合并
-5. 提交、推送、开 PR。PR 正文写：做了什么、怎么验的、没做什么
-6. **如果「授权状态」里合并为"是"且 CI 绿**：合并到 main（GitHub Pages 自动上线）。否则只留 PR
-7. 在「任务清单」把这条勾掉，在「日志」写一行（日期、做了什么、下次注意什么）
-8. 一次只做一条。做完就停，等下一次唤醒
+4. 本地先跑测试：仓库根目录 `python3 -m http.server 8099 &`，然后 `cd test && npm install && npm test`；
+   后端 `cd server && npm install && node test.mjs`。本地没有 Chrome 就跳过，靠 PR 上的 CI。
+   跑不过就修，修不好就写进「日志」、不合并
+5. 提交、推送、开 PR（用 ManagePullRequest 工具）。PR 正文写：做了什么、怎么验的、没做什么
+6. 等 CI：用 ManagePullRequest 的 `get_ci_status` 查（或 cursor-subscriptions 的 `subscribe_github_ci` 等），
+   一般 3 分钟。三项都要绿：`test / 站点冒烟`、`test / 后端`、`Cloudflare Pages`
+7. **如果「授权状态」里合并为"是"且 CI 绿**：合并到 main。
+   **合并只能用 Github MCP 的 `merge_pull_request`（owner `kunyi523`, repo `Date`, 方法 `squash`）——
+   `gh` 命令是只读的，`gh pr merge` 会失败。** 合并即上线（GitHub Pages + Cloudflare Pages 都跟着 main）。
+   CI 红就只留 PR，把红的原因写进 PR 正文和「日志」
+8. 在「任务清单」把这条勾掉，在「日志」写一行（日期、做了什么、下次注意什么）——
+   这两处改动可以直接放进同一个 PR
+9. 一次只做一条。做完就停，等下一次唤醒。**如果醒来发现有自己上次开的、CI 已绿但没合的 PR，先合它再做新的**
 
 **绝不做的事**（没有任何例外）：
 - 改 `DESIGN.md` 里的视觉规则、改配色令牌、动花和明暗主题
@@ -27,6 +35,19 @@ UI/UX 保留，规矩在 `DESIGN.md`，那一份不动。
 - 动 `kunyi523/xindong` 仓库（Worker 的部署副本），除非「授权状态」写了可以
 - 让旧链接失效：`?s=` `?c=` `?shop=` 必须一直能打开
 - 不确定就开 PR 不合并，把问题写进 PR 正文和「日志」
+
+---
+
+## 人回来时要做的（坤怿看这里）
+
+只有一件事没做完，**5 分钟**，不做也不影响前三条任务：
+
+Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
+仓库换成 `kunyi523/Date`、分支 `main`、根目录 `server`、部署命令 `npm run deploy` → 保存。
+顺手在 Variables and Secrets 里把 `IP_SALT` 改成任意一串字符。
+
+做完之后合并 main 会自动部署后端，第 4/5/9 条（短链、计数、「她拆开了」）才能上线。
+其他一切看「日志」——每次运行一行。有没合进去的 PR，正文里写着为什么。
 
 ---
 
