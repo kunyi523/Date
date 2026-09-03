@@ -1079,7 +1079,7 @@
     <div class="acts hidden" id="guestActs">
       <button class="act primary" id="acceptBtn">我 答 应 你 ♥</button>
       <button class="act" id="keepBtn">存 到 我 手 机</button>
-      <button class="act" id="mineBtn">我 也 抽 一 份</button>
+      <button class="act" id="mineBtn">下 次 换 我 排</button>
     </div>
 
     <button class="sweet-btn" id="sweetBtn">抽 一 句 情 话</button>
@@ -1302,6 +1302,7 @@
     <div class="rc-h" id="rcHint">把这句话原样发回去，今天就算说定了。</div>
     <div class="acts" style="margin-top:16px">
       <button class="act" id="rcCopy">复 制 这 句 话</button>
+      <button class="act primary" id="rcNext">下 次 换 你 排 →</button>
       <button class="act" id="rcClose">好 了</button>
     </div>
   </div>
@@ -4686,18 +4687,31 @@ $('keepBtn').onclick = function(){
     toast('这台设备不让存本地数据，把链接收藏起来吧');
   }
 };
-$('mineBtn').onclick = function(){
+// 这是整个产品唯一的增长回路：收到的人变成下一个发的人。
+// 她点完"愿意"、复制完回话，下一步必须自然地就是"下次换你排"——
+// 而且他的名字已经填好了，她一个字都不用打，排出来就是"给他"的。
+function handoff(){
+  // 链接里带的是他的设置（from=他, to=她）。她接手，两个名字要对调：
+  // 她就是那个 to，她要发给的是那个 from。
+  if (sharedPlan && sharedPlan.from){
+    var me = sharedPlan.to || '', him = sharedPlan.from;
+    if (cfg.to !== him){ cfg.from = me; cfg.to = him; saveCfgLocal(); }
+  }
   document.body.classList.remove('guest');
   isGuest = false;
   $('memo').classList.remove('hidden');
   $('guestActs').classList.add('hidden');
   $('menu').classList.add('hidden');
   $('loveNote').classList.add('hidden');
+  $('replyMask').classList.remove('show');
   renderStats(); renderMemo();
   if (window._setFold) window._setFold(true);
-  toast('轮到你了：直接点「一键定今天」');
+  var who = (sharedPlan && sharedPlan.from) || '';
+  toast(who ? ('轮到你了。排好直接发给' + who + '。') : '轮到你了：直接点「一键定今天」');
   window.scrollTo({top:0, behavior:'smooth'});
-};
+}
+$('mineBtn').onclick = handoff;
+$('rcNext').onclick = handoff;
 
 /* ---------- 11b 桌上二维码扫进来的那一路 ----------
    一句话、一个按钮，圆心是这家店。她今晚不需要装什么东西，
