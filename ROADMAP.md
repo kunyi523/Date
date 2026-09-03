@@ -114,13 +114,16 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
   **有意没做：按 `navigator.language` 自动切**——卡池还是中文，自动切会让英文系统的华人用户看到一半英一半中，
   等第 3 条卡池双语之后再开。`test/smoke.js` 有英文收件人全流程 7 条断言。
 
-- [ ] **2b. 英文界面：发件人那一面 + 设置里的开关**
+- [x] **2b. 英文界面：发件人那一面 + 设置里的开关** ✓ 2026-09-03
   同一套 `t()`，把首页 hero、一键定今天、条件区、计划卡的固定文字（"约 x 分钟""换一张"等）、
   分享面板、设置面板、所有 toast 翻成英文。设置里加一个「语言 / Language」开关（写 `xd_lang` 后 reload）。
   **不动布局、不动令牌。** 卡池文案（t/d/meta）、`ENDINGS`、`SWEETS` 不碰，留给第 3 条。
   验收：`?lang=en` 打开首页 → 排一份 → 分享，全程无中文（正则扫 `[\u4e00-\u9fa5]`，排除卡池文案和人名）；
   `?lang=zh` 一字不变；smoke 测试加发件人英文断言。
   依赖：2a
+  做法：HTML 里的固定文字挂 `data-i18n` / `data-i18n-ph`，脚本开头同步换一遍；JS 里动态拼的用 `t() || '中文'`；
+  条件 / 设置里的选项值（今天、小奢侈、☀️ 晴…）**仍是中文 key**，只在显示时过 `optLabel()`。
+  有意没翻：海报（第 6 条）、附近真实地点的卡片描述 / 距离行和 `?shop=` 商家那一路（卡池文案 / 不再投入）、评分面板。
 
 - [ ] **3. 卡池双语 + 按收件人语言显示**
   每张手写卡加 `t_en` / `d_en`；`ENDINGS` / `REPLIES` / `SWEETS` 同样。
@@ -183,6 +186,13 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 - 2026-09-03 · 完成 2a（语言层 + 客人那一面，PR 见 GitHub）。`t()` 在中文下返回 null 的设计让中文路径零风险，
   2b 照同样写法往发件人那一面铺就行。英文回话句是手写的，别用翻译腔。
   **下一次唤醒做 2b。** 自动按浏览器语言切换要等第 3 条做完再开。
+- 2026-09-03 · 完成 2b（发件人那一面 + 设置里的「语言 / Language」开关）。`I18N.en` 现在 350 来条；
+  HTML 固定文字走 `data-i18n`，动态的走 `t() || '中文'`，选项值仍是中文 key（`sched.js` 直接拿它们当 key，别改）。
+  验证：smoke 36 条（英文发件人首页 → 条件区 → 设置 → 一键 → 分享面板逐屏扫中文 = 0；语言开关切回中文；
+  中文首屏逐字不变），layout 中英各一遍，本地全绿；另把中文 DOM 和 main 逐字比过，除新加的语言组外完全一致。
+  **这次运行的环境里没有 Github MCP（只有 open_git_pr），合并不了**——PR 开着，正文写了原因。
+  下次唤醒先按「每次被唤醒时照这个做」第 9 步：CI 绿就先合这个 PR，再做第 3 条。
+  下次注意：第 3 条卡池双语时，`optLabel()` 那套不适用于卡片——卡片要加 `t_en/d_en` 字段，`cardHTML`/`renderPlan`/`planText` 按 `LANG` 取。
 
 ---
 
@@ -198,5 +208,8 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 
 - 一个 `index.html`，JS 按编号小节排好，改动前先看小节标题；有意只用 ES5
 - 样式一律走 `:root` 令牌，规矩见 `DESIGN.md`
+- 文案双语（小节 1b）：`t(key)` 中文下返回 `null`，所以写法永远是 `t('key') || '中文原句'`；
+  HTML 里的固定文字挂 `data-i18n`（placeholder 用 `data-i18n-ph`，aria 用 `data-i18n-aria`）；
+  条件 / 设置里的选项值是中文 key，显示时用 `optLabel()`，**不要把 key 换成英文**（排程和测试都认中文 key）
 - 时间相关的改动跑多时段自测：每一站必须落在自己的营业时段内，需要天光的不排在日落后
 - 后端在 `server/`，`node test.mjs` 64 条断言；schema 在 `migrations/`
