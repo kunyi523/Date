@@ -6,7 +6,7 @@
  *
  * 改了 worker.js 之后请跑一遍。
  */
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import initSqlJs from 'sql.js';
@@ -26,7 +26,10 @@ function eq(name, got, want) {
 /** 内存版 D1：只实现 worker 用到的 prepare().bind().all()/run() */
 function makeDB() {
   const db = new SQL.Database();
-  db.run(readFileSync(join(here, 'migrations/0001_init.sql'), 'utf8'));
+  // 和线上一样按文件名顺序跑全部迁移，这样"改了已执行的迁移"这种错本地也会暴露
+  for (const f of readdirSync(join(here, 'migrations')).filter(x => x.endsWith('.sql')).sort()){
+    db.run(readFileSync(join(here, 'migrations', f), 'utf8'));
+  }
   return {
     prepare(sql) {
       let args = [];
