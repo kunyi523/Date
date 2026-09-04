@@ -90,6 +90,7 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 - 一键排今天、真实时间轴、附近真实地点（OSM）、出逃半日、偏好、打卡、足迹地图、照片、
   两人共一张地图、备份、装主屏、离线、日出日落感知
 - 分享：`?s=` 整份计划进链接；短链 `/p/:id` + 聊天软件里的封蜡卡预览；封蜡；海报；文字版
+- 匿名计数：拆开 / 愿意 / 接手 / 发出 / 海报 各一行（动作、天、短链 id 前 4 位），`server/README.md`「算 K」一条查询看 K
 - 商家入口屏（`?shop=`）——代码留着，方向上不再投入
 - 出示页、老板娘页（`shop.html`）——同上
 
@@ -146,12 +147,19 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
   `index.html` 自己也加了 og:image，长链和老链接贴出去同样有卡。旧 `?s=` `?c=` `?shop=` 一字未动。
   **没做：**og:image 是一张通用卡，名字只在 og:title 里；真的 iMessage / Discord 里没贴过（这个环境贴不了），合并后人贴一次看。
 
-- [ ] **5. 匿名计数（算 K）**
+- [x] **5. 匿名计数（算 K）** ✓ 2026-09-04
   Worker `POST /ev` 收 `{e, id?}`，`e ∈ {open, accept, handoff, sent, poster}`，只存事件名、天、
   计划 id 前 4 位；不存 IP、不存 UA、不存 couple id。前端在五个点各打一次。
   `server/README.md` 写一条 D1 查询算 K = handoff / open。
   验收：本地 test.mjs 覆盖；线上打开一次后 D1 里能查到。
   依赖：4（同一次 Worker 部署）
+  做法：迁移 `0004_events.sql`（表 `events(e, d, pid4)` 三列，天是 UTC）。`/p/:id` 跳回网站时末尾多带 `&p=<id>`，
+  前端 `SHORT_ID` 从它来——`open` 记在拆封蜡那一下（不记在 `/p/:id`，爬虫也打那页），`accept`/`handoff` 同一个 id，
+  长链打开的三个动作照记、不带 id。`sent` 记在**短链到手那一刻**（同一份内容只记一次，那时才有 id 能和她那头串上；
+  短链要不到时 `/ev` 同样够不着）；`poster` 出图成功记一次。前端 `track()` 用 `fetch keepalive`，出错静默。
+  限流和别的接口一样是一小时 IP 哈希，但单独一个桶，计数再多也不占同一个 IP 拿短链的额度。
+  **没做：**线上 D1 里"打开一次能查到"要等合并部署后人看一眼（README「算 K」那条查询）；
+  `sent` 在后台够不着时不记，所以 `sent` 只数得到有短链的那部分，K 用的 open / handoff 不受影响。
 
 - [ ] **6. 海报 Story 版**
   9:16 一版（现有是方的），站点地址 + 二维码醒目，天数最大，地图其次，英文版跟 `lang`。
@@ -222,6 +230,18 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
   且 `.seal-bloom` 是 svg，`inset` 撑不开它，得写 width/height；
   (4) 第 5 条的 `open` 事件别在 `/p/:id` 里记——爬虫也会打那一页；在前端拆封蜡那一下打 `/ev` 才准，计划 id 前 4 位就取这里的 id。
   **下一次唤醒做第 5 条。**
+- 2026-09-04 · 定时自动化完成第 5 条（匿名计数 / 算 K）。后端 `POST /ev` + 迁移 `0004_events.sql`（三列：动作、天、短链 id 前 4 位）；
+  `/p/:id` 跳回时多带 `&p=<id>`；前端 `track()` 在拆封蜡 / 愿意 / 下次换你排 / 短链到手 / 出图 五个点各记一次；
+  `server/README.md` 新增「算 K」一节，那条按周算漏斗 + K 的查询被 test.mjs 直接从 README 里抠出来跑。
+  验证：后端 135 条（新增 26：三列且只有三列、坏 id 不算错只是不记、拒的不落库、K = 0.25、空表、200/时限流且不占短链额度、
+  跳转带 &p=），smoke 67 条（新增 17：发件人 sent 只在短链到手时记且同一份不重复、poster 记一次、收件人 open/accept/handoff 带同一个 id、
+  长链打开不带 id、每条只有 e + id、后台断掉不记 sent、没分享过就出图不顺手生成 couple id），sched / shop / layout / daylight 照过，
+  `wrangler deploy --dry-run` 通过。
+  **测试里每一页都拦了 `/ev`**——不拦的话 CI 会把假事件打进线上的 K 里，以后加测试页记得照 `evTrap` 那样拦。
+  下次注意：(1) 合并部署后人在线上拆一次封蜡，D1 Console 跑 README「算 K」那条查询能看到一行 open，第 5 条才算验收完；
+  (2) 第 9 条「她拆开了」别复用 `events` 表——它刻意没有精确时间、没有完整 id，做不到"14:32 拆开的"，得在 `plans` 表上加列（新迁移 0005）；
+  (3) `hits` 表现在有两个桶（默认 / `ev`），看限流数据时别把它们加在一起。
+  **下一次唤醒做第 6 条（海报 Story 版，依赖 2b 已满足）。**
 
 ## 明确不做
 
@@ -241,4 +261,6 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 - 时间相关的改动跑多时段自测：每一站必须落在自己的营业时段内，需要天光的不排在日落后
 - 分享链接（小节 9）：`?s=` 那一串是唯一事实，短链只是排在它前面的一张卡。发链接一律走 `shareLink(plan)`
   （短链有就短链，没有先长链、到了再换进输入框）；**复制必须留在点按那一下里**，别为了等短链把它放进回调
-- 后端在 `server/`，`node test.mjs` 109 条断言；schema 在 `migrations/`，**只加新文件、不改已执行过的**
+- 匿名计数（小节 3b）：五个动作只走 `track(e, id, key)`，同一件事靠 key 去重、只记一次；发出去的只有动作名 + 短链 id，
+  **别往里加任何别的字段**。新加会打 `/ev` 的页面进测试时，照 `test/smoke.js` 里 `evTrap` 那样拦下来，别让测试打到线上
+- 后端在 `server/`，`node test.mjs` 135 条断言；schema 在 `migrations/`，**只加新文件、不改已执行过的**

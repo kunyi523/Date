@@ -61,12 +61,42 @@ npm run deploy                             # 建表 + 发布
 | `POST` | `/couple` | 上传"我这半张"足迹（整份覆盖，幂等） |
 | `GET` | `/couple?id=&by=` | 读回对方那半张 |
 | `POST` | `/plans` | 存一份计划换 6 位短链：body `{ s, lang }`，`s` 就是长链 `?s=` 后那一串；返回 `{ id, url, exp }`，30 天过期 |
-| `GET` | `/p/:id` | 一页只有 og 标签的 HTML（「坤怿为你排好了一天」+ 封蜡卡），脚本立刻跳到 `网站/?s=…`；找不到或过期 404 |
+| `GET` | `/p/:id` | 一页只有 og 标签的 HTML（「坤怿为你排好了一天」+ 封蜡卡），脚本立刻跳到 `网站/?s=…&p=:id`；找不到或过期 404 |
+| `POST` | `/ev` | 匿名计数：body `{ e, id? }`，`e ∈ open / accept / handoff / sent / poster`，`id` 是短链 id（可无）。只存动作名、哪一天、id 前 4 位 |
 | `GET` | `/sweet` | 占位，以后接模型写情话 |
 
 短链跳回的网站默认是 `https://kunyi523.github.io/Date/`，自己部署的人在面板 Variables 里设 `SITE` 即可（`og-seal.png` 也从那儿取）。
 `/p/:id` 对爬虫和人返回同一页：聊天软件的爬虫不跑脚本，读到 og 就出卡片；人被 `location.replace` 带走，历史里不留这一页。
 预览里只有日期、几站、几点开始——她想说的那句话和每一站都在封蜡后面。
+跳回去的地址末尾多一个 `&p=:id`，只是给计数用的钥匙：网站认的仍然只是 `?s=`，`&p=` 缺了也照常打开。
+
+## 算 K
+
+K = 收到链接的人里，有多少接着发出了自己的一份 = `handoff / open`。这是这个产品唯一要盯的数（见 `ROADMAP.md`「增长模型」）。
+
+前端在五个点各打一次 `POST /ev`：她拆开封蜡（`open`）、点「我答应你」（`accept`）、点「下次换我排」（`handoff`）、
+他把链接发出去（`sent`，短链到手那一刻记，同一份只记一次）、存成图片（`poster`）。
+`open` 记在网站上拆封蜡那一下而不是 `/p/:id`——爬虫也会打那一页。
+表 `events` 一行只有三列：动作、哪一天（UTC）、短链 id 前 4 位（长链打开的留空）。**不存 IP、UA、couple id、设备 id，连精确时间都不存。**
+前 4 位够把同一份计划的 拆开 → 愿意 → 接手 串起来，又不是那条短链本身。
+
+```sql
+-- 按周看漏斗和 K。分母为 0 的周 K 记 0
+SELECT strftime('%Y-W%W', d)  AS week,
+       SUM(e = 'sent')        AS sent,
+       SUM(e = 'open')        AS opened,
+       SUM(e = 'accept')      AS accepted,
+       SUM(e = 'handoff')     AS handed,
+       SUM(e = 'poster')      AS posters,
+       ROUND(1.0 * SUM(e = 'handoff') / MAX(SUM(e = 'open'), 1), 2) AS K
+  FROM events
+ GROUP BY week
+ ORDER BY week DESC;
+```
+
+跑法：Cloudflare 面板 → D1 → `xindong` → Console 粘进去；或者 `cd server && npx wrangler d1 execute DB --remote --command "…"`。
+按份看（同一条短链被拆开几次、有没有接手）：`SELECT pid4, GROUP_CONCAT(e) FROM events WHERE pid4 <> '' GROUP BY pid4;`
+`test.mjs` 会把上面那段 sql 直接从这份 README 里抠出来跑，改了查询别忘了看它还过不过。
 
 `GET /places` 返回：
 
@@ -92,8 +122,8 @@ cd server && npm i && npm test
 ```
 
 用 sql.js 在内存里冒充 D1，直接跑真正的 `worker.js`，**不需要 Cloudflare 账号**。
-56 条断言，覆盖校验、去重、合并、文字过滤、两种限流、下架、MBTI 相似度、
-以及两个人共享足迹的上传/读回/幂等/脏数据清洗。改完 `worker.js` 请跑一遍。
+135 条断言，覆盖校验、去重、合并、文字过滤、限流、下架、MBTI 相似度、
+两个人共享足迹的上传/读回/幂等/脏数据清洗、短链 + og 预览、匿名计数 + 算 K 的那条查询。改完 `worker.js` 请跑一遍。
 
 ## 两个人共一张地图
 

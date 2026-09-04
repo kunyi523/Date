@@ -1974,9 +1974,10 @@ function normCfg(c){
 }
 // 计划链接只带展示用得上的部分：口味、私藏这些是自己的设置，没必要跟着计划跑。
 // theme 要带上——她收到的应该是我调好的那一套明暗。
-function publicCfg(){
+// peek：只读现有的 couple id，不去生成——出图这种不发出去的动作不该顺手把地图连上
+function publicCfg(peek){
   return { gate:cfg.gate, anni:cfg.anni, miles:cfg.miles, from:cfg.from, to:cfg.to, theme:cfg.theme,
-           couple:Couple.ensure() };
+           couple: peek ? (cfg.couple || '') : Couple.ensure() };
 }
 // ?s= 是新版（可带整份计划），?c= / #c= 是老版（只有设置），两者都要认
 function readShare(){
@@ -2095,6 +2096,37 @@ function jpost(url, body, cb){
     };
     x.send(JSON.stringify(body));
   }catch(e){ finish(e, null); }
+}
+
+/* ---------- 3b 匿名计数（算 K） ----------
+   K = 收到链接的人里，有多少接着发出了自己的一份 = handoff / open。
+   五个动作各打一次：open 拆封蜡、accept 点愿意、handoff 下次换你排、sent 把链接发出去、poster 存成图片。
+   发出去的只有动作名和短链 id（后台只留前 4 位、时间只留到"天"）。
+   不发 IP、UA、couple id、设备 id、计划内容、那句话。后台够不着（离线、?api=off）就算了——
+   这里出任何错都不能碍着她拆信。 */
+// 短链 /p/:id 跳回来时带 &p=<id>，拆开 → 愿意 → 接手 靠它串成同一份；长链打开的没有，就不带
+var SHORT_ID = (function(){
+  var p = param('p');
+  return (p && /^[a-km-zA-HJ-NP-Z2-9]{6}$/.test(p)) ? p : '';
+})();
+var tracked = {};
+// key：同一件事只算一次的钥匙。不给就按 动作 + id 去重
+function track(e, id, key){
+  if (!API.base) return;
+  var k = e + '|' + (key || id || '');
+  if (tracked[k]) return;
+  tracked[k] = 1;
+  var body = { e:e };
+  if (id) body.id = id;
+  try{
+    if (window.fetch){
+      // keepalive：她点完就关掉页面，这一下也发得出去
+      fetch(API.base + '/ev', {
+        method:'POST', headers:{ 'Content-Type':'application/json' },
+        body: JSON.stringify(body), keepalive:true
+      }).catch(function(){});
+    } else jpost(API.base + '/ev', body, function(){});
+  }catch(err){}
 }
 // 远端卡片 → 本地字段。远端字段可缺省，缺的用默认值兜。
 // 口碑类字段（rating / reviews / summary / hours）会被拼进 meta 那一行，
@@ -4126,7 +4158,7 @@ $('quickBtn').onclick = function(){
 
 /* ---------- 9 分享（链接 / 文字 / 海报） ---------- */
 // ?s= 后面那一串：整份计划 + 展示用的设置。长链、短链都从它来
-function planPayload(plan){ return b64e({ k:'plan', p:plan, c:publicCfg() }); }
+function planPayload(plan, peek){ return b64e({ k:'plan', p:plan, c:publicCfg(peek) }); }
 function longLink(key){ return baseUrl() + '?s=' + key + (LANG === 'en' ? '&lang=en' : ''); }
 // 长链：不靠任何后台，永远能打开。这是底线，短链只是排在它前面的一张卡
 function planLink(plan){ return longLink(planPayload(plan)); }
@@ -4151,16 +4183,23 @@ var Short = (function(){
       for (var i=0;i<cbs.length;i++) cbs[i](j.url);
     });
   }
-  return { get:get, fetch:fetch };
+  // 短链最后那 6 位就是 id；没有短链就是空串
+  function idOf(url){ var m = /\/p\/([A-Za-z0-9]{6})$/.exec(url || ''); return m ? m[1] : ''; }
+  return { get:get, fetch:fetch, idOf:idOf, idFor:function(key){ return idOf(get(key)); } };
 })();
 // 该发出去的链接：短链拿到了就是短链；没拿到先给长链（永远能打开），顺手去要一条短链，
 // 到了就换进输入框——下一次复制就是短的。复制必须留在点按那一下里（iOS 不许等网络回来再写剪贴板），
 // 所以这里从不为了短链让人等。
+// 计数 sent 记在短链到手那一刻（同一份内容只算一次）：那时才知道 id，能和她那头的 open 串上；
+// 短链要不到的时候 /ev 同样够不着，先记也是白记。
 function shareLink(plan){
   var key = planPayload(plan), long = longLink(key);
   var url = Short.get(key);
-  if (url) return url;
-  Short.fetch(key, function(su){ if ($('shOut').value === long) $('shOut').value = su; });
+  if (url){ track('sent', Short.idOf(url), key); return url; }
+  Short.fetch(key, function(su){
+    if ($('shOut').value === long) $('shOut').value = su;
+    track('sent', Short.idOf(su), key);
+  });
   return long;
 }
 // 分享面板里此刻会发出去的那一份（不动 currentPlan），打开面板时提前去要短链——
@@ -4391,7 +4430,11 @@ function showPoster(){
       var c = drawPoster(plan);
       $('posterImg').src = c.toDataURL('image/png');
       $('posterMask').classList.add('show');
-    }catch(e){ toast(t('toast.noCanvas') || '这台设备画不出图片，用「复制文字版」吧'); }
+    }catch(e){ toast(t('toast.noCanvas') || '这台设备画不出图片，用「复制文字版」吧'); return; }
+    // 计数：这份计划出过一张图（同一份只算一次；分享过就有短链 id 可带）。
+    // peek：还没分享过就没有 couple id，出图不该顺手生成一个——那时也不会有短链，key 只用来去重
+    var key = planPayload(plan, true);
+    track('poster', Short.idFor(key), key);
   }
   if (document.fonts && document.fonts.ready && document.fonts.ready.then) document.fonts.ready.then(go, go);
   else go();
@@ -5088,6 +5131,7 @@ renderFootprints();
   else inv.classList.remove('hidden');
 
   function open(){
+    track('open', SHORT_ID);   // 计数记在这一下，不记在 /p/:id——爬虫也会打那一页
     hearts(18);
     if (window.Petals) setTimeout(function(){ Petals.burst(24); }, 260);
     renderPlan(sharedPlan);
@@ -5106,6 +5150,7 @@ renderFootprints();
 })();
 
 $('acceptBtn').onclick = function(){
+  track('accept', SHORT_ID);
   hearts(18);
   var who = (sharedPlan && sharedPlan.from) || '他';
   $('rcHint').textContent = t('reply.hint', {who:who}) || ('把这句话原样发回给' + who + '，今天就算说定了。');
@@ -5134,6 +5179,7 @@ $('keepBtn').onclick = function(){
 // 她点完"愿意"、复制完回话，下一步必须自然地就是"下次换你排"——
 // 而且他的名字已经填好了，她一个字都不用打，排出来就是"给他"的。
 function handoff(){
+  track('handoff', SHORT_ID);   // K 的分子就是这一下
   // 链接里带的是他的设置（from=他, to=她）。她接手，两个名字要对调：
   // 她就是那个 to，她要发给的是那个 from。
   if (sharedPlan && sharedPlan.from){

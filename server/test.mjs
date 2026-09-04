@@ -366,10 +366,11 @@ console.log('\n— 短链 + 链接预览 —');
   ok('每一站也不在预览里', !pg.text.includes('长堤走走') && !pg.text.includes('Walk the waterfront'));
   ok('og:image 是网站上那张封蜡卡', pg.text.includes(`<meta property="og:image" content="${SITE}og-seal.png">`) && pg.text.includes('summary_large_image'));
   eq('og:url 是短链自己', pg.text.match(/og:url" content="([^"]+)"/)?.[1], 'https://x/p/' + made.data.id);
-  const target = SITE + '?s=' + S;
-  ok('脚本立刻跳到长链接（?s= 原样）', pg.text.includes('<script>location.replace(' + JSON.stringify(target) + ');</script>'));
-  ok('没脚本靠 meta refresh', pg.text.includes(`<meta http-equiv="refresh" content="0;url=${target}">`));
-  ok('还有一个能点的兜底链接', pg.text.includes(`<a href="${target}">`));
+  const target = SITE + '?s=' + S + '&p=' + made.data.id;
+  ok('脚本立刻跳到长链接（?s= 原样，末尾带 &p=id 给计数串线用）', pg.text.includes('<script>location.replace(' + JSON.stringify(target) + ');</script>'));
+  const targetAttr = target.replace(/&/g, '&amp;');   // 属性里的 & 要转义，浏览器读回来还是 &
+  ok('没脚本靠 meta refresh', pg.text.includes(`<meta http-equiv="refresh" content="0;url=${targetAttr}">`));
+  ok('还有一个能点的兜底链接', pg.text.includes(`<a href="${targetAttr}">`));
   ok('中文页 lang=zh-CN', pg.text.includes('<html lang="zh-CN">'));
   eq('HEAD 也 200', (await page('/p/' + made.data.id, 'HEAD')).status, 200);
 
@@ -378,7 +379,7 @@ console.log('\n— 短链 + 链接预览 —');
   const enPg = await page('/p/' + en.data.id);
   ok('og:title 英文', enPg.text.includes('content="Kun planned your day"'), enPg.text.match(/og:title[^>]*/)?.[0]);
   ok('og:description 英文', enPg.text.includes('content="Sep 5 · 3 stops · from 14:00 · Tap the seal to open today"'), enPg.text.match(/og:description[^>]*/)?.[0]);
-  ok('跳回去时带 &lang=en，收件人打开是同一种语言', enPg.text.includes('&lang=en");</script>') && enPg.text.includes('<html lang="en">'));
+  ok('跳回去时带 &lang=en，收件人打开是同一种语言', enPg.text.includes('&lang=en&p=' + en.data.id + '");</script>') && enPg.text.includes('<html lang="en">'));
 
   console.log('  · 边角');
   const anon = await call('POST', '/plans', { s: b64e({ k: 'plan', p: PLAN({ from: '', s: [STOP(1500)] }), c: CFG }) });
@@ -409,6 +410,7 @@ console.log('\n— 短链 + 链接预览 —');
   const own = await makeCall(env2)('POST', '/plans', { s: S });
   const ownPg = await (await worker.fetch(new Request('https://x/p/' + own.data.id), env2)).text();
   ok('跳到自己的网站', ownPg.includes('location.replace("https://example.com/date/?s=') && ownPg.includes('content="https://example.com/date/og-seal.png"'));
+  ok('自己的网站也带 &p=id', ownPg.includes('&p=' + own.data.id + '");</script>'));
   const env2b = { DB: makeDB(), SITE: 'https://example.com/date/index.html' };   // 直接指到文件也行
   const own2 = await makeCall(env2b)('POST', '/plans', { s: S });
   const ownPg2 = await (await worker.fetch(new Request('https://x/p/' + own2.data.id), env2b)).text();
@@ -425,6 +427,71 @@ console.log('\n— 短链 + 链接预览 —');
   }
   ok('一小时 60 份之后开始拦', sent === 60 && blocked === 5, { sent, blocked });
   eq('换个 IP 不受影响', (await call3('POST', '/plans', { s: S }, { 'CF-Connecting-IP': '198.51.100.9' })).status, 200);
+}
+
+console.log('\n— 匿名计数（算 K）—');
+{
+  const db = makeDB();
+  const env = { DB: db, IP_SALT: 'test' };
+  const call = makeCall(env);
+  const rows = async () => (await db.prepare('SELECT * FROM events').bind().all()).results;
+  const today = new Date().toISOString().slice(0, 10);
+
+  eq('拆开 → ok', (await call('POST', '/ev', { e: 'open', id: 'kZ7mQ4' })).data, { ok: true });
+  let r = await rows();
+  eq('存下来的只有 动作 / 天 / 短链 id 前 4 位', r[0], { e: 'open', d: today, pid4: 'kZ7m' });
+  eq('一行就这三列：没有 IP、UA、couple、时间戳', Object.keys(r[0]).sort(), ['d', 'e', 'pid4']);
+  await call('POST', '/ev', { e: 'accept' });
+  eq('长链打开的没有短链，照记，id 留空', (await rows())[1], { e: 'accept', d: today, pid4: '' });
+  await call('POST', '/ev', { e: 'handoff', id: 'kZ7m' });
+  eq('只给前 4 位也认', (await rows())[2].pid4, 'kZ7m');
+  await call('POST', '/ev', { e: 'sent', id: 'abc10O' });          // 0 O 1 不在短链字母表里
+  eq('id 带易混字符：不算错，只是不记 id', (await rows())[3].pid4, '');
+  await call('POST', '/ev', { e: 'poster', id: 'x'.repeat(40) });
+  eq('id 太长：同样只是不记 id', (await rows())[4].pid4, '');
+  await call('POST', '/ev', { e: 'poster', id: { a: 1 } });
+  eq('id 不是字符串也不炸', (await rows())[5].pid4, '');
+  ok('五种动作都收', (await rows()).map((x) => x.e).every((e) => ['open', 'accept', 'handoff', 'sent', 'poster'].includes(e)));
+
+  console.log('  · 该拒的要拒');
+  eq('不认识的动作 → 400', (await call('POST', '/ev', { e: 'login' })).status, 400);
+  eq('没有动作 → 400', (await call('POST', '/ev', {})).status, 400);
+  eq('坏 JSON → 400', (await worker.fetch(new Request('https://x/ev', { method: 'POST', body: '{' }), env)).status, 400);
+  eq('GET /ev 不是接口', (await call('GET', '/ev')).status, 404);
+  eq('拒掉的不落库', (await rows()).length, 6);
+
+  console.log('  · README 里那条算 K 的查询，直接抠出来跑');
+  const readme = readFileSync(join(here, 'README.md'), 'utf8');
+  const sql = /## 算 K[\s\S]*?```sql\n([\s\S]*?)```/.exec(readme)?.[1];
+  ok('README「算 K」一节里有一段 sql', !!sql);
+  const db2 = makeDB();
+  const call2 = makeCall({ DB: db2, IP_SALT: 'test' });
+  for (const e of ['sent', 'sent', 'open', 'open', 'open', 'open', 'accept', 'accept', 'handoff', 'poster']) {
+    await call2('POST', '/ev', { e, id: 'kZ7mQ4' });
+  }
+  const k = (await db2.prepare(sql).bind().all()).results;
+  eq('这一周一行', k.length, 1);
+  eq('分母：拆开 4 次', k[0].opened, 4);
+  eq('分子：接手 1 次', k[0].handed, 1);
+  eq('K = handoff / open = 0.25', k[0].K, 0.25);
+  eq('漏斗别的几格：发出 2、愿意 2、海报 1', [k[0].sent, k[0].accepted, k[0].posters], [2, 2, 1]);
+  eq('空表：没有行', (await makeDB().prepare(sql).bind().all()).results, []);
+
+  console.log('  · 按 IP 限流，而且不挤占同一个 IP 拿短链的额度');
+  const b64e = (obj) => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64url');
+  const S = b64e({ k: 'plan', p: { v: 2, ymd: '2026-09-05', from: '坤怿', to: '瑶瑶', s: [{ t: '长堤走走', d: '风', m: 840, u: 60 }] }, c: {} });
+  const env3 = { DB: makeDB(), IP_SALT: 'test' };
+  const call3 = makeCall(env3);
+  const ip = { 'CF-Connecting-IP': '203.0.113.5' };
+  let blocked = 0, sent = 0;
+  for (let i = 0; i < 205; i++) {
+    const res = await call3('POST', '/ev', { e: 'open' }, ip);
+    if (res.status === 429) blocked++; else sent++;
+  }
+  ok('一小时 200 次之后开始拦', sent === 200 && blocked === 5, { sent, blocked });
+  eq('拦下的没落库', (await env3.DB.prepare('SELECT COUNT(*) AS c FROM events').bind().all()).results[0].c, 200);
+  eq('同一个 IP 这时候照样拿得到短链', (await call3('POST', '/plans', { s: S }, ip)).status, 200);
+  eq('换个 IP 不受影响', (await call3('POST', '/ev', { e: 'open' }, { 'CF-Connecting-IP': '198.51.100.7' })).status, 200);
 }
 
 console.log(`\n${fail ? '✗' : '✓'} ${pass} 条通过，${fail} 条失败\n`);

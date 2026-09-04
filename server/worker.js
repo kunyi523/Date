@@ -6,6 +6,7 @@
  *   2. 合并之后按地点发回来（GET /places?ids=…&mbti=…）
  *   3. 顺手代理天气和卡池，让前端只认一个域名（GET /weather, /cards, /sweet）
  *   4. 把整份计划换成一个 6 位短链，贴进聊天软件有卡片预览（POST /plans → GET /p/:id）
+ *   5. 匿名数一下回路转没转起来：拆开 / 愿意 / 接手 / 发出 / 海报，各一行（POST /ev）
  *
  * 不做账号。一台设备一个随机 id（前端生成，存在本机），同一对情侣对同一个地点
  * 只算最新一条。收上来的只有：地点标识、分数、几个布尔维度、标签、一句话、
@@ -192,11 +193,12 @@ async function getPlaces(env, url) {
  * 只按 by_id 限流是没用的：by_id 是前端自己随机生成的，换一个就绕过去了。
  * 所以真正拦得住的是 IP，Cloudflare 直接把它放在 CF-Connecting-IP 里。
  * IP 不入库（存进去就等于存了位置），只存一个哈希，而且只留一小时。
+ * bucket：同一个 IP 在不同接口上分开数。计数事件量大又不值钱，不该挤占同一个 IP 拿短链的额度。
  */
-async function ipHash(request, env) {
+async function ipHash(request, env, bucket) {
   const ip = request.headers.get('CF-Connecting-IP') || '0.0.0.0';
   const salt = (env && (env.IP_SALT || 'xindong-default-salt')) || 'xindong';
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + '|' + ip));
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(salt + '|' + ip + (bucket ? '|' + bucket : '')));
   return [...new Uint8Array(buf)].slice(0, 8).map((b) => b.toString(16).padStart(2, '0')).join('');
 }
 const IP_PER_HOUR = 40;
@@ -549,7 +551,9 @@ async function getPlanPage(env, request, id) {
   const p = planOf(row.s);
   if (!p) return html(expiredPage(site), 404);
   const lang = row.lang === 'en' ? 'en' : 'zh';
-  const target = site + '?s=' + row.s + (lang === 'en' ? '&lang=en' : '');
+  // &p= 把短链 id 带给网站：她拆封蜡那一下打的匿名计数（POST /ev）靠它把 拆开 → 愿意 → 接手 串成一份。
+  // 网站认的仍然只是 ?s= 那一串，&p= 缺了也照常打开。
+  const target = site + '?s=' + row.s + (lang === 'en' ? '&lang=en' : '') + '&p=' + id;
   const short = new URL(request.url).origin + '/p/' + id;
   const { title, desc } = ogText(p, lang);
   const image = site.replace(/[^/]*$/, '') + 'og-seal.png';   // 封蜡卡放在网站目录下
@@ -601,6 +605,40 @@ function expiredPage(site) {
 </div></body></html>`;
 }
 
+/* ── 匿名计数：算 K ──
+   K = 收到链接的人里，有多少接着发出了自己的一份 = handoff / open。
+   五个动作各记一行：open 她拆开封蜡、accept 她点愿意、handoff 她点「下次换你排」、
+   sent 他把链接发出去、poster 存成图片。open 记在网站上拆封蜡那一下，不记在 /p/:id——爬虫也会打那一页。
+   只存动作名、哪一天（UTC）、短链 id 前 4 位。不存 IP、UA、couple id、设备 id，连精确时间都不存：
+   这张表回答"回路转起来了没有"，不回答"谁做了什么"。
+   限流用的是和别的接口一样的一小时 IP 哈希，但单独一个桶：计数再多也不该挤占同一个 IP 拿短链的额度。 */
+const EVENTS = ['open', 'accept', 'handoff', 'sent', 'poster'];
+const EV_ID_RE = /^[a-km-zA-HJ-NP-Z2-9]{4,6}$/;     // 整个短链 id 或者已经只剩前 4 位，都认
+const EV_PER_HOUR = 200;
+
+async function postEvent(env, request) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
+  const e = String(body.e || '');
+  if (!EVENTS.includes(e)) return json({ error: 'bad event' }, 400);
+  // id 不合格不算错——没有短链（长链打开）的事件本来就没有 id，只是少了串起来的钥匙
+  const id = typeof body.id === 'string' ? body.id : '';
+  const pid4 = EV_ID_RE.test(id) ? id.slice(0, 4) : '';
+
+  const now = Date.now();
+  const ip = await ipHash(request, env, 'ev');
+  await env.DB.prepare('DELETE FROM hits WHERE at <= ?').bind(now - 3600e3).run();
+  const { results } = await env.DB.prepare(
+    'SELECT COUNT(*) AS c FROM hits WHERE ip = ? AND at > ?'
+  ).bind(ip, now - 3600e3).all();
+  if ((results?.[0]?.c || 0) >= EV_PER_HOUR) return json({ error: 'slow down' }, 429);
+  await env.DB.prepare('INSERT INTO hits (ip, at) VALUES (?, ?)').bind(ip, now).run();
+
+  await env.DB.prepare('INSERT INTO events (e, d, pid4) VALUES (?, ?, ?)')
+    .bind(e, new Date(now).toISOString().slice(0, 10), pid4).run();
+  return json({ ok: true });
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -619,6 +657,7 @@ export default {
       if ((request.method === 'GET' || request.method === 'HEAD') && path.startsWith('/p/')) {
         return await getPlanPage(env, request, path.slice(3));
       }
+      if (request.method === 'POST' && path === '/ev') return await postEvent(env, request);
       if (request.method === 'GET' && path === '/cards') return await getCards(env, url);
       if (request.method === 'GET' && path === '/weather') return await proxyWeather(url);
       if (request.method === 'GET' && path === '/sweet') return json({});   // 留给以后接模型
