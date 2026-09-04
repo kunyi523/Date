@@ -35,7 +35,11 @@
 <meta property="og:type" content="website" />
 <meta property="og:title" content="今天，怎么心动？" />
 <meta property="og:description" content="有人把今天的约会计划封在了这个链接里。点开看看。" />
-<meta name="twitter:card" content="summary" />
+<!-- 长链接贴进聊天软件也有一张封蜡卡（短链 /p/:id 那一页用的是同一张，带发件人名字的标题） -->
+<meta property="og:image" content="https://kunyi523.github.io/Date/og-seal.png" />
+<meta property="og:image:width" content="1200" />
+<meta property="og:image:height" content="630" />
+<meta name="twitter:card" content="summary_large_image" />
 <link rel="manifest" href="manifest.webmanifest" />
 <meta name="apple-mobile-web-app-capable" content="yes" />
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
@@ -4121,8 +4125,56 @@ $('quickBtn').onclick = function(){
 };
 
 /* ---------- 9 分享（链接 / 文字 / 海报） ---------- */
-function planLink(plan){
-  return baseUrl() + '?s=' + b64e({ k:'plan', p:plan, c:publicCfg() }) + (LANG === 'en' ? '&lang=en' : '');
+// ?s= 后面那一串：整份计划 + 展示用的设置。长链、短链都从它来
+function planPayload(plan){ return b64e({ k:'plan', p:plan, c:publicCfg() }); }
+function longLink(key){ return baseUrl() + '?s=' + key + (LANG === 'en' ? '&lang=en' : ''); }
+// 长链：不靠任何后台，永远能打开。这是底线，短链只是排在它前面的一张卡
+function planLink(plan){ return longLink(planPayload(plan)); }
+
+// 短链：把 ?s= 那一串原样存到后台，换一个 6 位 id（POST /plans）。贴进 iMessage / WhatsApp / Discord
+// 出来的是一张「坤怿为你排好了一天」的封蜡卡，不是几千个字符的乱码。
+// 按整份内容缓存：改了一个字就是另一条链接，不会把旧的那句话发出去。
+// 后台够不着（离线、?api=off、还没部署上）就静默用长链，界面上看不出区别。
+var Short = (function(){
+  var cache = {}, inflight = {};
+  function get(key){ return cache[key] || null; }
+  function fetch(key, cb){
+    if (!API.base || !key) return;
+    if (cache[key]){ if (cb) cb(cache[key]); return; }
+    if (inflight[key]){ if (cb) inflight[key].push(cb); return; }
+    inflight[key] = cb ? [cb] : [];
+    jpost(API.base + '/plans', { s:key, lang:LANG }, function(err, j){
+      var cbs = inflight[key] || [];
+      delete inflight[key];
+      if (err || !j || typeof j.url !== 'string' || !/^https?:\/\/[^\s"'<>]+\/p\/[A-Za-z0-9]{6}$/.test(j.url)) return;
+      cache[key] = j.url;
+      for (var i=0;i<cbs.length;i++) cbs[i](j.url);
+    });
+  }
+  return { get:get, fetch:fetch };
+})();
+// 该发出去的链接：短链拿到了就是短链；没拿到先给长链（永远能打开），顺手去要一条短链，
+// 到了就换进输入框——下一次复制就是短的。复制必须留在点按那一下里（iOS 不许等网络回来再写剪贴板），
+// 所以这里从不为了短链让人等。
+function shareLink(plan){
+  var key = planPayload(plan), long = longLink(key);
+  var url = Short.get(key);
+  if (url) return url;
+  Short.fetch(key, function(su){ if ($('shOut').value === long) $('shOut').value = su; });
+  return long;
+}
+// 分享面板里此刻会发出去的那一份（不动 currentPlan），打开面板时提前去要短链——
+// 手写的那句话不在这里：手打的字只在真正点「生成 / 复制 / 分享」时才离开手机
+function sheetPlan(){
+  var p = JSON.parse(JSON.stringify(currentPlan));
+  p.from = $('shFrom').value.trim();
+  p.note = $('shNote').value.trim();
+  p.ask = $('shAsk').checked ? 1 : 0;
+  return p;
+}
+function prefetchShort(){
+  if (!currentPlan || !$('sheet').classList.contains('show')) return;
+  Short.fetch(planPayload(sheetPlan()));
 }
 function partnerName(){ return cfg.to || (currentPlan && currentPlan.to) || ''; }
 // 把"她"换成称呼：女生想排一天不该出戏，同性情侣也得能用
@@ -4146,6 +4198,7 @@ function openSheet(){
   $('shOut').value = '';
   $('shMake').textContent = t('sh.make') || '生成惊喜链接';
   $('sheet').classList.add('show');
+  prefetchShort();
 }
 $('shareOpen').onclick = openSheet;
 $('shClose').onclick = function(){ $('sheet').classList.remove('show'); };
@@ -4155,7 +4208,7 @@ $('sheet').onclick = function(e){ if (e.target === $('sheet')) $('sheet').classL
   (LANG === 'en' ? NOTE_TPL_EN : NOTE_TPL).forEach(function(tpl){
     var b = document.createElement('button');
     b.type = 'button'; b.textContent = fill(tpl);
-    b.onclick = function(){ $('shNote').value = fill(tpl); };
+    b.onclick = function(){ $('shNote').value = fill(tpl); prefetchShort(); };   // 现成句子不算手打的
     box.appendChild(b);
   });
 })();
@@ -4171,21 +4224,23 @@ function syncPlanFromSheet(){
 $('shMake').onclick = function(){
   var plan = syncPlanFromSheet();
   if (!plan) return;
-  var url = planLink(plan);
+  var url = shareLink(plan);
   $('shOut').value = url;
   try{ $('shOut').setSelectionRange(0, url.length); }catch(e){}
   $('shMake').textContent = t('sh.made') || '已生成 ✓ 内容改了就再点一次';
   copyText(url, t('toast.linkCopied.send') || '链接已复制，发给她就行');
 };
 $('shCopy').onclick = function(){
-  var url = $('shOut').value || planLink(syncPlanFromSheet() || currentPlan);
+  var plan = syncPlanFromSheet() || currentPlan;
+  if (!plan) return;
+  var url = shareLink(plan);
   $('shOut').value = url;
   copyText(url, t('toast.linkCopied') || '链接已复制');
 };
 $('shSys').onclick = function(){
   var plan = syncPlanFromSheet() || currentPlan;
   if (!plan) return;
-  var url = $('shOut').value || planLink(plan);
+  var url = shareLink(plan);
   $('shOut').value = url;
   if (navigator.share){
     navigator.share({
@@ -4207,7 +4262,7 @@ $('shPreview').onclick = function(){
 };
 $('copyTextBtn').onclick = function(){
   if (!currentPlan) return;
-  copyText(planText(currentPlan) + '\n' + planLink(currentPlan), t('toast.textCopied') || '文字版已复制');
+  copyText(planText(currentPlan) + '\n' + shareLink(currentPlan), t('toast.textCopied') || '文字版已复制');
 };
 
 /* 海报：画成一张竖图，微信里长按就能存。

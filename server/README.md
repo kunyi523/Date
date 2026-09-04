@@ -60,7 +60,13 @@ npm run deploy                             # 建表 + 发布
 | `GET` | `/weather?lat=&lon=` | 代理 open-meteo，让前端只认一个域名 |
 | `POST` | `/couple` | 上传"我这半张"足迹（整份覆盖，幂等） |
 | `GET` | `/couple?id=&by=` | 读回对方那半张 |
+| `POST` | `/plans` | 存一份计划换 6 位短链：body `{ s, lang }`，`s` 就是长链 `?s=` 后那一串；返回 `{ id, url, exp }`，30 天过期 |
+| `GET` | `/p/:id` | 一页只有 og 标签的 HTML（「坤怿为你排好了一天」+ 封蜡卡），脚本立刻跳到 `网站/?s=…`；找不到或过期 404 |
 | `GET` | `/sweet` | 占位，以后接模型写情话 |
+
+短链跳回的网站默认是 `https://kunyi523.github.io/Date/`，自己部署的人在面板 Variables 里设 `SITE` 即可（`og-seal.png` 也从那儿取）。
+`/p/:id` 对爬虫和人返回同一页：聊天软件的爬虫不跑脚本，读到 og 就出卡片；人被 `location.replace` 带走，历史里不留这一页。
+预览里只有日期、几站、几点开始——她想说的那句话和每一站都在封蜡后面。
 
 `GET /places` 返回：
 

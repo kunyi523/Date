@@ -89,7 +89,7 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 - 单文件 `index.html`，GitHub Pages，无 key；后端 Cloudflare Worker（`xindong`）+ D1 已部署
 - 一键排今天、真实时间轴、附近真实地点（OSM）、出逃半日、偏好、打卡、足迹地图、照片、
   两人共一张地图、备份、装主屏、离线、日出日落感知
-- 分享：`?s=` 整份计划进链接；封蜡；海报；文字版
+- 分享：`?s=` 整份计划进链接；短链 `/p/:id` + 聊天软件里的封蜡卡预览；封蜡；海报；文字版
 - 商家入口屏（`?shop=`）——代码留着，方向上不再投入
 - 出示页、老板娘页（`shop.html`）——同上
 
@@ -135,13 +135,16 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
   收件人语言不同时这一行还是发件人的语言——可接受，短链（第 4 条）之后如果要改，把原始数字存进站点在渲染时再拼。
   smoke 40 条：英文收件人每站标题/描述/落款无中文。
 
-- [ ] **4. 短链 + 链接预览（og:image）**
-  Worker：`POST /plans` 存计划返回 6 位 id（30 天过期，无账号）；`GET /p/:id` 返回一页 HTML，
-  带 `og:title`「{from} planned your day」/ `og:image`（封蜡卡，canvas 那套逻辑搬到 Worker 用
-  `@cloudflare/pages-plugin` 或预渲染 PNG）/ `og:description`，然后跳到
-  `index.html?s=…`。前端分享时优先拿短链，拿不到回落长链。
-  验收：短链贴进 iMessage / Discord 出卡片；旧 `?s=` 链接照常。
-  依赖：1，**且「授权状态」里 Worker 部署为"是"或构建源已改**
+- [x] **4. 短链 + 链接预览（og:image）** ✓ 2026-09-04
+  Worker：`POST /plans` 把 `?s=` 后那一串**原样**存进 D1（迁移 `0003_plans.sql`；30 天过期、下次有人存时清；按 IP 限流 60/时；
+  只收解出来确实是一份计划的），返回 6 位 id（去掉 0 O 1 l I）。`GET /p/:id` 对爬虫和人返回同一页：
+  og:title「坤怿为你排好了一天 / Kun planned your day」、og:description 只有日期 · 几站 · 几点开始（那句话和每一站都在封蜡后面）、
+  og:image 是 `og-seal.png`（1200×630，用网站自己的信封屏预渲染出来的封蜡卡，173 KB）；head 里的脚本立刻 `location.replace`
+  到 `网站/?s=…`（英文发件人带 `&lang=en`），没脚本靠 meta refresh。自己部署的人在面板设 `SITE` 就跳自己的站。
+  前端 `shareLink()`：短链拿到就用短链，没拿到先给长链、到了再换进输入框——**复制留在点按那一下里，不为短链等网络**（iOS 不许）；
+  打开分享面板就预取一条，但**手打的那句话只在点「生成 / 复制 / 分享」时才离开手机**。
+  `index.html` 自己也加了 og:image，长链和老链接贴出去同样有卡。旧 `?s=` `?c=` `?shop=` 一字未动。
+  **没做：**og:image 是一张通用卡，名字只在 og:title 里；真的 iMessage / Discord 里没贴过（这个环境贴不了），合并后人贴一次看。
 
 - [ ] **5. 匿名计数（算 K）**
   Worker `POST /ev` 收 `{e, id?}`，`e ∈ {open, accept, handoff, sent, poster}`，只存事件名、天、
@@ -207,6 +210,18 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
 - 2026-09-04 · 主会话代理提前做掉第 3 条（卡池双语）。下一次唤醒做第 4 条（短链 + og:image）——
   「授权状态」两行都是"是"，Worker 已从 Date/server 部署成功（迁移 0002 已在线上），依赖满足。
   第 4 条要新增迁移文件 `0003_plans.sql`，**别改 0001/0002**。
+- 2026-09-04 · 定时自动化完成第 4 条（短链 + og 预览）。后端 `POST /plans` / `GET /p/:id` + 迁移 `0003_plans.sql`；
+  前端 `shareLink()` 短链优先、长链兜底；`og-seal.png` 用网站自己的信封屏在 Chrome 里预渲染（1200×630，173 KB，低于 WhatsApp 300 KB 上限）。
+  验证：后端 109 条（新增 45：校验 / og 文案中英 / 转义 / 跳转 / 过期清理 / 限流 / SITE 覆盖），smoke 50 条（新增 10：开面板预取、
+  点「生成」给短链、手打的话打字期间不发、改内容先长链再换短链、/p/ 302 回 ?s= 后客人流程照常、后台断掉静默回落长链），
+  另用真 `worker.js` 产出的那一页在 Chrome 里跑了 JS 开 / 关两种跳转都到 `index.html?s=`，`wrangler deploy --dry-run` 通过。
+  合并即部署：`npm run deploy` 先跑 0003 再发布；Pages 和 Worker 前后脚上线，中间几分钟前端拿不到短链会静默用长链，无感。
+  下次注意：(1) 人回来后在 iMessage / Discord 各贴一次短链看卡片，这里做不了；
+  (2) 测试里同源的 `/p/` 替身要 `setBypassServiceWorker(true)`，不然网站的 SW 会把导航接走、拦截失效；
+  (3) 顺手可修的小虫（不在任何一条里，两行）：客人那一面 `$('sealBtn').textContent = …` 把封蜡里的刻花 `.seal-bloom` 抹掉了，
+  且 `.seal-bloom` 是 svg，`inset` 撑不开它，得写 width/height；
+  (4) 第 5 条的 `open` 事件别在 `/p/:id` 里记——爬虫也会打那一页；在前端拆封蜡那一下打 `/ev` 才准，计划 id 前 4 位就取这里的 id。
+  **下一次唤醒做第 5 条。**
 
 ## 明确不做
 
@@ -224,4 +239,6 @@ Cloudflare 面板 → Workers & Pages → `xindong` → Settings → Build →
   HTML 里的固定文字挂 `data-i18n`（placeholder 用 `data-i18n-ph`，aria 用 `data-i18n-aria`）；
   条件 / 设置里的选项值是中文 key，显示时用 `optLabel()`，**不要把 key 换成英文**（排程和测试都认中文 key）
 - 时间相关的改动跑多时段自测：每一站必须落在自己的营业时段内，需要天光的不排在日落后
-- 后端在 `server/`，`node test.mjs` 64 条断言；schema 在 `migrations/`
+- 分享链接（小节 9）：`?s=` 那一串是唯一事实，短链只是排在它前面的一张卡。发链接一律走 `shareLink(plan)`
+  （短链有就短链，没有先长链、到了再换进输入框）；**复制必须留在点按那一下里**，别为了等短链把它放进回调
+- 后端在 `server/`，`node test.mjs` 109 条断言；schema 在 `migrations/`，**只加新文件、不改已执行过的**
