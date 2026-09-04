@@ -4,19 +4,64 @@ const b=await launch();
 // 第一步：他排好一份，拿到分享链接
 const p=await b.newPage(); p.on('pageerror',e=>console.log('[ERR]',e.message));
 await p.emulate(PHONE);
+// 短链（任务 4）：后台的 POST /plans 在这里被拦下来假装存好了。测的是前端的约定——
+// 拿到就用短链、拿不到就长链、手打的字只在点按时才发出去。后台那一头（og、跳转、过期）在 server/test.mjs。
+const CORS = {'Access-Control-Allow-Origin':'*','Access-Control-Allow-Methods':'POST, OPTIONS','Access-Control-Allow-Headers':'content-type'};
+const SHORT_ID = 'kZ7mQ4', SHORT = BASE + '/p/' + SHORT_ID;
+const plansPosted = [];
+await p.setRequestInterception(true);
+p.on('request', r=>{
+  if (/\/plans$/.test(r.url())){
+    if (r.method()==='OPTIONS') return r.respond({status:204, headers:CORS});
+    const body = JSON.parse(r.postData()||'{}');
+    plansPosted.push(body);
+    const reply = () => r.respond({status:200, headers:{...CORS,'content-type':'application/json'},
+      body: JSON.stringify({ok:true, id:SHORT_ID, url:SHORT, exp:Date.now()+30*86400e3})});
+    // 第二份（带手打的话）故意慢 400ms：点按那一下必须先给长链，不能等网络
+    return plansPosted.length > 1 ? setTimeout(reply, 400) : reply();
+  }
+  r.continue();
+});
 await p.goto(BASE + '/index.html?t=14:00',{waitUntil:'networkidle2'}); await wait(800);
 await p.evaluate(()=>openPanel()); await wait(400);
 await p.type('#cfgFrom','坤怿'); await p.type('#cfgTo','瑶瑶');
 await p.click('#saveCfg'); await wait(400);
 await p.click('#quickBtn'); await wait(2500);
 await p.click('#shareOpen'); await wait(400);
+ok(plansPosted.length === 1 && plansPosted[0].lang === 'zh', '打开分享面板就去要了短链（lang=zh）', plansPosted.length);
 await p.click('#shMake'); await wait(600);
+const link0 = await p.$eval('#shOut', e=>e.value);
+ok(link0 === SHORT && plansPosted.length === 1, '点「生成」直接给短链，没有重复去要', link0);
+const dec = s => { try{ return JSON.parse(Buffer.from(s, 'base64url').toString('utf8')); }catch(e){ return null; } };
+const box0 = dec(plansPosted[0].s);
+ok(box0 && box0.k==='plan' && box0.p.from==='坤怿' && box0.p.to==='瑶瑶' && box0.p.s.length>=2 && box0.c && box0.c.to==='瑶瑶',
+  '存到后台的就是 ?s= 那一串：整份计划 + 展示用的设置', box0 && JSON.stringify({from:box0.p.from, to:box0.p.to, n:box0.p.s.length}));
+// 手打一句话：打字期间一个字都不出手机；点「生成」那一下先复制长链（永远能打开），短链回来再换进输入框
+await p.type('#shNote', '今天别看手机'); await wait(300);
+ok(plansPosted.length === 1, '手打的话在打字期间没有发出去');
+await p.click('#shMake');
+const first = await p.$eval('#shOut', e=>e.value);
+ok(/\?s=/.test(first) && first.indexOf(BASE + '/index.html?s=') === 0 && plansPosted.length === 2, '内容改了：先给长链，不等网络', first.length + ' 字');
+await wait(900);
 const link = await p.$eval('#shOut', e=>e.value);
-ok(/\?s=/.test(link) && link.length > 100, '分享链接生成', link.length + ' 字');
-// 第二步：她在另一台"手机"上打开
+ok(link === SHORT, '短链回来后换进输入框', link);
+const box1 = dec(plansPosted[1].s);
+ok(box1 && box1.p.note === '今天别看手机', '这次存的是带那句话的新一份', box1 && box1.p.note);
+const longLink = BASE + '/index.html?s=' + plansPosted[1].s;
+ok(longLink === first, '长链 = 网站 + ?s= + 存到后台的那一串（一字不差）');
+// 第二步：她在另一台"手机"上打开短链。后台那一页对人就是一个跳转，这里用 302 代替它
 const q=await b.newPage(); q.on('pageerror',e=>console.log('[ERR]',e.message));
 await q.emulate(PHONE);
+// 真的短链在 workers.dev，网站的 service worker 管不到；这个替身和网站同源，得绕开 SW 才拦得住
+await q.setBypassServiceWorker(true);
+await q.setRequestInterception(true);
+q.on('request', r=>{
+  if (r.url() === SHORT) return r.respond({status:302, headers:{Location: longLink}});
+  r.continue();
+});
 await q.goto(link,{waitUntil:'networkidle2'}); await wait(1200);
+ok(await q.evaluate(()=>location.pathname.replace(/^.*\//,'') === 'index.html' && location.search.indexOf('?s=') === 0), '短链跳到 ?s= 长链，老链接那一套原样接手', await q.evaluate(()=>location.search.slice(0,12)));
+ok(/坤怿/.test(await q.$eval('#iTitle', el=>el.textContent)), '她看到的是他的名字', await q.$eval('#iTitle', el=>el.textContent.replace(/\n/g,' ')));
 await q.click('#sealBtn').catch(()=>{}); await wait(1500);
 const btns = await q.$$eval('#guestActs .act', a=>a.filter(e=>e.offsetParent).map(e=>e.textContent.replace(/\s/g,'')));
 ok(btns.length === 3, '拆开后三个按钮', btns.join('/'));
@@ -34,7 +79,7 @@ ok(after.to==='坤怿' && after.from==='瑶瑶' && !after.guest, '她成了发�
 // 第三步：同一个链接，英文收件人打开（?lang=en）——客人那一面必须全英文，中文路径不受影响
 const e=await b.newPage(); e.on('pageerror',err=>console.log('[ERR]',err.message));
 await e.emulate(PHONE);
-await e.goto(link + '&lang=en',{waitUntil:'networkidle2'}); await wait(1200);
+await e.goto(longLink + '&lang=en',{waitUntil:'networkidle2'}); await wait(1200);
 const enTitle = await e.$eval('#iTitle', el=>el.textContent);
 ok(/planned/.test(enTitle) && !/[\u4e00-\u9fa5]/.test(enTitle.replace(/坤怿|瑶瑶/g,'')), '英文收件人：标题是英文', JSON.stringify(enTitle));
 ok(/stops · from/.test(await e.$eval('#iMeta', el=>el.textContent)), '英文收件人：日期行是英文');
@@ -87,6 +132,10 @@ const zhScan = (page) => page.evaluate((excl) => {
 const ctx = await b.createBrowserContext();
 const s = await ctx.newPage(); s.on('pageerror',err=>console.log('[ERR]',err.message));
 await s.emulate(PHONE);
+// 这一页后台够不着（/plans 直接断掉）：分享必须静默回落到长链，界面上看不出区别
+let plansFailed = 0;
+await s.setRequestInterception(true);
+s.on('request', r=>{ if (/\/plans$/.test(r.url())){ plansFailed++; return r.abort('failed'); } r.continue(); });
 await s.goto(BASE + '/index.html?t=14:00&lang=en',{waitUntil:'networkidle2'}); await wait(800);
 let bad = await zhScan(s);
 ok(bad.length===0, '英文发件人：首页无中文', bad.join(' | ') || 'clean');
@@ -120,6 +169,7 @@ ok(bad.length===0, '英文发件人：分享面板无中文', bad.join(' | ') ||
 await s.click('#shMake'); await wait(600);
 const enLink = await s.$eval('#shOut', el=>el.value);
 ok(/\?s=.*&lang=en$/.test(enLink), '英文发件人：链接带 &lang=en');
+ok(plansFailed >= 1 && enLink.indexOf(BASE + '/index.html?s=') === 0, '后台够不着：试过短链，静默回落长链', plansFailed + ' 次');
 ok(/^Done ✓/.test(await s.$eval('#shMake', el=>el.textContent)), '英文发件人：生成后按钮变 Done ✓');
 const enToast = await s.$eval('#toast', el=>el.textContent);
 ok(!/[\u4e00-\u9fa5]/.test(enToast), '英文发件人：toast 是英文', enToast);
