@@ -1,0 +1,21 @@
+{
+  "name": "今天，怎么心动？ (Date)",
+  "install": "cd server && npm install --no-audit --no-fund && npx wrangler d1 migrations apply DB --local && cd ../test && npm install --no-audit --no-fund",
+  "terminals": [
+    {
+      "name": "static-site",
+      "command": "python3 -m http.server 8099",
+      "description": "Static PWA served from the repo root (index.html / shop.html). Open http://localhost:8099/index.html"
+    },
+    {
+      "name": "worker",
+      "command": "cd server && npx wrangler dev --port 8787 --local",
+      "description": "Cloudflare Worker backend on local D1 (miniflare). Point the site at it with ?api=http://localhost:8787"
+    }
+  ],
+  "ports": [
+    { "name": "static-site", "port": 8099 },
+    { "name": "worker", "port": 8787 }
+  ],
+  "chromeExecutablePath": "/usr/bin/google-chrome-stable"
+}
