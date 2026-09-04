@@ -1,10 +1,11 @@
 /**
  * 今天，怎么心动？ · 后台
  *
- * 干三件事：
+ * 干四件事：
  *   1. 收情侣们对某个地点的评分（POST /reviews）
  *   2. 合并之后按地点发回来（GET /places?ids=…&mbti=…）
  *   3. 顺手代理天气和卡池，让前端只认一个域名（GET /weather, /cards, /sweet）
+ *   4. 把整份计划换成一个 6 位短链，贴进聊天软件有卡片预览（POST /plans → GET /p/:id）
  *
  * 不做账号。一台设备一个随机 id（前端生成，存在本机），同一对情侣对同一个地点
  * 只算最新一条。收上来的只有：地点标识、分数、几个布尔维度、标签、一句话、
@@ -417,6 +418,189 @@ async function proxyWeather(url) {
   return json({ temp: Math.round(j?.current?.temperature_2m), code: j?.current?.weather_code });
 }
 
+/* ── 短链 + 链接预览 ──
+   长链接把整份计划塞在 ?s= 里，贴进 iMessage / WhatsApp / Discord 是一串乱码，没人点。
+   这里把那一串原样存起来，换一个 6 位 id：POST /plans 存，GET /p/:id 还回一页只有
+   og 标签的 HTML（「坤怿为你排好了一天」+ 封蜡卡），然后立刻跳到网站的长链接。
+   聊天软件的爬虫不跑脚本，读到的是这一页的卡片；人打开的是原来那个网站。
+   后台不解释计划内容，只验它确实是一份计划；过期 30 天；没有账号，id 猜不到就是权限。 */
+const SITE_DEFAULT = 'https://kunyi523.github.io/Date/';
+const PLAN_TTL = 30 * 86400e3;
+const PLAN_MAX = 16 * 1024;                      // ?s= 那一串的上限，正常一份 2–4 KB
+const ID_ALPHABET = 'abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789';   // 去掉 0 O 1 l I
+const ID_RE = /^[a-km-zA-HJ-NP-Z2-9]{6}$/;
+const B64URL_RE = /^[A-Za-z0-9_-]+$/;
+
+/** 网站地址：目录（补上末尾斜杠）或者直接指到 index.html 都行 */
+function siteOf(env) {
+  const s = String((env && env.SITE) || SITE_DEFAULT);
+  return s.endsWith('/') || /\.html$/i.test(s) ? s : s + '/';
+}
+function newId() {
+  const bytes = crypto.getRandomValues(new Uint8Array(6));
+  let id = '';
+  for (const b of bytes) id += ID_ALPHABET[b % ID_ALPHABET.length];
+  return id;
+}
+/** 和前端 b64d 同一套：base64url → JSON。解不出来就返回 null */
+function decodePlan(s) {
+  try {
+    let raw = s.replace(/-/g, '+').replace(/_/g, '/');
+    while (raw.length % 4) raw += '=';
+    const bin = atob(raw);
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    return JSON.parse(new TextDecoder().decode(bytes));
+  } catch { return null; }
+}
+/** 是不是一份计划：k=plan、至少一站、日期像日期。别的一概不收 */
+function planOf(s) {
+  if (typeof s !== 'string' || s.length < 16 || s.length > PLAN_MAX || !B64URL_RE.test(s)) return null;
+  const box = decodePlan(s);
+  const p = box && box.k === 'plan' && box.p;
+  if (!p || !Array.isArray(p.s) || !p.s.length || !/^\d{4}-\d{2}-\d{2}$/.test(String(p.ymd || ''))) return null;
+  return p;
+}
+
+async function postPlan(env, request) {
+  let body;
+  try { body = await request.json(); } catch { return json({ error: 'bad json' }, 400); }
+  const s = String(body.s || '');
+  if (!planOf(s)) return json({ error: 'bad plan' }, 400);
+  const lang = body.lang === 'en' ? 'en' : 'zh';
+
+  const now = Date.now();
+  const ip = await ipHash(request, env);
+  await env.DB.prepare('DELETE FROM hits WHERE at <= ?').bind(now - 3600e3).run();
+  const { results } = await env.DB.prepare(
+    'SELECT COUNT(*) AS c FROM hits WHERE ip = ? AND at > ?'
+  ).bind(ip, now - 3600e3).all();
+  if ((results?.[0]?.c || 0) >= 60) return json({ error: 'slow down' }, 429);
+  await env.DB.prepare('INSERT INTO hits (ip, at) VALUES (?, ?)').bind(ip, now).run();
+
+  // 过期的顺手清掉，这张表就不会一直长
+  await env.DB.prepare('DELETE FROM plans WHERE exp <= ?').bind(now).run();
+
+  const exp = now + PLAN_TTL;
+  for (let tries = 0; tries < 5; tries++) {
+    const id = newId();
+    try {
+      await env.DB.prepare('INSERT INTO plans (id, s, lang, at, exp) VALUES (?, ?, ?, ?, ?)')
+        .bind(id, s, lang, now, exp).run();
+      const origin = new URL(request.url).origin;
+      return json({ ok: true, id, url: origin + '/p/' + id, exp });
+    } catch (err) {
+      if (!/UNIQUE|constraint/i.test(String(err && err.message || err))) throw err;   // 撞号就换一个
+    }
+  }
+  return json({ error: 'try again' }, 503);
+}
+
+const esc = (s) => String(s == null ? '' : s)
+  .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const MON_EN = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function dateLabel(ymd, en) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  if (!m) return '';
+  const mo = parseInt(m[2], 10), d = parseInt(m[3], 10);
+  return en ? `${MON_EN[mo - 1] || ''} ${d}` : `${mo}月${d}日`;
+}
+function clock(min, en) {
+  if (!isFinite(min)) return '';
+  const v = ((Math.round(min) % 1440) + 1440) % 1440;
+  const hh = String(Math.floor(v / 60)).padStart(2, '0'), mm = String(v % 60).padStart(2, '0');
+  return (min >= 1440 ? (en ? 'next day ' : '次日 ') : '') + hh + ':' + mm;
+}
+/** 预览卡上的字。只有日期、几站、几点开始——她想说的那句话和每一站都在封蜡后面 */
+function ogText(p, lang) {
+  const en = lang === 'en';
+  const from = String(p.from || '').slice(0, 24);
+  const title = en
+    ? `${from || 'Someone'} planned your day`
+    : `${from || '有人'}为你排好了一天`;
+  const bits = [dateLabel(p.ymd, en), en ? `${p.s.length} stops` : `${p.s.length} 站`];
+  const start = clock(p.s[0] && Number(p.s[0].m), en);
+  if (start) bits.push(en ? `from ${start}` : `从 ${start} 开始`);
+  bits.push(en ? 'Tap the seal to open today' : '轻点封蜡，拆开今天');
+  return { title, desc: bits.filter(Boolean).join(' · ') };
+}
+
+const PAGE_CSS = 'html{background:#140F19;color:#F4ECE2;font:16px/1.7 -apple-system,"Noto Sans SC","PingFang SC",sans-serif}' +
+  'body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;text-align:center;padding:34px}' +
+  'a{color:#CBAB6E}p{margin:0 0 12px;opacity:.7;letter-spacing:1px}';
+const html = (body, status = 200, extra = {}) =>
+  new Response(body, {
+    status,
+    headers: {
+      'Content-Type': 'text/html; charset=utf-8',
+      'Cache-Control': 'no-store',
+      'X-Robots-Tag': 'noindex, nofollow',
+      ...extra,
+    },
+  });
+
+async function getPlanPage(env, request, id) {
+  const site = siteOf(env);
+  if (!ID_RE.test(id)) return html(expiredPage(site), 404);
+  const { results } = await env.DB.prepare('SELECT s, lang FROM plans WHERE id = ? AND exp > ?')
+    .bind(id, Date.now()).all();
+  const row = results && results[0];
+  if (!row) return html(expiredPage(site), 404);
+
+  const p = planOf(row.s);
+  if (!p) return html(expiredPage(site), 404);
+  const lang = row.lang === 'en' ? 'en' : 'zh';
+  const target = site + '?s=' + row.s + (lang === 'en' ? '&lang=en' : '');
+  const short = new URL(request.url).origin + '/p/' + id;
+  const { title, desc } = ogText(p, lang);
+  const image = site.replace(/[^/]*$/, '') + 'og-seal.png';   // 封蜡卡放在网站目录下
+
+  // 人：head 里的脚本立刻 replace 过去，历史里不留这一页；没脚本就靠 meta refresh。
+  // 爬虫：不跑脚本，读到的是下面这几行 og。
+  return html(`<!DOCTYPE html>
+<html lang="${lang === 'en' ? 'en' : 'zh-CN'}"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>${esc(title)}</title>
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="今天，怎么心动？">
+<meta property="og:url" content="${esc(short)}">
+<meta property="og:title" content="${esc(title)}">
+<meta property="og:description" content="${esc(desc)}">
+<meta property="og:image" content="${esc(image)}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="${lang === 'en' ? 'A sealed card' : '一张封着蜡的卡'}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="${esc(title)}">
+<meta name="twitter:description" content="${esc(desc)}">
+<meta name="twitter:image" content="${esc(image)}">
+<meta name="theme-color" content="#140F19">
+<script>location.replace(${JSON.stringify(target)});</script>
+<meta http-equiv="refresh" content="0;url=${esc(target)}">
+<style>${PAGE_CSS}</style>
+</head><body><div>
+<p>${lang === 'en' ? 'Opening…' : '正在打开…'}</p>
+<a href="${esc(target)}">${lang === 'en' ? 'Tap here if nothing happens' : '没跳过去的话，点这里'}</a>
+</div></body></html>`);
+}
+
+function expiredPage(site) {
+  return `<!DOCTYPE html>
+<html lang="zh-CN"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>这个链接过期了 · This link has expired</title>
+<meta property="og:title" content="今天，怎么心动？">
+<meta property="og:description" content="这个链接过期了。 This link has expired.">
+<style>${PAGE_CSS}</style>
+</head><body><div>
+<p>这个链接过期了，或者从来没有过。<br>This link has expired, or never was.</p>
+<a href="${esc(site)}">去排一份新的 · Plan a new day →</a>
+</div></body></html>`;
+}
+
 export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
@@ -431,6 +615,10 @@ export default {
       if (request.method === 'GET' && path === '/shop') return await getShop(env, url);
       if (request.method === 'POST' && path === '/couple') return await putCouple(env, request);
       if (request.method === 'GET' && path === '/couple') return await getCouple(env, url);
+      if (request.method === 'POST' && path === '/plans') return await postPlan(env, request);
+      if ((request.method === 'GET' || request.method === 'HEAD') && path.startsWith('/p/')) {
+        return await getPlanPage(env, request, path.slice(3));
+      }
       if (request.method === 'GET' && path === '/cards') return await getCards(env, url);
       if (request.method === 'GET' && path === '/weather') return await proxyWeather(url);
       if (request.method === 'GET' && path === '/sweet') return json({});   // 留给以后接模型

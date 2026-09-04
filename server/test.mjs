@@ -308,5 +308,124 @@ console.log('\n— 出示与回头 —');
   eq('没有店名被拒', (await call('GET', '/shop?id=')).status, 400);
 }
 
+console.log('\n— 短链 + 链接预览 —');
+{
+  // 和前端 b64e 同一套：JSON → UTF-8 → base64url
+  const b64e = (obj) => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64url');
+  const STOP = (m, over = {}) => ({ t: '长堤走走', d: '风替我说想你', te: 'Walk the waterfront', de: 'Let the wind say I miss you', c: '玩', m, u: 60, ...over });
+  const PLAN = (over = {}) => ({
+    v: 2, ymd: '2026-09-05', from: '坤怿', to: '瑶瑶', note: '今天别看手机', ask: 0, e: '晚安，明天见',
+    s: [STOP(840), STOP(930, { c: '食' }), STOP(1080)], ...over,
+  });
+  const CFG = { gate: false, anni: '', miles: '市区逛逛', from: '坤怿', to: '瑶瑶', theme: 'night', couple: 'cabc123def456ghi7' };
+  const S = b64e({ k: 'plan', p: PLAN(), c: CFG });
+  const SITE = 'https://kunyi523.github.io/Date/';
+
+  const db = makeDB();
+  const env = { DB: db, IP_SALT: 'test' };
+  const call = makeCall(env);
+  const page = async (path, method = 'GET') => {
+    const res = await worker.fetch(new Request('https://x' + path, { method }), env);
+    return { status: res.status, text: await res.text(), h: (k) => res.headers.get(k) };
+  };
+
+  const made = await call('POST', '/plans', { s: S, lang: 'zh' });
+  ok('存一份 → ok + 6 位 id', made.data.ok === true && /^[a-km-zA-HJ-NP-Z2-9]{6}$/.test(made.data.id), made.data);
+  eq('短链就是 origin + /p/ + id', made.data.url, 'https://x/p/' + made.data.id);
+  ok('30 天后过期', Math.abs(made.data.exp - Date.now() - 30 * 86400e3) < 5000, made.data.exp);
+  const again = await call('POST', '/plans', { s: S });
+  ok('同一份再存是另一个 id（没有账号，不去重）', again.data.ok && again.data.id !== made.data.id, again.data);
+
+  console.log('  · 只收计划');
+  const bad = [
+    ['没有 s', {}],
+    ['不是 base64url', { s: 'not base64!!' + 'x'.repeat(20) }],
+    ['能解但不是计划', { s: b64e({ k: 'cfg', c: CFG }) }],
+    ['一站都没有', { s: b64e({ k: 'plan', p: PLAN({ s: [] }), c: CFG }) }],
+    ['日期不像日期', { s: b64e({ k: 'plan', p: PLAN({ ymd: '周六' }), c: CFG }) }],
+    ['太短', { s: 'eyJrIjoxfQ' }],
+    ['太大', { s: b64e({ k: 'plan', p: PLAN({ note: 'x'.repeat(20000) }), c: CFG }) }],
+  ];
+  for (const [name, body] of bad) {
+    const res = await call('POST', '/plans', body);
+    ok(name + ' → 400', res.status === 400, res.status);
+  }
+  const noJson = await worker.fetch(new Request('https://x/plans', { method: 'POST', body: '{' }), env);
+  eq('坏 JSON → 400', noJson.status, 400);
+
+  console.log('  · 打开：爬虫读 og，人跳回网站');
+  const pg = await page('/p/' + made.data.id);
+  eq('200', pg.status, 200);
+  ok('是 HTML', /^text\/html/.test(pg.h('Content-Type')), pg.h('Content-Type'));
+  ok('不缓存、不索引', pg.h('Cache-Control') === 'no-store' && /noindex/.test(pg.h('X-Robots-Tag')), [pg.h('Cache-Control'), pg.h('X-Robots-Tag')]);
+  ok('og:title 带发件人', pg.text.includes('<meta property="og:title" content="坤怿为你排好了一天">'), pg.text.match(/og:title[^>]*/)?.[0]);
+  ok('og:description 只有日期 / 几站 / 几点开始',
+    pg.text.includes('<meta property="og:description" content="9月5日 · 3 站 · 从 14:00 开始 · 轻点封蜡，拆开今天">'),
+    pg.text.match(/og:description[^>]*/)?.[0]);
+  ok('她想说的那句话不在预览里', !pg.text.includes('今天别看手机'));
+  ok('每一站也不在预览里', !pg.text.includes('长堤走走') && !pg.text.includes('Walk the waterfront'));
+  ok('og:image 是网站上那张封蜡卡', pg.text.includes(`<meta property="og:image" content="${SITE}og-seal.png">`) && pg.text.includes('summary_large_image'));
+  eq('og:url 是短链自己', pg.text.match(/og:url" content="([^"]+)"/)?.[1], 'https://x/p/' + made.data.id);
+  const target = SITE + '?s=' + S;
+  ok('脚本立刻跳到长链接（?s= 原样）', pg.text.includes('<script>location.replace(' + JSON.stringify(target) + ');</script>'));
+  ok('没脚本靠 meta refresh', pg.text.includes(`<meta http-equiv="refresh" content="0;url=${target}">`));
+  ok('还有一个能点的兜底链接', pg.text.includes(`<a href="${target}">`));
+  ok('中文页 lang=zh-CN', pg.text.includes('<html lang="zh-CN">'));
+  eq('HEAD 也 200', (await page('/p/' + made.data.id, 'HEAD')).status, 200);
+
+  console.log('  · 英文发件人');
+  const en = await call('POST', '/plans', { s: b64e({ k: 'plan', p: PLAN({ from: 'Kun' }), c: CFG }), lang: 'en' });
+  const enPg = await page('/p/' + en.data.id);
+  ok('og:title 英文', enPg.text.includes('content="Kun planned your day"'), enPg.text.match(/og:title[^>]*/)?.[0]);
+  ok('og:description 英文', enPg.text.includes('content="Sep 5 · 3 stops · from 14:00 · Tap the seal to open today"'), enPg.text.match(/og:description[^>]*/)?.[0]);
+  ok('跳回去时带 &lang=en，收件人打开是同一种语言', enPg.text.includes('&lang=en");</script>') && enPg.text.includes('<html lang="en">'));
+
+  console.log('  · 边角');
+  const anon = await call('POST', '/plans', { s: b64e({ k: 'plan', p: PLAN({ from: '', s: [STOP(1500)] }), c: CFG }) });
+  const anonPg = (await page('/p/' + anon.data.id)).text;
+  ok('没署名：有人为你排好了一天', anonPg.includes('content="有人为你排好了一天"'));
+  ok('跨过午夜的开始时间写成「次日」', anonPg.includes('1 站 · 从 次日 01:00 开始'), anonPg.match(/og:description[^>]*/)?.[0]);
+  const anonEn = await call('POST', '/plans', { s: b64e({ k: 'plan', p: PLAN({ from: '' }), c: CFG }), lang: 'en' });
+  ok('没署名（英文）：Someone planned your day', (await page('/p/' + anonEn.data.id)).text.includes('content="Someone planned your day"'));
+  const evil = await call('POST', '/plans', { s: b64e({ k: 'plan', p: PLAN({ from: '<b>"x"</b>' }), c: CFG }) });
+  const evilPg = (await page('/p/' + evil.data.id)).text;
+  ok('名字里的 HTML 被转义', !evilPg.includes('<b>') && evilPg.includes('&lt;b&gt;&quot;x&quot;&lt;/b&gt;为你排好了一天'));
+  ok('名字太长会截', (await page('/p/' + (await call('POST', '/plans', { s: b64e({ k: 'plan', p: PLAN({ from: '名'.repeat(40) }), c: CFG }) })).data.id)).text.includes('content="' + '名'.repeat(24) + '为你排好了一天"'));
+
+  console.log('  · 找不到 / 过期');
+  const nf = await page('/p/zzzzzz');
+  ok('不存在的 id → 404 + 过期页', nf.status === 404 && nf.text.includes('This link has expired') && nf.text.includes(`href="${SITE}"`), nf.status);
+  eq('id 格式不对 → 404', (await page('/p/abc')).status, 404);
+  eq('id 带易混字符 → 404', (await page('/p/abc10O')).status, 404);
+  eq('/p/ 本身 → 404', (await page('/p/')).status, 404);
+  await db.prepare('INSERT INTO plans (id, s, lang, at, exp) VALUES (?, ?, ?, ?, ?)').bind('old2ld', S, 'zh', 1, 2).run();
+  eq('过期的 → 404', (await page('/p/old2ld')).status, 404);
+  await call('POST', '/plans', { s: S });
+  eq('下一次存计划时过期的被清掉', (await db.prepare('SELECT COUNT(*) AS c FROM plans WHERE id = ?').bind('old2ld').all()).results[0].c, 0);
+  ok('没过期的还在', (await db.prepare('SELECT COUNT(*) AS c FROM plans WHERE id = ?').bind(made.data.id).all()).results[0].c === 1);
+
+  console.log('  · 自己部署的人换网站地址');
+  const env2 = { DB: makeDB(), SITE: 'https://example.com/date' };   // 没写末尾斜杠也行
+  const own = await makeCall(env2)('POST', '/plans', { s: S });
+  const ownPg = await (await worker.fetch(new Request('https://x/p/' + own.data.id), env2)).text();
+  ok('跳到自己的网站', ownPg.includes('location.replace("https://example.com/date/?s=') && ownPg.includes('content="https://example.com/date/og-seal.png"'));
+  const env2b = { DB: makeDB(), SITE: 'https://example.com/date/index.html' };   // 直接指到文件也行
+  const own2 = await makeCall(env2b)('POST', '/plans', { s: S });
+  const ownPg2 = await (await worker.fetch(new Request('https://x/p/' + own2.data.id), env2b)).text();
+  ok('SITE 指到 index.html：?s= 直接接在后面，卡还在目录下',
+    ownPg2.includes('location.replace("https://example.com/date/index.html?s=') && ownPg2.includes('content="https://example.com/date/og-seal.png"'));
+
+  console.log('  · 按 IP 限流');
+  const env3 = { DB: makeDB(), IP_SALT: 'test' };
+  const call3 = makeCall(env3);
+  let blocked = 0, sent = 0;
+  for (let i = 0; i < 65; i++) {
+    const res = await call3('POST', '/plans', { s: S }, { 'CF-Connecting-IP': '203.0.113.77' });
+    if (res.status === 429) blocked++; else sent++;
+  }
+  ok('一小时 60 份之后开始拦', sent === 60 && blocked === 5, { sent, blocked });
+  eq('换个 IP 不受影响', (await call3('POST', '/plans', { s: S }, { 'CF-Connecting-IP': '198.51.100.9' })).status, 200);
+}
+
 console.log(`\n${fail ? '✗' : '✓'} ${pass} 条通过，${fail} 条失败\n`);
 process.exit(fail ? 1 : 0);
