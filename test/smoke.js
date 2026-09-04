@@ -39,6 +39,15 @@ const enTitle = await e.$eval('#iTitle', el=>el.textContent);
 ok(/planned/.test(enTitle) && !/[\u4e00-\u9fa5]/.test(enTitle.replace(/坤怿|瑶瑶/g,'')), '英文收件人：标题是英文', JSON.stringify(enTitle));
 ok(/stops · from/.test(await e.$eval('#iMeta', el=>el.textContent)), '英文收件人：日期行是英文');
 await e.click('#sealBtn').catch(()=>{}); await wait(1500);
+// 第 3 条：他用中文排的计划，她用英文看——每一站的标题、描述、落款都是英文
+const cn = /[\u4e00-\u9fa5]/;
+const courses = await e.$$eval('#m-courses .course', a=>a.map(c=>({
+  t:(c.querySelector('.t')||{}).textContent||'', d:(c.querySelector('.d')||{}).textContent||'' })));
+ok(courses.length>=2, '英文收件人：计划有站', courses.length);
+ok(courses.every(c=>!cn.test(c.t.replace(/坤怿|瑶瑶/g,''))), '英文收件人：每站标题英文', courses.map(c=>c.t).join(' / '));
+ok(courses.every(c=>!cn.test(c.d.replace(/坤怿|瑶瑶/g,''))), '英文收件人：每站描述英文', courses.map(c=>c.d).join(' / ').slice(0,90));
+const sig = await e.$eval('#m-courses .sig, .sig', el=>el.textContent).catch(()=>'');
+ok(sig && !cn.test(sig), '英文收件人：落款英文', sig);
 const enBtns = await e.$$eval('#guestActs .act', a=>a.filter(x=>x.offsetParent).map(x=>x.textContent.trim()));
 ok(enBtns.length===3 && !enBtns.some(x=>/[\u4e00-\u9fa5]/.test(x)), '英文收件人：三个按钮无中文', enBtns.join(' / '));
 await e.click('#acceptBtn'); await wait(600);
