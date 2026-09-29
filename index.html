@@ -708,6 +708,11 @@
   .poster-card{max-width:360px; width:100%; text-align:center}
   .poster-card img{max-width:100%; max-height:62vh; width:auto; border-radius:var(--radius-lg); box-shadow:var(--shadow-overlay); display:block; margin:0 auto}
   .poster-card .pc-hint{margin-top:14px; font-size:var(--text-body-sm); color:#F0E8DC; letter-spacing:1px; line-height:1.8}
+  /* 两种比例：计划图（发给她）/ Story 9:16（发出去）。选中态只换金色描边，不填色 */
+  .poster-card .pc-ratio{display:flex; justify-content:center; gap:var(--space-4); margin-top:var(--space-6)}
+  .poster-card .pc-ratio button{min-height:var(--tap); padding:0 18px; border:1px solid rgba(240,232,220,.4); background:transparent; color:#F0E8DC;
+    border-radius:var(--radius-sm); font-size:var(--text-body-sm); letter-spacing:var(--track-tight); cursor:pointer; font-family:inherit}
+  .poster-card .pc-ratio button.on{border-color:#C9A96A; color:#C9A96A}
   .poster-card .pc-close{margin-top:12px; border:1px solid rgba(240,232,220,.4); background:transparent; color:#F0E8DC;
     border-radius:var(--radius-sm); padding:9px 20px; font-size:var(--text-body-sm); cursor:pointer; font-family:inherit}
 
@@ -1300,6 +1305,10 @@
 <div id="posterMask" class="mask center">
   <div class="poster-card">
     <img id="posterImg" alt="今天的约会计划" data-i18n-alt="poster.alt" />
+    <div class="pc-ratio" id="posterRatio" role="group" aria-label="图片比例" data-i18n-aria="poster.ratio.aria">
+      <button id="ratioPlan" class="on" data-i18n="poster.plan">计划图</button>
+      <button id="ratioStory" data-i18n="poster.story">Story · 9:16</button>
+    </div>
     <div class="pc-hint" id="posterHint" data-i18n="poster.hint">长按图片保存，发给她就行</div>
     <button class="pc-close" id="posterClose" data-i18n="poster.close">关闭</button>
   </div>
@@ -1544,6 +1553,16 @@ var I18N = { en: {
   'toast.noCanvas': 'This device can\'t draw the image — use “Copy as text”',
   'text.title': 'The plan for {day} · {date}', 'text.for': ' (for {to})',
   'poster.hint': 'Long-press to save, then send it over', 'poster.close': 'Close', 'poster.alt': 'Today\'s plan',
+  // 海报（任务 6）：计划图上的固定文字 + Story 9:16 那一张
+  'poster.meta': '{date}  ·  {n} {stops}', 'poster.anon': '—— someone who wants to see you today', 'poster.brand': 'Where to today?',
+  'poster.ratio.aria': 'Image ratio', 'poster.plan': 'The plan', 'poster.story': 'Story · 9:16',
+  'poster.hint.story': 'Long-press to save, then post it to your Story', 'poster.drawing': 'Drawing your footprints in…',
+  'story.together': 'TOGETHER', 'story.day': 'DAY', 'story.days': 'DAYS',
+  'story.lit': 'LIT UP', 'story.place': 'PLACE', 'story.places': 'PLACES',
+  'story.today': 'TODAY', 'story.stop': 'STOP', 'story.stops': 'STOPS',
+  'story.stats': '{u} {places} lit · {n} {checkins}', 'story.photos': ' · {p} {photos}',
+  'story.plan': '{date} · {n} {stops} · from {time}',
+  'story.brand': 'Where to today?', 'story.scan': 'Scan it — plan a day for yours, too',
   'toast.copied': 'Copied',
   'toast.copyFail': 'Copy failed — long-press the text in the box to copy by hand',
   'sweet.btn': 'Draw a sweet line',
@@ -4304,6 +4323,234 @@ $('copyTextBtn').onclick = function(){
   copyText(planText(currentPlan) + '\n' + shareLink(currentPlan), t('toast.textCopied') || '文字版已复制');
 };
 
+/* ---------- 9a 二维码（Story 图上那一个） ----------
+   自己编，不引库、不打第三方接口：图上的码得和图一起离线画出来，而且不该为了一张海报把网址发给别人。
+   只做 byte 模式、纠错 M、版本 1–10（最多 213 字节）——放任何一个站点地址都够；放不下就返回 null，图上只印网址。 */
+var QR = (function(){
+  // 纠错等级 M：每个版本 [数据码字数, 每块纠错码字数, 分块 [[块数, 每块数据码字数], …]]
+  var TBL = [null,
+    [16, 10, [[1,16]]], [28, 16, [[1,28]]], [44, 26, [[1,44]]], [64, 18, [[2,32]]], [86, 24, [[2,43]]],
+    [108, 16, [[4,27]]], [124, 18, [[4,31]]], [154, 22, [[2,38],[2,39]]], [182, 22, [[3,36],[2,37]]], [216, 26, [[4,43],[1,44]]]];
+  function gfMul(a, b){
+    var z = 0;
+    for (var i = 7; i >= 0; i--){
+      z = (z << 1) ^ ((z >>> 7) * 0x11D);
+      z ^= ((b >>> i) & 1) * a;
+    }
+    return z & 255;
+  }
+  function rsDivisor(deg){
+    var r = [], root = 1, i, j;
+    for (i = 0; i < deg; i++) r.push(0);
+    r[deg - 1] = 1;
+    for (i = 0; i < deg; i++){
+      for (j = 0; j < deg; j++){
+        r[j] = gfMul(r[j], root);
+        if (j + 1 < deg) r[j] ^= r[j + 1];
+      }
+      root = gfMul(root, 2);
+    }
+    return r;
+  }
+  function rsRemainder(data, div){
+    var res = [], i, j;
+    for (i = 0; i < div.length; i++) res.push(0);
+    for (i = 0; i < data.length; i++){
+      var f = data[i] ^ res.shift();
+      res.push(0);
+      for (j = 0; j < div.length; j++) res[j] ^= gfMul(div[j], f);
+    }
+    return res;
+  }
+  function toBytes(s){
+    var b = unescape(encodeURIComponent(String(s))), out = [];
+    for (var i = 0; i < b.length; i++) out.push(b.charCodeAt(i));
+    return out;
+  }
+  function make(text){
+    var bytes = toBytes(text), ver, i, j, k, g, x, y;
+    for (ver = 1; ver <= 10; ver++){
+      if (bytes.length * 8 <= TBL[ver][0] * 8 - 4 - (ver < 10 ? 8 : 16)) break;
+    }
+    if (ver > 10) return null;
+    var dataCW = TBL[ver][0], ecLen = TBL[ver][1], groups = TBL[ver][2];
+
+    // 1. 比特流：模式 0100、长度、内容、终止符、补齐到字节、再用 EC 11 交替填满
+    var bits = [];
+    function put(v, n){ for (var q = n - 1; q >= 0; q--) bits.push((v >>> q) & 1); }
+    put(4, 4);
+    put(bytes.length, ver < 10 ? 8 : 16);
+    for (i = 0; i < bytes.length; i++) put(bytes[i], 8);
+    put(0, Math.min(4, dataCW * 8 - bits.length));
+    while (bits.length % 8) bits.push(0);
+    for (var pad = 0xEC; bits.length < dataCW * 8; pad ^= 0xEC ^ 0x11) put(pad, 8);
+    var data = [];
+    for (i = 0; i < bits.length; i += 8){
+      var v = 0;
+      for (k = 0; k < 8; k++) v = (v << 1) | bits[i + k];
+      data.push(v);
+    }
+
+    // 2. 分块算纠错，再把数据块、纠错块各自交错
+    var blocks = [], div = rsDivisor(ecLen), off = 0, maxD = 0;
+    for (g = 0; g < groups.length; g++){
+      for (k = 0; k < groups[g][0]; k++){
+        var d = data.slice(off, off + groups[g][1]); off += groups[g][1];
+        blocks.push({ d: d, e: rsRemainder(d, div) });
+        maxD = Math.max(maxD, d.length);
+      }
+    }
+    var cw = [];
+    for (i = 0; i < maxD; i++) for (g = 0; g < blocks.length; g++) if (i < blocks[g].d.length) cw.push(blocks[g].d[i]);
+    for (i = 0; i < ecLen; i++) for (g = 0; g < blocks.length; g++) cw.push(blocks[g].e[i]);
+
+    // 3. 功能图形：寻像、分隔、定位、校正、格式信息（先占位）、版本信息
+    var size = ver * 4 + 17, m = [], fn = [];
+    for (y = 0; y < size; y++){ m.push([]); fn.push([]); for (x = 0; x < size; x++){ m[y].push(0); fn[y].push(0); } }
+    function set(px, py, on){ m[py][px] = on ? 1 : 0; fn[py][px] = 1; }
+    function finder(cx, cy){
+      for (var dy = -4; dy <= 4; dy++) for (var dx = -4; dx <= 4; dx++){
+        var xx = cx + dx, yy = cy + dy;
+        if (xx < 0 || yy < 0 || xx >= size || yy >= size) continue;
+        var dist = Math.max(Math.abs(dx), Math.abs(dy));
+        set(xx, yy, dist !== 2 && dist !== 4);
+      }
+    }
+    for (i = 0; i < size; i++){ set(6, i, i % 2 === 0); set(i, 6, i % 2 === 0); }
+    finder(3, 3); finder(size - 4, 3); finder(3, size - 4);
+    var ap = [];
+    if (ver > 1){
+      var n = Math.floor(ver / 7) + 2, step = Math.ceil((ver * 4 + 4) / (n * 2 - 2)) * 2;
+      ap = [6];
+      for (var pos = size - 7; ap.length < n; pos -= step) ap.splice(1, 0, pos);
+    }
+    for (i = 0; i < ap.length; i++) for (k = 0; k < ap.length; k++){
+      if ((i === 0 && k === 0) || (i === 0 && k === ap.length - 1) || (i === ap.length - 1 && k === 0)) continue;
+      for (var dy = -2; dy <= 2; dy++) for (var dx = -2; dx <= 2; dx++)
+        set(ap[i] + dx, ap[k] + dy, Math.max(Math.abs(dx), Math.abs(dy)) !== 1);
+    }
+    function formatBits(mask){
+      var dd = mask, rem = dd, q;   // 纠错 M 的两位指示是 00，所以只剩掩码号
+      for (q = 0; q < 10; q++) rem = (rem << 1) ^ ((rem >>> 9) * 0x537);
+      var b = ((dd << 10) | rem) ^ 0x5412;
+      function bit(q){ return (b >>> q) & 1; }
+      for (q = 0; q <= 5; q++) set(8, q, bit(q));
+      set(8, 7, bit(6)); set(8, 8, bit(7)); set(7, 8, bit(8));
+      for (q = 9; q < 15; q++) set(14 - q, 8, bit(q));
+      for (q = 0; q < 8; q++) set(size - 1 - q, 8, bit(q));
+      for (q = 8; q < 15; q++) set(8, size - 15 + q, bit(q));
+      set(8, size - 8, 1);
+    }
+    formatBits(0);
+    if (ver >= 7){
+      var vr = ver;
+      for (i = 0; i < 12; i++) vr = (vr << 1) ^ ((vr >>> 11) * 0x1F25);
+      var vb = (ver << 12) | vr;
+      for (i = 0; i < 18; i++){
+        var vbit = (vb >>> i) & 1, a = size - 11 + i % 3, b2 = Math.floor(i / 3);
+        set(a, b2, vbit); set(b2, a, vbit);
+      }
+    }
+
+    // 4. 码字从右下角起两列一组之字形填进去
+    i = 0;
+    var total = cw.length * 8;
+    for (var right = size - 1; right >= 1; right -= 2){
+      if (right === 6) right = 5;
+      for (var vert = 0; vert < size; vert++){
+        for (j = 0; j < 2; j++){
+          x = right - j;
+          y = ((right + 1) & 2) === 0 ? size - 1 - vert : vert;
+          if (!fn[y][x] && i < total){
+            m[y][x] = (cw[i >>> 3] >>> (7 - (i & 7))) & 1;
+            i++;
+          }
+        }
+      }
+    }
+
+    // 5. 八种掩码都试一遍，留罚分最低的
+    function hit(mask, px, py){
+      switch (mask){
+        case 0: return (px + py) % 2 === 0;
+        case 1: return py % 2 === 0;
+        case 2: return px % 3 === 0;
+        case 3: return (px + py) % 3 === 0;
+        case 4: return (Math.floor(px / 3) + Math.floor(py / 2)) % 2 === 0;
+        case 5: return (px * py) % 2 + (px * py) % 3 === 0;
+        case 6: return ((px * py) % 2 + (px * py) % 3) % 2 === 0;
+        default: return ((px + py) % 2 + (px * py) % 3) % 2 === 0;
+      }
+    }
+    function apply(mask){
+      for (var py = 0; py < size; py++) for (var px = 0; px < size; px++)
+        if (!fn[py][px] && hit(mask, px, py)) m[py][px] ^= 1;
+    }
+    var P1 = [1,0,1,1,1,0,1,0,0,0,0], P2 = [0,0,0,0,1,0,1,1,1,0,1];
+    function lineScore(line){
+      var s = 0, run = 1, q, w;
+      for (q = 1; q <= line.length; q++){
+        if (q < line.length && line[q] === line[q - 1]){ run++; continue; }
+        if (run >= 5) s += 3 + run - 5;
+        run = 1;
+      }
+      for (q = 0; q + 11 <= line.length; q++){
+        var a = true, b = true;
+        for (w = 0; w < 11; w++){
+          if (line[q + w] !== P1[w]) a = false;
+          if (line[q + w] !== P2[w]) b = false;
+        }
+        if (a) s += 40;
+        if (b) s += 40;
+      }
+      return s;
+    }
+    function penalty(){
+      var s = 0, dark = 0, px, py, col;
+      for (py = 0; py < size; py++){
+        s += lineScore(m[py]);
+        for (px = 0; px < size; px++){
+          dark += m[py][px];
+          if (px && py && m[py][px] === m[py][px-1] && m[py][px] === m[py-1][px] && m[py][px] === m[py-1][px-1]) s += 3;
+        }
+      }
+      for (px = 0; px < size; px++){
+        col = [];
+        for (py = 0; py < size; py++) col.push(m[py][px]);
+        s += lineScore(col);
+      }
+      var totalM = size * size;
+      s += (Math.ceil(Math.abs(dark * 20 - totalM * 10) / totalM) - 1) * 10;
+      return s;
+    }
+    var best = 0, bestScore = Infinity;
+    for (k = 0; k < 8; k++){
+      apply(k); formatBits(k);
+      var sc = penalty();
+      if (sc < bestScore){ bestScore = sc; best = k; }
+      apply(k);
+    }
+    apply(best); formatBits(best);
+    return { size: size, m: m };
+  }
+  // 画到 canvas 上：浅底方块 + 四格静区，格子边界取整，免得出现细缝
+  function paint(ctx, text, x0, y0, px, dark, light){
+    var q = make(text);
+    if (!q) return false;
+    var n = q.size + 8, cell = px / n;
+    ctx.fillStyle = light;
+    ctx.fillRect(x0, y0, px, px);
+    ctx.fillStyle = dark;
+    for (var y = 0; y < q.size; y++) for (var x = 0; x < q.size; x++){
+      if (!q.m[y][x]) continue;
+      var l = Math.round(x0 + (x + 4) * cell), t = Math.round(y0 + (y + 4) * cell);
+      ctx.fillRect(l, t, Math.round(x0 + (x + 5) * cell) - l, Math.round(y0 + (y + 5) * cell) - t);
+    }
+    return true;
+  }
+  return { make: make, paint: paint };
+})();
+
 /* 海报：画成一张竖图，微信里长按就能存。
    canvas 不认 CSS 变量，所以这里把降级字体再写一遍，Google 字体拉不到时海报也不会变样。 */
 var CV_SERIF = '"Noto Serif SC","Songti SC","Source Han Serif SC",STSong,serif';
@@ -4342,13 +4589,13 @@ function drawPoster(plan){
   y += 62 + 46 + 34;                         // 标题 / 日期
   if (plan.note){
     mc.font = F_N;
-    var nl = wrapLines(mc, '「'+plan.note+'」', INNER);
+    var nl = wrapLines(mc, LANG === 'en' ? ('“' + plan.note + '”') : ('「'+plan.note+'」'), INNER);
     blocks.push({k:'note', lines:nl});
     y += 34 + nl.length*40 + 24;
   }
   for (var i=0;i<plan.s.length;i++){
     mc.font = F_D;
-    var dl = wrapLines(mc, fill(plan.s[i].d), INNER - 20);
+    var dl = wrapLines(mc, fill(cD(plan.s[i])), INNER - 20);
     blocks.push({k:'stop', i:i, lines:dl});
     y += 30 + 42 + 40 + dl.length*36 + 4 + (plan.s[i].x ? 32 : 0);
   }
@@ -4368,10 +4615,12 @@ function drawPoster(plan){
   cy += 62;
   var label = dayLabel(plan.ymd);
   x.textAlign = 'center'; x.fillStyle = '#F3EBE0'; x.font = '900 44px ' + CV_SERIF;
-  x.fillText(plan.to ? ('给 '+plan.to+' 的'+label) : (label+'的约会计划'), W/2, cy);
+  x.fillText(plan.to ? (t('menu.title.to', {day:cap(label), to:plan.to}) || ('给 '+plan.to+' 的'+label))
+                     : (t('menu.title', {day:label}) || (label+'的约会计划')), W/2, cy);
   cy += 46;
   x.fillStyle = 'rgba(240,232,220,.55)'; x.font = 'italic 500 26px ' + CV_LATIN;
-  x.fillText(cnDate(plan.ymd) + '  ·  ' + (plan.s.length) + ' 站', W/2, cy);
+  x.fillText(t('poster.meta', {date:enDate(plan.ymd), n:plan.s.length, stops:plan.s.length === 1 ? 'stop' : 'stops'}) ||
+             (cnDate(plan.ymd) + '  ·  ' + (plan.s.length) + ' 站'), W/2, cy);
   cy += 34;
 
   for (var bi=0; bi<blocks.length; bi++){
@@ -4388,10 +4637,10 @@ function drawPoster(plan){
     x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
     x.beginPath(); x.moveTo(PAD, cy - 22); x.lineTo(W-PAD, cy - 22); x.stroke();
     x.textAlign = 'left'; x.fillStyle = '#C9A96A'; x.font = '500 22px ' + CV_LATIN;
-    x.fillText((ROMAN[b.i]||(b.i+1)) + '   ' + (s.c || ''), PAD, cy);
+    x.fillText((ROMAN[b.i]||(b.i+1)) + '   ' + (LANG === 'en' ? (CAT_EN[s.c] || 'Stop') : (s.c || '')), PAD, cy);
     cy += 42;
     x.fillStyle = '#F3EBE0'; x.font = F_T;
-    x.fillText(fill(s.t), PAD, cy);
+    x.fillText(fill(cT(s)), PAD, cy);
     x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px ' + CV_LATIN;
     x.fillText(fmtClock(s.m)+'–'+fmtClock(s.m+s.u), W-PAD, cy);
     cy += 40;
@@ -4408,13 +4657,13 @@ function drawPoster(plan){
   x.strokeStyle = 'rgba(240,232,220,.16)'; x.lineWidth = 1;
   x.beginPath(); x.moveTo(PAD, cy - 26); x.lineTo(W-PAD, cy - 26); x.stroke();
   x.textAlign = 'center'; x.fillStyle = '#C9A96A'; x.font = '600 28px ' + CV_SERIF;
-  x.fillText(fill(plan.e || ''), W/2, cy);
+  x.fillText(fill(endingText(plan.e || '')), W/2, cy);
   cy += 46;
   x.fillStyle = 'rgba(240,232,220,.5)'; x.font = '400 22px ' + CV_SANS;
-  x.fillText(plan.from ? ('—— ' + plan.from) : '—— 今天想见你的人', W/2, cy);
+  x.fillText(plan.from ? ('—— ' + plan.from) : (t('poster.anon') || '—— 今天想见你的人'), W/2, cy);
   cy += 40;
   x.fillStyle = 'rgba(201,169,106,.55)'; x.font = '500 19px ' + CV_LATIN;
-  spacedCenter(x, '今天，怎么心动？', W/2, cy, 4);
+  spacedCenter(x, t('poster.brand') || '今天，怎么心动？', W/2, cy, 4);
   cy += 30;
   // 网址一定要留在图上：图片是最容易被转的一种分享，没有它这一路就是白送
   x.textAlign = 'center';
@@ -4422,15 +4671,222 @@ function drawPoster(plan){
   x.fillText(siteLabel(), W/2, cy);
   return c;
 }
+
+/* Story 版（9:16，1080×1920）：发 Instagram Story / 小红书用的那一张，唯一能出情侣圈的东西。
+   层级和计划图相反——在一起的天数最大，足迹地图（带照片钉）其次，站点地址和二维码要一眼看到，今天的几站反而最小。
+   地图瓦片和照片得先到齐，所以它是异步的：画好了回调。 */
+var STORY_W = 1080, STORY_H = 1920;
+// 图上要用到的数：打过卡的钉子、点亮了几处、几张照片、打卡总数
+function storyFacts(){
+  var pins = isGuest ? [] : collectPins(), shots = 0;
+  for (var i = 0; i < pins.length; i++) if (pins[i].ph) shots++;
+  return { pins: pins, uniq: distinctPlaces(pins).length, shots: shots, all: isGuest ? 0 : checkTotal() };
+}
+// 图上的每一句话。单独拎出来，测试能直接比字：英文版一个汉字都不该有
+function storyCopy(plan, f){
+  var c = { url: siteLabel(), link: baseUrl() };
+  var days = cfg.anni ? dayDiff(parseDate(cfg.anni), now) + 1 : 0;
+  var n = plan && plan.s ? plan.s.length : 0;
+  // 最大的那个数：在一起的天数；没设日子就数点亮的地方；一处都没有就数今天几站
+  if (days > 0){ c.label = t('story.together') || '在一起'; c.num = days; c.unit = t(days === 1 ? 'story.day' : 'story.days') || '天'; }
+  else if (f.uniq){ c.label = t('story.lit') || '点亮了'; c.num = f.uniq; c.unit = t(f.uniq === 1 ? 'story.place' : 'story.places') || '个地方'; }
+  else { c.label = t('story.today') || '今天'; c.num = n; c.unit = t(n === 1 ? 'story.stop' : 'story.stops') || '站'; }
+  var from = plan ? plan.from : cfg.from, to = plan ? plan.to : cfg.to;
+  c.names = (from && to) ? (from + '  &  ' + to) : (from || to || '');
+  if (f.pins.length){
+    c.stats = (t('story.stats', {u:f.uniq, places:f.uniq === 1 ? 'place' : 'places', n:f.all, checkins:f.all === 1 ? 'check-in' : 'check-ins'}) ||
+               ('点亮 ' + f.uniq + ' 个地方 · 打卡 ' + f.all + ' 次')) +
+              (f.shots ? (t('story.photos', {p:f.shots, photos:f.shots === 1 ? 'photo' : 'photos'}) || (' · 照片 ' + f.shots + ' 张')) : '');
+  } else if (plan && n){
+    c.stats = t('story.plan', {date:enDate(plan.ymd), n:n, stops:n === 1 ? 'stop' : 'stops', time:fmtClock(plan.s[0].m)}) ||
+              (cnDate(plan.ymd) + ' · ' + n + ' 站 · ' + fmtClock(plan.s[0].m) + ' 出发');
+  } else c.stats = '';
+  c.brand = t('story.brand') || '今天，怎么心动？';
+  c.scan = t('story.scan') || '扫一扫，也给你的人排一天';
+  if (plan){ var d = parseDate(plan.ymd); c.date = d.getFullYear() + ' . ' + (d.getMonth()+1) + ' . ' + d.getDate(); }
+  else c.date = '';
+  return c;
+}
+// 一次都没打过卡时，地图上画今天有坐标的几站（真实地点才有坐标，手写卡没有）
+function stopPins(plan){
+  var out = [];
+  if (!plan || !plan.s) return out;
+  for (var i = 0; i < plan.s.length; i++){
+    var s = plan.s[i];
+    if (typeof s.la === 'number') out.push({ lat:s.la, lon:s.lo, title:cT(s), mine:1 });
+  }
+  return out;
+}
+// 钉子上的照片先从 IndexedDB 读出来，都到了再画；哪张读不出就当没有
+function loadPinThumbs(list, cb){
+  var todo = list.filter(function(p){ return p.ph || p.thumb; }), left = todo.length, fired = false;
+  function fin(){ if (!fired){ fired = true; cb(); } }
+  function one(){ if (--left <= 0) fin(); }
+  if (!left) return fin();
+  todo.forEach(function(p){
+    function got(url){
+      if (!url) return one();
+      var im = new Image();
+      im.onload = function(){ im.__ok = true; one(); };
+      im.onerror = one;
+      p.thumb = url; p.img = im;
+      im.src = url;
+    }
+    if (p.thumb) got(p.thumb); else withThumb(p.ph, got);
+  });
+  setTimeout(fin, 2500);
+}
+function rrect(x, l, t, w, h, r){
+  x.beginPath();
+  x.moveTo(l + r, t);
+  x.arcTo(l + w, t, l + w, t + h, r);
+  x.arcTo(l + w, t + h, l, t + h, r);
+  x.arcTo(l, t + h, l, t, r);
+  x.arcTo(l, t, l + w, t, r);
+  x.closePath();
+}
+// 一行字塞进给定宽度：先按给的字号，塞不下就一档档缩小
+function fitFont(x, text, weight, px, minPx, family, maxW){
+  for (var s = px; s > minPx; s -= 2){
+    x.font = weight + ' ' + s + 'px ' + family;
+    if (x.measureText(text).width <= maxW) return;
+  }
+  x.font = weight + ' ' + minPx + 'px ' + family;
+}
+// 一行放不下就截到最后一个能放下的词（英文）或字（中文），末尾加省略号
+function oneLine(x, text, maxW){
+  text = String(text == null ? '' : text);
+  if (x.measureText(text).width <= maxW) return text;
+  var cut = wrapLines(x, text, maxW - x.measureText('…').width)[0] || '';
+  if (/\s/.test(text) && cut.lastIndexOf(' ') > 0) cut = cut.slice(0, cut.lastIndexOf(' '));
+  return cut + '…';
+}
+// 没有地图可画的时候，框里列今天的几站：序号、名字、时间；站少的时候再带一行描述
+function drawStopsList(x, plan, l, t, w, h){
+  var stops = plan && plan.s ? plan.s : [];
+  if (!stops.length) return;
+  var withDesc = stops.length <= 5;
+  var gap = Math.min(withDesc ? 110 : 78, Math.floor((h - 80) / stops.length));
+  var y = t + (h - gap * (stops.length - 1) - (withDesc ? 40 : 0)) / 2 + 12;
+  for (var i = 0; i < stops.length; i++){
+    var s = stops[i], name = fill(cT(s));
+    x.textAlign = 'left'; x.fillStyle = '#C9A96A'; x.font = '500 24px ' + CV_LATIN;
+    x.fillText(ROMAN[i] || (i + 1), l + 40, y);
+    x.fillStyle = '#F3EBE0';
+    fitFont(x, name, '600', 34, 24, CV_SERIF, w - 300);
+    x.fillText(name, l + 96, y);
+    x.textAlign = 'right'; x.fillStyle = 'rgba(240,232,220,.6)'; x.font = '500 26px ' + CV_LATIN;
+    x.fillText(fmtClock(s.m), l + w - 40, y);
+    if (withDesc){
+      x.textAlign = 'left'; x.fillStyle = 'rgba(240,232,220,.55)'; x.font = '400 24px ' + CV_SANS;
+      x.fillText(oneLine(x, fill(cD(s)), w - 136), l + 96, y + 40);
+    }
+    y += gap;
+  }
+}
+function drawStory(plan, cb){
+  var W = STORY_W, H = STORY_H, PAD = 96, INNER = W - PAD * 2;
+  var MX = PAD, MY = 768, MW = INNER, MH = 560;
+  var f = storyFacts(), copy = storyCopy(plan, f);
+  var pins = f.pins.length ? f.pins : stopPins(plan);
+
+  function finish(mapCv){
+    var c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    var x = c.getContext('2d');
+    // 底：和计划图同一套渐变 + 内框
+    var g = x.createLinearGradient(0, 0, W, H);
+    g.addColorStop(0, '#31263A'); g.addColorStop(1, '#1B141F');
+    x.fillStyle = g; x.fillRect(0, 0, W, H);
+    x.strokeStyle = 'rgba(201,169,106,.45)'; x.lineWidth = 2;
+    x.strokeRect(32, 32, W - 64, H - 64);
+
+    // 1. 谁
+    x.textAlign = 'center';
+    if (copy.names){
+      x.fillStyle = 'rgba(243,235,224,.85)';
+      fitFont(x, copy.names, '600', 40, 28, CV_SERIF, INNER);
+      x.fillText(copy.names, W / 2, 286);
+    }
+    // 2. 最大的数字：上面一行小标，下面一行单位；数字背后一团光（对应首页大数字的呼吸光）
+    x.fillStyle = 'rgba(240,232,220,.55)';
+    x.font = LANG === 'en' ? ('500 30px ' + CV_LATIN) : ('400 30px ' + CV_SANS);
+    spacedCenter(x, copy.label, W / 2, 366, LANG === 'en' ? 8 : 14);
+    var glow = x.createRadialGradient(W / 2, 560, 0, W / 2, 560, 330);
+    glow.addColorStop(0, 'rgba(201,169,106,.22)'); glow.addColorStop(1, 'rgba(201,169,106,0)');
+    x.fillStyle = glow; x.fillRect(0, 230, W, 660);
+    x.textAlign = 'center'; x.fillStyle = '#C9A96A';
+    fitFont(x, String(copy.num), '900', 280, 160, CV_SERIF, INNER);
+    x.fillText(String(copy.num), W / 2, 640);
+    if (LANG === 'en'){ x.fillStyle = 'rgba(201,169,106,.75)'; x.font = '500 34px ' + CV_LATIN; spacedCenter(x, copy.unit, W / 2, 706, 6); }
+    else { x.fillStyle = 'rgba(243,235,224,.85)'; x.font = '600 40px ' + CV_SERIF; x.fillText(copy.unit, W / 2, 706); }
+
+    // 3. 足迹地图；没有地图就列今天的几站。外面一道金线内框，和计划菜单一个签名
+    x.save();
+    rrect(x, MX, MY, MW, MH, 10); x.clip();
+    if (mapCv) x.drawImage(mapCv, MX, MY);
+    else { x.fillStyle = 'rgba(0,0,0,.14)'; x.fillRect(MX, MY, MW, MH); drawStopsList(x, plan, MX, MY, MW, MH); }
+    x.restore();
+    rrect(x, MX, MY, MW, MH, 10);
+    x.strokeStyle = 'rgba(201,169,106,.42)'; x.lineWidth = 2; x.stroke();
+    x.textAlign = 'center'; x.fillStyle = 'rgba(240,232,220,.6)';
+    fitFont(x, copy.stats, '400', 26, 20, CV_SANS, INNER);
+    x.fillText(copy.stats, W / 2, MY + MH + 58);
+
+    // 4. 网址 + 二维码：图片是最容易被转的一种分享，没有它这一路就是白送
+    var QY = 1432, QS = 232;
+    var hasQR = QR.paint(x, copy.link, PAD, QY, QS, '#1B141F', '#F8F3EA');
+    var tx = hasQR ? PAD + QS + 44 : W / 2, avail = hasQR ? (W - PAD - tx) : INNER;
+    x.textAlign = hasQR ? 'left' : 'center';
+    x.fillStyle = '#F3EBE0'; fitFont(x, copy.brand, '600', 44, 30, CV_SERIF, avail); x.fillText(copy.brand, tx, QY + 60);
+    x.fillStyle = 'rgba(240,232,220,.62)'; fitFont(x, copy.scan, '400', 26, 18, CV_SANS, avail); x.fillText(copy.scan, tx, QY + 110);
+    x.fillStyle = '#C9A96A'; fitFont(x, copy.url, '500', 36, 20, CV_LATIN, avail); x.fillText(copy.url, tx, QY + 176);
+
+    // 5. 底：这一天的日期
+    if (copy.date){
+      x.textAlign = 'center'; x.fillStyle = 'rgba(240,232,220,.45)'; x.font = 'italic 500 28px ' + CV_LATIN;
+      x.fillText(copy.date, W / 2, 1796);
+    }
+    cb(c);
+  }
+  if (!pins.length) return finish(null);
+  loadPinThumbs(pins, function(){ Atlas.snapshot(pins, MW, MH, { k:2.4 }, finish); });
+}
+
+// 弹层里两种比例来回切：计划图是同步的，立刻有；Story 要等地图，先给计划图，画好了再换上去
+var posterMode = 'plan', posterJob = 0;
+function setPosterMode(mode){
+  posterMode = mode;
+  $('ratioPlan').classList.toggle('on', mode === 'plan');
+  $('ratioStory').classList.toggle('on', mode === 'story');
+}
+function paintPoster(plan){
+  var job = ++posterJob;
+  if (posterMode !== 'story'){
+    $('posterImg').src = drawPoster(plan).toDataURL('image/png');
+    $('posterHint').textContent = t('poster.hint') || '长按图片保存，发给她就行';
+    return;
+  }
+  $('posterHint').textContent = t('poster.drawing') || '正在把足迹画进去…';
+  drawStory(plan, function(c){
+    if (job !== posterJob) return;     // 等图的时候切回了计划图
+    try{ $('posterImg').src = c.toDataURL('image/png'); }
+    catch(e){ setPosterMode('plan'); paintPoster(plan); return; }
+    $('posterHint').textContent = t('poster.hint.story') || '长按保存，发到 Story 或小红书';
+  });
+}
 function showPoster(){
   var plan = currentPlan;
   if (!plan){ toast(t('toast.noPlan') || '先生成一份计划'); return; }
   function go(){
     try{
-      var c = drawPoster(plan);
-      $('posterImg').src = c.toDataURL('image/png');
+      $('posterImg').src = drawPoster(plan).toDataURL('image/png');
+      $('posterHint').textContent = t('poster.hint') || '长按图片保存，发给她就行';
+      $('posterRatio').classList.remove('hidden');
+      setPosterMode(posterMode);
       $('posterMask').classList.add('show');
     }catch(e){ toast(t('toast.noCanvas') || '这台设备画不出图片，用「复制文字版」吧'); return; }
+    if (posterMode === 'story') paintPoster(plan);
     // 计数：这份计划出过一张图（同一份只算一次；分享过就有短链 id 可带）。
     // peek：还没分享过就没有 couple id，出图不该顺手生成一个——那时也不会有短链，key 只用来去重
     var key = planPayload(plan, true);
@@ -4441,6 +4897,8 @@ function showPoster(){
 }
 $('posterBtn').onclick = showPoster;
 $('shPoster').onclick = function(){ syncPlanFromSheet(); $('sheet').classList.remove('show'); showPoster(); };
+$('ratioPlan').onclick = function(){ if (currentPlan){ setPosterMode('plan'); paintPoster(currentPlan); } };
+$('ratioStory').onclick = function(){ if (currentPlan){ setPosterMode('story'); paintPoster(currentPlan); } };
 $('posterClose').onclick = function(){ $('posterMask').classList.remove('show'); };
 $('posterMask').onclick = function(e){ if (e.target === $('posterMask')) $('posterMask').classList.remove('show'); };
 
@@ -4614,96 +5072,106 @@ var Atlas = (function(){
     cache[key] = img;
     return null;
   }
-  function draw(){
-    if (!ctx || !W) return;
+  // 把一张地图画进任意一个 ctx：瓦片、压色、钉子、署名。页面上那张互动的和 Story 图上那张静态的都走这里。
+  // view = {z, lat, lon}；opt.sel 是选中的钉子，opt.k 是钉子和署名的放大倍数（海报像素多，按 1 倍画会看不见）
+  function paint(c2, w, h, view, list, opt){
+    opt = opt || {};
+    var k = opt.k || 1, zz = view.z;
     var s = getComputedStyle(document.documentElement);
-    ctx.fillStyle = (s.getPropertyValue('--paper2') || '#eee').trim();
-    ctx.fillRect(0, 0, W, H);
+    c2.fillStyle = (s.getPropertyValue('--paper2') || '#eee').trim();
+    c2.fillRect(0, 0, w, h);
 
-    var cx = lonToX(cLon, z) * TS, cy = latToY(cLat, z) * TS;
-    var left = cx - W / 2, top = cy - H / 2;
+    var cx = lonToX(view.lon, zz) * TS, cy = latToY(view.lat, zz) * TS;
+    var left = cx - w / 2, top = cy - h / 2;
     var x0 = Math.floor(left / TS), y0 = Math.floor(top / TS);
-    var x1 = Math.floor((left + W) / TS), y1 = Math.floor((top + H) / TS);
-    var canFilter = 'filter' in ctx;
-    if (canFilter) ctx.filter = tileFilter();
-    ctx.globalAlpha = .95;
+    var x1 = Math.floor((left + w) / TS), y1 = Math.floor((top + h) / TS);
+    var canFilter = 'filter' in c2;
+    if (canFilter) c2.filter = tileFilter();
+    c2.globalAlpha = .95;
     for (var ty = y0; ty <= y1; ty++){
       for (var tx = x0; tx <= x1; tx++){
-        var img = tile(z, tx, ty);
+        var img = tile(zz, tx, ty);
         if (!img) continue;
-        ctx.drawImage(img, Math.round(tx * TS - left), Math.round(ty * TS - top), TS, TS);
+        c2.drawImage(img, Math.round(tx * TS - left), Math.round(ty * TS - top), TS, TS);
       }
     }
-    ctx.globalAlpha = 1;
-    if (canFilter) ctx.filter = 'none';
+    c2.globalAlpha = 1;
+    if (canFilter) c2.filter = 'none';
 
     // 再压一层很淡的底色，让地图和这个网站是一套颜色
-    ctx.fillStyle = (s.getPropertyValue('--glow-b') || 'rgba(0,0,0,.05)').trim();
-    ctx.fillRect(0, 0, W, H);
+    c2.fillStyle = (s.getPropertyValue('--glow-b') || 'rgba(0,0,0,.05)').trim();
+    c2.fillRect(0, 0, w, h);
 
     var gold = (s.getPropertyValue('--gold') || '#A98446').trim();
     var bright = (s.getPropertyValue('--gold-bright') || '#C9A96A').trim();
     var ink = (s.getPropertyValue('--paper') || '#fff').trim();
 
-    for (var i = 0; i < pins.length; i++){
-      var p = pins[i];
-      var px = lonToX(p.lon, z) * TS - left, py = latToY(p.lat, z) * TS - top;
+    for (var i = 0; i < list.length; i++){
+      var p = list[i];
+      var px = lonToX(p.lon, zz) * TS - left, py = latToY(p.lat, zz) * TS - top;
       p._x = px; p._y = py;
-      if (px < -40 || py < -40 || px > W + 40 || py > H + 40) continue;
-      var on = i === sel;
+      if (px < -40 * k || py < -40 * k || px > w + 40 * k || py > h + 40 * k) continue;
+      var on = i === opt.sel;
       // 光晕
-      var g = ctx.createRadialGradient(px, py, 0, px, py, on ? 26 : 18);
+      var gr = (on ? 26 : 18) * k;
+      var g = c2.createRadialGradient(px, py, 0, px, py, gr);
       g.addColorStop(0, bright); g.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.globalAlpha = on ? .5 : .28;
-      ctx.fillStyle = g;
-      ctx.beginPath(); ctx.arc(px, py, on ? 26 : 18, 0, Math.PI*2); ctx.fill();
-      ctx.globalAlpha = 1;
+      c2.globalAlpha = on ? .5 : .28;
+      c2.fillStyle = g;
+      c2.beginPath(); c2.arc(px, py, gr, 0, Math.PI*2); c2.fill();
+      c2.globalAlpha = 1;
       if (p.thumb && p.img && p.img.__ok){
-        var d = on ? 46 : 36, r = 4;
-        ctx.save();
-        ctx.beginPath();
-        ctx.moveTo(px-d/2+r, py-d/2);
-        ctx.arcTo(px+d/2, py-d/2, px+d/2, py+d/2, r);
-        ctx.arcTo(px+d/2, py+d/2, px-d/2, py+d/2, r);
-        ctx.arcTo(px-d/2, py+d/2, px-d/2, py-d/2, r);
-        ctx.arcTo(px-d/2, py-d/2, px+d/2, py-d/2, r);
-        ctx.closePath();
-        ctx.clip();
-        ctx.drawImage(p.img, px-d/2, py-d/2, d, d);
-        ctx.restore();
-        ctx.strokeStyle = bright; ctx.lineWidth = 1.5;
-        ctx.stroke();
+        var d = (on ? 46 : 36) * k, r = 4 * k;
+        c2.save();
+        c2.beginPath();
+        c2.moveTo(px-d/2+r, py-d/2);
+        c2.arcTo(px+d/2, py-d/2, px+d/2, py+d/2, r);
+        c2.arcTo(px+d/2, py+d/2, px-d/2, py+d/2, r);
+        c2.arcTo(px-d/2, py+d/2, px-d/2, py-d/2, r);
+        c2.arcTo(px-d/2, py-d/2, px+d/2, py-d/2, r);
+        c2.closePath();
+        c2.clip();
+        c2.drawImage(p.img, px-d/2, py-d/2, d, d);
+        c2.restore();
+        c2.strokeStyle = bright; c2.lineWidth = 1.5 * k;
+        c2.stroke();
       } else {
-        ctx.beginPath(); ctx.arc(px, py, on ? 8 : 6, 0, Math.PI*2);
-        ctx.fillStyle = bright; ctx.fill();
-        ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.stroke();
-        ctx.beginPath(); ctx.arc(px, py, on ? 13 : 10, 0, Math.PI*2);
-        ctx.strokeStyle = gold; ctx.lineWidth = 1; ctx.globalAlpha = .7; ctx.stroke();
-        ctx.globalAlpha = 1;
+        c2.beginPath(); c2.arc(px, py, (on ? 8 : 6) * k, 0, Math.PI*2);
+        c2.fillStyle = bright; c2.fill();
+        c2.strokeStyle = ink; c2.lineWidth = 2 * k; c2.stroke();
+        c2.beginPath(); c2.arc(px, py, (on ? 13 : 10) * k, 0, Math.PI*2);
+        c2.strokeStyle = gold; c2.lineWidth = k; c2.globalAlpha = .7; c2.stroke();
+        c2.globalAlpha = 1;
       }
     }
-    ctx.font = '10px ' + (s.getPropertyValue('--sans') || 'sans-serif').trim();
-    ctx.fillStyle = 'rgba(128,128,128,.85)';
-    ctx.textAlign = 'right';
-    ctx.fillText('© OpenStreetMap contributors', W - 6, H - 6);
-    ctx.textAlign = 'left';
+    c2.font = Math.round(10 * k) + 'px ' + (s.getPropertyValue('--sans') || 'sans-serif').trim();
+    c2.fillStyle = 'rgba(128,128,128,.85)';
+    c2.textAlign = 'right';
+    c2.fillText('© OpenStreetMap contributors', w - 6 * k, h - 6 * k);
+    c2.textAlign = 'left';
   }
-  function fit(){
-    if (!pins.length){ z = 2; cLat = 20; cLon = 10; return; }
-    if (pins.length === 1){ z = 12; cLat = pins[0].lat; cLon = pins[0].lon; return; }
+  function draw(){
+    if (!ctx || !W) return;
+    paint(ctx, W, H, { z:z, lat:cLat, lon:cLon }, pins, { sel:sel });
+  }
+  // 一个 w×h 的框要装下这些钉子，该看哪儿、放多大
+  function fitFor(list, w, h){
+    if (!list.length) return { z:2, lat:20, lon:10 };
+    if (list.length === 1) return { z:12, lat:list[0].lat, lon:list[0].lon };
     var la1 = 90, la2 = -90, lo1 = 180, lo2 = -180;
-    pins.forEach(function(p){
+    list.forEach(function(p){
       la1 = Math.min(la1, p.lat); la2 = Math.max(la2, p.lat);
       lo1 = Math.min(lo1, p.lon); lo2 = Math.max(lo2, p.lon);
     });
-    cLat = (la1 + la2) / 2; cLon = (lo1 + lo2) / 2;
+    var v = { z:2, lat:(la1 + la2) / 2, lon:(lo1 + lo2) / 2 };
     for (var zz = 14; zz >= 2; zz--){
-      var w = (lonToX(lo2, zz) - lonToX(lo1, zz)) * TS;
-      var h = (latToY(la1, zz) - latToY(la2, zz)) * TS;
-      if (w < W * 0.72 && h < H * 0.72){ z = zz; return; }
+      var tw = (lonToX(lo2, zz) - lonToX(lo1, zz)) * TS;
+      var th = (latToY(la1, zz) - latToY(la2, zz)) * TS;
+      if (tw < w * 0.72 && th < h * 0.72){ v.z = zz; break; }
     }
-    z = 2;
+    return v;
   }
+  function fit(){ var v = fitFor(pins, W, H); z = v.z; cLat = v.lat; cLon = v.lon; }
   function hit(px, py){
     for (var i = pins.length - 1; i >= 0; i--){
       var p = pins[i];
@@ -4818,7 +5286,34 @@ var Atlas = (function(){
     fit: function(){ size(); fit(); schedule(); },
     zoom: step,
     repaint: function(){ cache = {}; size(); schedule(); },
-    has: function(){ return ready; }
+    has: function(){ return ready; },
+    // 给 Story 图画一张静态的：装下所有钉子，等瓦片到齐（最多 3.5 秒，到不齐就画到哪算哪）再回调一个 canvas。
+    // 不依赖页面上那张地图有没有初始化；瓦片缓存是同一份，页面上看过的这里不用再下
+    snapshot: function(list, w, h, opt, cb){
+      var view = fitFor(list, w, h), n = Math.pow(2, view.z);
+      var c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      var c2 = c.getContext('2d');
+      var left = lonToX(view.lon, view.z) * TS - w / 2, top = latToY(view.lat, view.z) * TS - h / 2, keys = [];
+      for (var ty = Math.floor(top / TS); ty <= Math.floor((top + h) / TS); ty++){
+        if (ty < 0 || ty >= n) continue;
+        for (var tx = Math.floor(left / TS); tx <= Math.floor((left + w) / TS); tx++){
+          tile(view.z, tx, ty);
+          keys.push(view.z + '/' + (((tx % n) + n) % n) + '/' + ty);
+        }
+      }
+      var t0 = Date.now();
+      (function poll(){
+        var waiting = 0;
+        for (var i = 0; i < keys.length; i++){
+          var im = cache[keys[i]];
+          if (im && !im.__ok && !im.__bad) waiting++;
+        }
+        if (waiting && Date.now() - t0 < 3500) return setTimeout(poll, 120);
+        paint(c2, w, h, view, list, opt);
+        cb(c);
+      })();
+    }
   };
 })();
 
@@ -5032,6 +5527,7 @@ function renderFootprints(){
       Photos.get(p.ph, function(err, rec){
         if (!rec) return;
         $('posterImg').src = rec.full;
+        $('posterRatio').classList.add('hidden');    // 看照片，不是出图，比例开关不该出现
         $('posterMask').classList.add('show');
         $('posterHint').textContent = (LANG === 'en' ? enDate(p.ymd) : cnDate(p.ymd)) + ' · ' + p.title;
       });

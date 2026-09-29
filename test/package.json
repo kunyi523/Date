@@ -6,6 +6,7 @@
     "test": "node sched.js && node smoke.js && node shop.js && node layout.js && TZ=America/Toronto node daylight.js"
   },
   "devDependencies": {
+    "jsqr": "^1.4.0",
     "puppeteer-core": "^23.11.1"
   }
 }
