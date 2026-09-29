@@ -1,4 +1,36 @@
 const { launch, BASE, PHONE, wait, ok, done } = require('./_lib');
+const zlib = require('zlib');
+// 一张 256×256 的深色 PNG 当地图瓦片：CI 上不碰真的 OSM，而且深色好认——画上去了，地图那一块就一定是暗的
+const TILE_PNG = (() => {
+  const W = 256, H = 256, raw = Buffer.alloc((W * 3 + 1) * H);
+  for (let y = 0; y < H; y++){ raw[y * (W * 3 + 1)] = 0; for (let x = 0; x < W; x++){ const o = y * (W * 3 + 1) + 1 + x * 3; raw[o] = 0x30; raw[o + 1] = 0x30; raw[o + 2] = 0x30; } }
+  const T = []; for (let n = 0; n < 256; n++){ let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; T[n] = c >>> 0; }
+  const crc = b => { let c = 0xFFFFFFFF; for (const v of b) c = T[(c ^ v) & 255] ^ (c >>> 8); return (c ^ 0xFFFFFFFF) >>> 0; };
+  const chunk = (type, data) => { const len = Buffer.alloc(4); len.writeUInt32BE(data.length); const td = Buffer.concat([Buffer.from(type), data]); const c = Buffer.alloc(4); c.writeUInt32BE(crc(td)); return Buffer.concat([len, td, c]); };
+  const ihdr = Buffer.alloc(13); ihdr.writeUInt32BE(W, 0); ihdr.writeUInt32BE(H, 4); ihdr[8] = 8; ihdr[9] = 2;
+  return Buffer.concat([Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]), chunk('IHDR', ihdr), chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+})();
+const isTile = r => /tile\.openstreetmap\.org\//.test(r.url());
+const serveTile = r => r.respond({ status:200, headers:{ 'content-type':'image/png', 'Access-Control-Allow-Origin':'*' }, body: TILE_PNG });
+// Story 图是异步画的（等瓦片、等照片），轮询到 1080×1920 为止
+const waitStory = async (page) => {
+  for (let i = 0; i < 50; i++){
+    const d = await page.$eval('#posterImg', e => ({ w:e.naturalWidth, h:e.naturalHeight }));
+    if (d.w === 1080 && d.h === 1920) return d;
+    await wait(200);
+  }
+  return page.$eval('#posterImg', e => ({ w:e.naturalWidth, h:e.naturalHeight }));
+};
+// 把 #posterImg 画回 canvas 读像素：解二维码、取某一点的颜色
+const readPoster = (page) => page.evaluate(() => {
+  const im = document.getElementById('posterImg'), c = document.createElement('canvas');
+  c.width = im.naturalWidth; c.height = im.naturalHeight;
+  const x = c.getContext('2d'); x.drawImage(im, 0, 0);
+  const d = x.getImageData(0, 0, c.width, c.height);
+  const at = (px, py) => { const i = (py * c.width + px) * 4; return [d.data[i], d.data[i + 1], d.data[i + 2]]; };
+  const q = window.jsQR ? jsQR(d.data, c.width, c.height) : null;
+  return { qr: q ? q.data : null, map: at(126, 800), corner: at(60, 60) };
+});
 (async()=>{
 const b=await launch();
 // 第一步：他排好一份，拿到分享链接
@@ -21,6 +53,7 @@ const evSender = [], trapSender = evTrap(evSender);
 await p.setRequestInterception(true);
 p.on('request', r=>{
   if (trapSender(r)) return;
+  if (isTile(r)) return serveTile(r);
   if (/\/plans$/.test(r.url())){
     if (r.method()==='OPTIONS') return r.respond({status:204, headers:CORS});
     const body = JSON.parse(r.postData()||'{}');
@@ -35,6 +68,7 @@ p.on('request', r=>{
 await p.goto(BASE + '/index.html?t=14:00',{waitUntil:'networkidle2'}); await wait(800);
 await p.evaluate(()=>openPanel()); await wait(400);
 await p.type('#cfgFrom','坤怿'); await p.type('#cfgTo','瑶瑶');
+await p.evaluate(()=>{ document.getElementById('cfgAnni').value = '2025-08-13'; });   // 第 6 条：Story 图上最大的数字是在一起的天数
 await p.click('#saveCfg'); await wait(400);
 await p.click('#quickBtn'); await wait(2500);
 await p.click('#shareOpen'); await wait(400);
@@ -71,6 +105,27 @@ await p.click('#shClose'); await wait(200);
 await p.click('#posterBtn'); await wait(1200);
 ok(await p.evaluate(()=>document.getElementById('posterMask').classList.contains('show')), '海报画出来了');
 ok(evSender.length === 3 && evSender[2].e === 'poster' && evSender[2].id === SHORT_ID, '计数：存成图片记一次 poster，带短链 id', JSON.stringify(evSender[2]));
+// 第 6 条：同一个弹层里两种比例都能存。默认计划图（750 宽的竖图），切到 Story 是 1080×1920，上面的二维码要能解回站点地址
+const ratio = await p.$$eval('#posterRatio button', a=>a.filter(x=>x.offsetParent).map(x=>x.textContent + (x.classList.contains('on') ? '*' : '')));
+ok(ratio.join('/') === '计划图*/Story · 9:16', '海报弹层里有两种比例，默认计划图', ratio.join('/'));
+const planDim = await p.$eval('#posterImg', e=>({ w:e.naturalWidth, h:e.naturalHeight }));
+ok(planDim.w === 750 && planDim.h > 750, '计划图还是 750 宽的竖图', planDim.w + 'x' + planDim.h);
+ok(await p.$eval('#posterHint', e=>e.textContent) === '长按图片保存，发给她就行', '计划图的提示一字不变');
+await p.click('#ratioStory');
+const storyDim = await waitStory(p);
+ok(storyDim.w === 1080 && storyDim.h === 1920, 'Story 版是 1080×1920（9:16）', storyDim.w + 'x' + storyDim.h);
+ok(await p.$eval('#posterHint', e=>e.textContent) === '长按保存，发到 Story 或小红书', 'Story 的提示换成发出去', await p.$eval('#posterHint', e=>e.textContent));
+ok((await p.$$eval('#posterRatio button.on', a=>a.map(x=>x.id))).join() === 'ratioStory', '开关选中态跟着换');
+await p.addScriptTag({ path: require.resolve('jsqr/dist/jsQR.js') });
+const zhStory = await readPoster(p);
+ok(zhStory.qr === BASE + '/index.html', 'Story 上的二维码解出来就是站点地址（自己编的码，不打第三方接口）', zhStory.qr);
+const zhCopy = await p.evaluate(()=>({ copy: storyCopy(currentPlan, storyFacts()), days: document.getElementById('days').textContent }));
+ok(zhCopy.copy.label === '在一起' && zhCopy.copy.unit === '天' && String(zhCopy.copy.num) === zhCopy.days && +zhCopy.days > 400,
+  'Story：最大的数字 = 首页「在一起第 N 天」的 N', JSON.stringify({label:zhCopy.copy.label, num:zhCopy.copy.num, unit:zhCopy.copy.unit, days:zhCopy.days}));
+ok(zhCopy.copy.names === '坤怿  &  瑶瑶' && /^\d+月\d+日 · \d 站 · \d\d:\d\d 出发$/.test(zhCopy.copy.stats) && zhCopy.copy.url === BASE.replace(/^https?:\/\//, '') + '/index.html',
+  'Story：名字、没打过卡就写今天几站几点出发、图上印着网址', JSON.stringify({names:zhCopy.copy.names, stats:zhCopy.copy.stats, url:zhCopy.copy.url}));
+await p.click('#ratioPlan'); await wait(300);
+ok((await p.$eval('#posterImg', e=>e.naturalWidth)) === 750, '切回计划图');
 await p.click('#posterClose'); await wait(200);
 await p.click('#posterBtn'); await wait(1000);
 ok(evSender.length === 3, '计数：同一份计划再出图不重复记', evSender.length);
@@ -171,9 +226,12 @@ const ctx = await b.createBrowserContext();
 const s = await ctx.newPage(); s.on('pageerror',err=>console.log('[ERR]',err.message));
 await s.emulate(PHONE);
 // 这一页后台够不着（/plans 直接断掉）：分享必须静默回落到长链，界面上看不出区别
-let plansFailed = 0; const evTried = [];
+let plansFailed = 0, tilesServed = 0; const evTried = [];
+// 瓦片是网站的 service worker 接走的（cacheFirst），不绕开它这里就拦不到
+await s.setBypassServiceWorker(true);
 await s.setRequestInterception(true);
 s.on('request', r=>{
+  if (isTile(r)){ tilesServed++; return serveTile(r); }
   if (/\/plans$/.test(r.url())){ plansFailed++; return r.abort('failed'); }
   if (/\/ev$/.test(r.url())){
     if (r.method()==='OPTIONS') return r.respond({status:204, headers:CORS});   // 预检放过，才看得到那条 POST 想发什么
@@ -212,6 +270,27 @@ ok(/Send today to Yao/.test(await s.$eval('#shareOpen', el=>el.textContent)), '�
 await s.click('#posterBtn'); await wait(1200);
 const pk = await s.evaluate(()=>({ show: document.getElementById('posterMask').classList.contains('show'), mem: cfg.couple || '', saved: (JSON.parse(localStorage.getItem('xindong_cfg_v1')||'{}')).couple || '' }));
 ok(pk.show && !pk.mem && !pk.saved, '没分享过就出图：海报照出，不顺手生成 couple id', JSON.stringify(pk));
+// 第 6 条（英文 + 地图那一路）：种两条带位置的打卡，Story 图上就该有足迹地图——瓦片被替身接住（深色），
+// 画上去那一块就一定是暗的；字全是英文；没设日子就数点亮的地方
+await s.evaluate(()=>{
+  const plan = { ymd:'2026-09-12', s:[{t:'小巷咖啡', te:'Alley coffee', c:'食', m:600, u:60}, {t:'湖边走走', te:'Lakeside walk', c:'行', m:690, u:90}] };
+  localStorage.setItem('xindong_log_v1', JSON.stringify([{ sig:'2026-09-12|小巷咖啡,湖边走走', ymd:'2026-09-12', done:true, plan,
+    checks:{ 0:{t:Date.now()-2e6, lat:43.6532, lon:-79.3832}, 1:{t:Date.now()-1e6, lat:43.6387, lon:-79.3810} } }]));
+});
+await s.click('#ratioStory');
+const enDim = await waitStory(s);
+ok(enDim.w === 1080 && enDim.h === 1920, '英文发件人：Story 版 1080×1920', enDim.w + 'x' + enDim.h);
+ok(tilesServed > 0, 'Story：足迹地图去要了瓦片（被替身接住，测试不碰真的 OSM）', tilesServed + ' 张');
+await s.addScriptTag({ path: require.resolve('jsqr/dist/jsQR.js') });
+const enStory = await readPoster(s);
+ok(enStory.map.every(v=>v < 120), 'Story：瓦片真的画进了地图那一块（跨域图片带 CORS，canvas 没被污染，存得出来）', enStory.map.join(','));
+ok(enStory.qr === BASE + '/index.html', '英文发件人：Story 二维码同样解回站点地址', enStory.qr);
+const enCopy = await s.evaluate(()=>storyCopy(currentPlan, storyFacts()));
+const enVals = Object.keys(enCopy).map(k=>String(enCopy[k])).join(' | ');
+ok(!/[\u4e00-\u9fa5]/.test(enVals.replace(/Kun|Yao/g,'')), '英文发件人：Story 上的每一句都是英文', enVals);
+ok(enCopy.label === 'LIT UP' && enCopy.num === 2 && enCopy.unit === 'PLACES' && enCopy.stats === '2 places lit · 2 check-ins' && enCopy.names === 'Kun  &  Yao',
+  '英文发件人：没设日子就数点亮的地方；地图下面一行是打卡数', JSON.stringify({label:enCopy.label, num:enCopy.num, unit:enCopy.unit, stats:enCopy.stats}));
+ok(/post it to your Story/.test(await s.$eval('#posterHint', e=>e.textContent)), '英文发件人：Story 提示是英文', await s.$eval('#posterHint', e=>e.textContent));
 await s.click('#posterClose'); await wait(200);
 await s.click('#shareOpen'); await wait(400);
 bad = await zhScan(s);
