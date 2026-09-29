@@ -954,7 +954,7 @@
         </div>
       </div>
       <h1 id="h1" data-i18n="hero.h1">今天，怎么心动？</h1>
-      <div class="sub" id="sub">为你一人定制的心动菜单</div>
+      <div class="sub" id="sub">情侣约会计划：一键排好今天，发给她，她拆开就出发</div>
     </header>
 
     <div class="hero-wrap">
@@ -970,16 +970,17 @@
       <span class="qd" data-i18n="quick.d">不用想，我按现在的时间直接排好一份</span>
     </button>
 
+    <button class="fold" id="foldBtn" aria-expanded="false">
+      <span id="foldTxt">调一调</span>
+      <span class="caret" id="foldCaret">▼</span>
+    </button>
+
+    <!-- 定位是"调一调"的一种，排在那道线后面：第一屏只剩一个主按钮 -->
     <div class="temp-row" style="margin-top:12px">
       <button class="temp-btn" id="tempBtn" data-i18n="loc.btn">📍 定位一下，用附近真实的地方</button>
       <div class="temp-read" id="tempRead"></div>
     </div>
     <div class="temp-read" id="nearRead" style="margin-top:8px"></div>
-
-    <button class="fold" id="foldBtn" aria-expanded="false">
-      <span id="foldTxt">调一调</span>
-      <span class="caret" id="foldCaret">▼</span>
-    </button>
 
     <div class="setup" id="setup">
       <div class="label"><b data-i18n="cond.day">哪一天</b></div>
@@ -1426,7 +1427,7 @@ var I18N = { en: {
   'theme.title': 'Now: {now} (setting: {pref})',
   'hero.h1': 'Where to today?',
   'hero.h1.to': 'Where are you taking {to} today?',
-  'hero.sub': 'I plan the day. You just send it.',
+  'hero.sub': 'Date plans for couples: I plan today, you send it, they open it and go.',
   'hero.sub.to': 'I\'ll plan it. You send it to {to}.',
   'hero.together': 'Together',
   'hero.day': 'Day', 'hero.dayUnit': '',
@@ -2051,8 +2052,9 @@ function siteLabel(){
     document.title = t('hero.h1.to', {to:cfg.to}) || ('今天带' + cfg.to + '去哪？');
     $('sub').textContent = t('hero.sub.to', {to:cfg.to}) || ('我帮你排好，你再发给' + cfg.to);
   } else {
+    // 还没填称呼的多半是没有链接、直接打开的生人：这一句要一口气说清是什么、给谁用
     if (LANG === 'en') document.title = t('hero.h1');
-    $('sub').textContent = t('hero.sub') || '我帮你把今天排好，你只管发出去';
+    $('sub').textContent = t('hero.sub') || '情侣约会计划：一键排好今天，发给她，她拆开就出发';
   }
 })();
 

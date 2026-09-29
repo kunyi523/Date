@@ -243,6 +243,8 @@ await s.goto(BASE + '/index.html?t=14:00&lang=en',{waitUntil:'networkidle2'}); a
 let bad = await zhScan(s);
 ok(bad.length===0, '英文发件人：首页无中文', bad.join(' | ') || 'clean');
 ok(/Where to today/.test(await s.$eval('#h1', el=>el.textContent)), '英文发件人：h1 是英文');
+// 第 7 条：没有链接、没填称呼的生人，第一屏一句话说清是什么、给谁用
+ok(await s.$eval('#sub', el=>el.textContent)==='Date plans for couples: I plan today, you send it, they open it and go.', '英文发件人：首屏一句话说清是什么、给谁用', await s.$eval('#sub', el=>el.textContent));
 ok(await s.$eval('#quickBtn .qt', el=>el.textContent)==='Plan today', '英文发件人：一键按钮 Plan today');
 ok(/^Tweak · Today · Leave now · A little treat · Around town$/.test(await s.$eval('#foldTxt', el=>el.textContent)), '英文发件人：条件摘要是英文', await s.$eval('#foldTxt', el=>el.textContent));
 await s.evaluate(()=>_setFold(true)); await wait(300);
@@ -309,24 +311,33 @@ await s.click('#shClose'); await wait(200);
 await s.evaluate(()=>openPanel()); await wait(300);
 await Promise.all([s.waitForNavigation({waitUntil:'networkidle2'}), s.click('#cfgLang .chip:first-child')]);
 await wait(600);
-const sw = await s.evaluate(()=>({ lang: document.documentElement.getAttribute('lang'), st: localStorage.getItem('xd_lang'), q: location.search, h1: document.getElementById('h1').textContent }));
+const sw = await s.evaluate(()=>({ lang: document.documentElement.getAttribute('lang'), st: localStorage.getItem('xd_lang'), q: location.search, h1: document.getElementById('h1').textContent, sub: document.getElementById('sub').textContent }));
 ok(sw.st==='zh' && /lang=zh/.test(sw.q) && /t=14:00/.test(sw.q) && sw.lang!=='en', '语言开关：切回中文，xd_lang=zh，?t= 保留', JSON.stringify(sw));
 ok(sw.h1==='今天带Yao去哪？', '语言开关：切回后 h1 是中文', sw.h1);
+ok(sw.sub==='我帮你排好，你再发给Yao', '填过称呼的人副标题照旧带名字（第 7 条那句只给生人看）', sw.sub);
 await ctx.close();
 
-// 第五步：中文一字不变——干净上下文打开 ?lang=zh，首屏文字和从前一样
+// 第五步：中文一字不变——干净上下文打开 ?lang=zh，首屏文字和从前一样（第 7 条改掉的只有副标题那一句和按钮顺序）
 const ctx2 = await b.createBrowserContext();
 const z = await ctx2.newPage(); await z.emulate(PHONE);
 await z.goto(BASE + '/index.html?t=14:00&lang=zh',{waitUntil:'networkidle2'}); await wait(800);
 const zh = await z.evaluate(()=>({
   h1: document.getElementById('h1').textContent, sub: document.getElementById('sub').textContent,
+  subH: document.getElementById('sub').getBoundingClientRect().height,
   qt: document.querySelector('#quickBtn .qt').textContent, qd: document.querySelector('#quickBtn .qd').textContent,
   fold: document.getElementById('foldTxt').textContent, gear: document.getElementById('gearBtn').textContent,
   hero: document.querySelector('.hero-stat').textContent.replace(/\s+/g,''),
   chips: Array.from(document.querySelectorAll('#budgets .chip')).map(x=>x.textContent).join('/'),
-  lang: document.documentElement.getAttribute('lang'), title: document.title
+  lang: document.documentElement.getAttribute('lang'), title: document.title,
+  // 第 7 条：第一屏只有一个主按钮，一键在前、「调一调」那道线之后才是定位
+  order: Array.from(document.querySelectorAll('#quickBtn, #tempBtn, #foldBtn, #sweetBtn')).map(x=>x.id).join(','),
+  primaries: Array.from(document.querySelectorAll('.quick, .act.primary, .final, .deal')).filter(x=>x.offsetParent && x.getBoundingClientRect().top < innerHeight).map(x=>x.id).join(','),
+  quickIn: document.getElementById('quickBtn').getBoundingClientRect().bottom <= innerHeight
 }));
-ok(zh.h1==='今天，怎么心动？' && zh.sub==='我帮你把今天排好，你只管发出去' && zh.title==='今天，怎么心动？', '中文：标题 / 副标题不变', zh.h1 + ' / ' + zh.sub);
+ok(zh.h1==='今天，怎么心动？' && zh.title==='今天，怎么心动？', '中文：标题不变', zh.h1);
+ok(zh.sub==='情侣约会计划：一键排好今天，发给她，她拆开就出发' && zh.subH < 30, '中文：首屏一句话说清是什么、给谁用，一行放得下', zh.sub + ' / ' + zh.subH + 'px');
+ok(zh.order==='quickBtn,foldBtn,tempBtn,sweetBtn', '按钮顺序：一键 → 调一调 → 定位 → 情话', zh.order);
+ok(zh.primaries==='quickBtn' && zh.quickIn, '第一屏只有「一键定今天」一个主按钮，且不用滚就看得见', zh.primaries);
 ok(zh.qt==='一 键 定 今 天' && zh.qd==='不用想，我按现在的时间直接排好一份', '中文：一键按钮不变');
 ok(zh.fold==='调一调 · 今天 · 现在出发 · 小奢侈 · 市区逛逛' && zh.gear==='⚙︎ 设置', '中文：条件摘要 / 设置按钮不变', zh.fold);
 ok(zh.hero==='在一起第天' && zh.chips==='穷开心/小奢侈/豪华版' && zh.lang==='zh-CN', '中文：大数字 / chips / <html lang> 不变', zh.hero + ' ' + zh.chips);
