@@ -575,6 +575,11 @@
     cursor:pointer; font-family:inherit; white-space:nowrap}
   .memo-row .mb.done{border-color:var(--gold); color:var(--gold)}
   .memo-empty{font-size:var(--text-body-sm); color:var(--ink-soft); padding:14px 0; line-height:1.8}
+  /* 她拆开了 · 14:32 —— 状态行：中文不拉字距，只有时间是金色西文 */
+  .opened{margin-top:10px; text-align:center; font-size:var(--text-body-sm); color:var(--ink-soft); line-height:1.7}
+  .memo-row .mo{font-size:var(--text-caption); color:var(--ink-soft); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .opened b, .memo-row .mo b{font-family:var(--latin); font-weight:600; letter-spacing:1px; color:var(--gold)}
+  .opened b{font-size:var(--text-body)}
 
   footer{margin-top:22px; text-align:center; font-family:var(--latin); font-size:var(--text-micro); letter-spacing:3px; color:var(--ink-soft); opacity:.7; text-transform:uppercase}
   .hidden{display:none!important}
@@ -1085,6 +1090,8 @@
       <button class="act" id="posterBtn" data-i18n="owner.poster">存 成 图 片</button>
       <button class="act" id="copyTextBtn" data-i18n="owner.text">复 制 文 字 版</button>
     </div>
+    <!-- 她拆开了 · 14:32 —— 只在她真的拆开之后才出现 -->
+    <div class="opened hidden" id="openedLine"></div>
 
     <!-- 她这边：答应 / 收下 / 自己也来一份 -->
     <div class="acts hidden" id="guestActs">
@@ -1251,6 +1258,7 @@
 
     <button class="m-add" id="shMake" style="margin-top:14px" data-i18n="sh.make">生成惊喜链接</button>
     <input type="text" id="shOut" readonly placeholder="链接会出现在这里" data-i18n-ph="sh.out.ph" style="margin-top:8px" />
+    <div class="opened hidden" id="shOpened"></div>
 
     <div class="acts" style="margin-top:10px">
       <button class="act" id="shCopy" data-i18n="sh.copy">复 制 链 接</button>
@@ -1545,6 +1553,8 @@ var I18N = { en: {
   'sh.out.ph': 'Your link appears here',
   'sh.copy': 'Copy link', 'sh.sys': 'Share…', 'sh.preview': 'Preview what they\'ll see',
   'sh.poster': 'Save as image', 'sh.close': 'Close',
+  // 她拆开了（任务 9）：{when} 是 <b>14:32</b> 那一段，已经是 HTML
+  'opened.line': '{who} opened it · {when}', 'opened.they': 'They',
   'share.title': 'Where to today?', 'share.text': 'I planned today for you',
   'toast.noPlan': 'Build a plan first',
   'toast.linkCopied': 'Link copied', 'toast.linkCopied.send': 'Link copied — send it over',
@@ -2124,12 +2134,16 @@ function jpost(url, body, cb){
    五个动作各打一次：open 拆封蜡、accept 点愿意、handoff 下次换你排、sent 把链接发出去、poster 存成图片。
    发出去的只有动作名和短链 id（后台只留前 4 位、时间只留到"天"）。
    不发 IP、UA、couple id、设备 id、计划内容、那句话。后台够不着（离线、?api=off）就算了——
-   这里出任何错都不能碍着她拆信。 */
+   这里出任何错都不能碍着她拆信。
+   open 那一下后台还顺路在 plans 那一行盖「她拆开了」的时间（见 9c）——发出去的仍然只有这两样。 */
 // 短链 /p/:id 跳回来时带 &p=<id>，拆开 → 愿意 → 接手 靠它串成同一份；长链打开的没有，就不带
 var SHORT_ID = (function(){
   var p = param('p');
   return (p && /^[a-km-zA-HJ-NP-Z2-9]{6}$/.test(p)) ? p : '';
 })();
+// 这条短链是不是这台手机自己发出去的（回忆本那一条记着它的 id，见 9c）。
+// 发件人点开自己发的链接看看效果，不算她拆开，也不进 K——拆开 / 愿意 / 接手 三下都不记。
+var OWN_LINK = !!SHORT_ID && logRead().some(function(r){ return !!(r.sids && r.sids.indexOf(SHORT_ID) >= 0); });
 var tracked = {};
 // key：同一件事只算一次的钥匙。不给就按 动作 + id 去重
 function track(e, id, key){
@@ -3703,6 +3717,7 @@ function renderPlan(plan, items){
   } else {
     $('loveNote').classList.add('hidden');
   }
+  if (window.Opened) Opened.render();   // 这份发出去过、她也拆开了的话，计划卡下面那一行「她拆开了 · 14:32」
 }
 /* ---------- 打卡：勾一下 = 到过这儿 ----------
    勾上的时候顺手记三样：时间、（拿得到的话）位置、（她愿意的话）一张照片。
@@ -4216,10 +4231,11 @@ var Short = (function(){
 function shareLink(plan){
   var key = planPayload(plan), long = longLink(key);
   var url = Short.get(key);
-  if (url){ track('sent', Short.idOf(url), key); return url; }
+  if (url){ track('sent', Short.idOf(url), key); Opened.sent(plan, Short.idOf(url)); return url; }
   Short.fetch(key, function(su){
     if ($('shOut').value === long) $('shOut').value = su;
     track('sent', Short.idOf(su), key);
+    Opened.sent(plan, Short.idOf(su));   // 记住这条短链是这份计划的，她拆开时才知道该在哪一条上写
   });
   return long;
 }
@@ -4324,6 +4340,112 @@ $('copyTextBtn').onclick = function(){
   if (!currentPlan) return;
   copyText(planText(currentPlan) + '\n' + shareLink(currentPlan), t('toast.textCopied') || '文字版已复制');
 };
+
+/* ---------- 9c 她拆开了 ----------
+   发的人想知道的只有一件事：她拆开了没有。
+   短链到手那一刻，把 id 记在回忆本那一条上（sids）；她拆封蜡那一下，后台在 plans 那一行盖上时间
+   （POST /ev 顺路做的，她那头不多打一次）。这边隔一会儿问一次 GET /opened?ids=…，问到了写回本机（opened），
+   以后再打开直接从本机读、不再问。不推送、不要通知权限：页面开着就问，切回来立刻问一次。
+   后台够不着就什么都不显示——这一行只在她真的拆开之后才出现。 */
+var Opened = (function(){
+  var timer = null, kicked = 0;
+  var TTL = 30 * 86400e3;          // 短链 30 天过期，后台那一行没了就别再问
+  function recs(){ return isGuest ? [] : logRead(); }
+  // 发过短链、还没见她拆、也没过期的那几条
+  function pending(){
+    var a = recs(), out = [];
+    for (var i=0;i<a.length;i++){
+      var r = a[i];
+      if (r.sids && r.sids.length && !r.opened && Date.now() - (r.sentAt || 0) < TTL) out.push(r);
+    }
+    return out;
+  }
+  function recOf(plan){
+    if (!plan) return null;
+    var a = recs(), sig = planSig(plan);
+    for (var i=0;i<a.length;i++) if (a[i].sig === sig) return a[i];
+    return null;
+  }
+  // 短链到手：记在这份计划那一条上。同一份计划改一个字就是另一条短链，都记着（最多 6 条），哪一条拆开都算
+  function sent(plan, id){
+    if (!id || isGuest) return;
+    var a = logRead(), sig = planSig(plan), hit = false;
+    for (var i=0;i<a.length;i++){
+      if (a[i].sig !== sig) continue;
+      var s = a[i].sids || [];
+      if (s.indexOf(id) < 0) s.push(id);
+      a[i].sids = s.slice(-6);
+      a[i].sentAt = Date.now();
+      hit = true;
+    }
+    if (!hit) return;
+    logWrite(a);
+    kick();
+  }
+  // 几点拆的：今天只写时间，不是今天的带上日期
+  function when(ms){
+    var d = new Date(ms), hm = fmtMin(d.getHours()*60 + d.getMinutes()), day = ymd(d);
+    if (day === ymd(new Date())) return hm;
+    return (LANG === 'en' ? enDate(day) + ', ' : cnDate(day) + ' ') + hm;
+  }
+  // 「瑶瑶拆开了 · 14:32」——没填称呼就是「她」。返回的是 HTML（时间那一段是金色西文）
+  function line(rec){
+    if (!rec || !rec.opened) return '';
+    var who = (rec.plan && rec.plan.to) || cfg.to || '';
+    var at = '<b>' + esc(when(rec.opened)) + '</b>';
+    return t('opened.line', {who: esc(who) || t('opened.they'), when: at}) || (esc(who || '她') + '拆开了 · ' + at);
+  }
+  // 正在看的这份计划（计划卡下面 + 分享面板里）
+  function render(){
+    var html = isGuest ? '' : line(recOf(currentPlan));
+    var els = [$('openedLine'), $('shOpened')];
+    for (var i=0;i<els.length;i++){
+      if (!els[i]) continue;
+      els[i].innerHTML = html;
+      els[i].classList.toggle('hidden', !html);
+    }
+  }
+  function check(){
+    if (!API.base || isGuest) return;
+    var list = pending(), ids = [];
+    for (var i=0;i<list.length;i++) ids = ids.concat(list[i].sids);
+    if (!ids.length) return;
+    jget(API.base + '/opened?ids=' + ids.slice(0, 40).join(','), function(err, j){
+      var got = j && j.opened;
+      if (err || !got) return;
+      var a = logRead(), changed = false;
+      for (var k=0;k<a.length;k++){
+        var r = a[k], s = r.sids || [];
+        if (r.opened || !s.length) continue;
+        for (var m=0;m<s.length;m++){
+          var at = got[s[m]];
+          if (typeof at === 'number' && at > 0 && (!r.opened || at < r.opened)) r.opened = at;
+        }
+        if (r.opened) changed = true;
+      }
+      if (!changed) return;
+      logWrite(a);
+      render();
+      renderMemo();
+    });
+  }
+  // 前三分钟每 20 秒问一次（她多半这时候点开），之后两分钟一次；切到后台就停，切回来立刻问
+  function loop(){
+    timer = null;
+    if (document.hidden || !pending().length) return;
+    check();
+    timer = setTimeout(loop, Date.now() - kicked < 180e3 ? 20e3 : 120e3);
+  }
+  function kick(){
+    kicked = Date.now();
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(loop, 0);
+  }
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) kick(); });
+  window.addEventListener('focus', function(){ if (pending().length && Date.now() - kicked > 5000) kick(); });
+  return { sent:sent, render:render, check:check, kick:kick, line:line, pending:pending };
+})();
+Opened.kick();
 
 /* ---------- 9a 二维码（Story 图上那一个） ----------
    自己编，不引库、不打第三方接口：图上的码得和图一起离线画出来，而且不该为了一张海报把网址发给别人。
@@ -5340,7 +5462,9 @@ function logUpsert(plan){
     if (a[i].sig === sig){ a[i].plan = copy; lastLogSig = sig; logWrite(a); renderMemo(); return; }
   }
   var rec = { sig:sig, ymd:plan.ymd, done:false, plan:copy };
-  if (lastLogSig && a.length && a[0].sig === lastLogSig && !a[0].done) a[0] = rec;
+  // 已经发出去过的那一份（记着短链 id）不能被"再调一下"顶掉——她拆开时要在那一条上写
+  var sentOut = a.length && a[0].sids && a[0].sids.length;
+  if (lastLogSig && a.length && a[0].sig === lastLogSig && !a[0].done && !sentOut) a[0] = rec;
   else a.unshift(rec);
   lastLogSig = sig;
   logWrite(a);
@@ -5553,7 +5677,8 @@ function renderMemo(){
     row.className = 'memo-row';
     var titles = r.plan.s.map(function(s){ return s.t; }).join(' · ');
     row.innerHTML = '<div class="mm"><div class="md">'+(LANG === 'en' ? enDate(r.ymd) : cnDate(r.ymd))+'</div>'+
-      '<div class="mt">'+esc(titles)+'</div></div>';
+      '<div class="mt">'+esc(titles)+'</div>'+
+      (r.opened && window.Opened ? '<div class="mo">'+Opened.line(r)+'</div>' : '')+'</div>';
     var open = document.createElement('button');
     open.className = 'mb'; open.textContent = t('memo.open') || '看';
     open.onclick = function(){
@@ -5629,7 +5754,9 @@ renderFootprints();
   else inv.classList.remove('hidden');
 
   function open(){
-    track('open', SHORT_ID);   // 计数记在这一下，不记在 /p/:id——爬虫也会打那一页
+    // 计数记在这一下，不记在 /p/:id——爬虫也会打那一页。后台顺路在 plans 上盖「她拆开了」的时间。
+    // 自己点开自己发的那条（OWN_LINK）不算她拆开，也不进 K
+    if (!OWN_LINK) track('open', SHORT_ID);
     hearts(18);
     if (window.Petals) setTimeout(function(){ Petals.burst(24); }, 260);
     renderPlan(sharedPlan);
@@ -5648,7 +5775,7 @@ renderFootprints();
 })();
 
 $('acceptBtn').onclick = function(){
-  track('accept', SHORT_ID);
+  if (!OWN_LINK) track('accept', SHORT_ID);
   hearts(18);
   var who = (sharedPlan && sharedPlan.from) || '他';
   $('rcHint').textContent = t('reply.hint', {who:who}) || ('把这句话原样发回给' + who + '，今天就算说定了。');
@@ -5677,7 +5804,7 @@ $('keepBtn').onclick = function(){
 // 她点完"愿意"、复制完回话，下一步必须自然地就是"下次换你排"——
 // 而且他的名字已经填好了，她一个字都不用打，排出来就是"给他"的。
 function handoff(){
-  track('handoff', SHORT_ID);   // K 的分子就是这一下
+  if (!OWN_LINK) track('handoff', SHORT_ID);   // K 的分子就是这一下
   // 链接里带的是他的设置（from=他, to=她）。她接手，两个名字要对调：
   // 她就是那个 to，她要发给的是那个 from。
   if (sharedPlan && sharedPlan.from){

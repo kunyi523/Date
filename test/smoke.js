@@ -50,9 +50,21 @@ const evTrap = (list) => (r) => {
   return true;
 };
 const evSender = [], trapSender = evTrap(evSender);
+// 她拆开了（任务 9）：GET /opened?ids=… 也拦下来。openedAt 为 0 = 还没拆，答空；有值 = 这条短链几点拆的。
+// 拆开的时间挑 14:32——手册里写的就是「她拆开了 · 14:32」；是今天，所以只显示时间
+let openedAt = 0; const OPENED_AT = (()=>{ const d = new Date(); d.setHours(14, 32, 0, 0); return d.getTime(); })();
+const openedTrap = (list) => (r) => {
+  if (!/\/opened\?/.test(r.url())) return false;
+  list.push(r.url());
+  const body = openedAt ? { opened: { [SHORT_ID]: openedAt } } : { opened: {} };
+  r.respond({status:200, headers:{...CORS,'content-type':'application/json','cache-control':'no-store'}, body: JSON.stringify(body)});
+  return true;
+};
+const openedAsked = [], trapOpened = openedTrap(openedAsked);
 await p.setRequestInterception(true);
 p.on('request', r=>{
   if (trapSender(r)) return;
+  if (trapOpened(r)) return;
   if (isTile(r)) return serveTile(r);
   if (/\/plans$/.test(r.url())){
     if (r.method()==='OPTIONS') return r.respond({status:204, headers:CORS});
@@ -79,6 +91,11 @@ const link0 = await p.$eval('#shOut', e=>e.value);
 ok(link0 === SHORT && plansPosted.length === 1, '点「生成」直接给短链，没有重复去要', link0);
 ok(evSender.length === 1 && evSender[0].e === 'sent' && evSender[0].id === SHORT_ID && Object.keys(evSender[0]).sort().join() === 'e,id',
   '计数：点「生成」记一次 sent，只带动作名和短链 id', JSON.stringify(evSender));
+// 第 9 条：短链到手那一刻，回忆本那一条记住 id，然后立刻去问一次拆开没有
+ok(openedAsked.length >= 1 && /\/opened\?ids=kZ7mQ4$/.test(openedAsked[0]), '她拆开了：短链到手就去问了一次，只带短链 id', openedAsked[0]);
+const rec0 = await p.evaluate(()=>JSON.parse(localStorage.getItem('xindong_log_v1'))[0]);
+ok(rec0 && Array.isArray(rec0.sids) && rec0.sids.join() === SHORT_ID && !rec0.opened && rec0.sentAt > 0, '回忆本那一条记住了短链 id，还没拆', JSON.stringify({sids:rec0.sids, opened:rec0.opened}));
+ok(await p.evaluate(()=>$('openedLine').classList.contains('hidden') && $('shOpened').classList.contains('hidden') && !document.querySelector('.memo-row .mo')), '还没拆：计划卡下面、分享面板里、回忆本里都没有那一行');
 const dec = s => { try{ return JSON.parse(Buffer.from(s, 'base64url').toString('utf8')); }catch(e){ return null; } };
 const box0 = dec(plansPosted[0].s);
 ok(box0 && box0.k==='plan' && box0.p.from==='坤怿' && box0.p.to==='瑶瑶' && box0.p.s.length>=2 && box0.c && box0.c.to==='瑶瑶',
@@ -130,8 +147,10 @@ await p.click('#posterClose'); await wait(200);
 await p.click('#posterBtn'); await wait(1000);
 ok(evSender.length === 3, '计数：同一份计划再出图不重复记', evSender.length);
 await p.click('#posterClose').catch(()=>{}); await wait(200);
-// 第二步：她在另一台"手机"上打开短链。后台那一页对人就是一个跳转，这里用 302 代替它
-const q=await b.newPage(); q.on('pageerror',e=>console.log('[ERR]',e.message));
+// 第二步：她在另一台"手机"上打开短链。后台那一页对人就是一个跳转，这里用 302 代替它。
+// 另一台手机 = 另一个浏览器上下文（localStorage 不共享）：他的手机认得出自己发的短链、拆开不算她拆（下面第 2b 步测），她的手机不认识
+const herCtx = await b.createBrowserContext();
+const q=await herCtx.newPage(); q.on('pageerror',e=>console.log('[ERR]',e.message));
 await q.emulate(PHONE);
 // 真的短链在 workers.dev，网站的 service worker 管不到；这个替身和网站同源，得绕开 SW 才拦得住
 await q.setBypassServiceWorker(true);
@@ -165,6 +184,66 @@ const after = await q.evaluate(()=>({
 ok(after.to==='坤怿' && after.from==='瑶瑶' && !after.guest, '她成了发送者，名字对调，零输入', JSON.stringify({from:after.from,to:after.to}));
 ok(evGuest.length === 3 && evGuest[2].e === 'handoff' && evGuest[2].id === SHORT_ID, '计数：点「下次换你排」记 handoff（K 的分子）', JSON.stringify(evGuest[2]));
 ok(evGuest.every(x=>Object.keys(x).sort().join()==='e,id'), '计数：她这一头发出去的每一条只有动作名 + 短链 id，没有名字、没有那句话、没有 couple', JSON.stringify(evGuest));
+ok(!(await q.evaluate(()=>OWN_LINK)), '她的手机不认识这条短链（不是自己发的）');
+await herCtx.close();
+// 第 2a 步：她拆开了——后台在 plans 那一行盖了 14:32。他的页面切回前台就问一次，问到了写回本机，三处同时出现那一行
+openedAt = OPENED_AT;
+await p.bringToFront();
+const askedBefore = openedAsked.length;
+await p.evaluate(()=>{ document.dispatchEvent(new Event('visibilitychange')); });   // 切回来立刻问一次
+await wait(800);
+const shown = await p.evaluate(()=>({
+  hiddenDoc: document.hidden,
+  hidden: $('openedLine').classList.contains('hidden'), txt: $('openedLine').textContent, html: $('openedLine').innerHTML,
+  rec: JSON.parse(localStorage.getItem('xindong_log_v1'))[0].opened,
+  memo: Array.from(document.querySelectorAll('.memo-row .mo')).map(e=>e.textContent),
+  visible: $('openedLine').offsetParent !== null
+}));
+ok(openedAsked.length > askedBefore, '她拆开了：切回前台立刻又问了一次', (openedAsked.length - askedBefore) + ' 次, document.hidden=' + shown.hiddenDoc);
+ok(!shown.hidden && shown.visible && shown.txt === '瑶瑶拆开了 · 14:32', '计划卡下面出现「瑶瑶拆开了 · 14:32」（称呼进句子，今天只写时间）', shown.txt);
+ok(shown.html === '瑶瑶拆开了 · <b>14:32</b>', '时间那一段是金色西文 <b>', shown.html);
+ok(shown.rec === OPENED_AT, '写回本机：回忆本那一条 opened = 后台答的时间', shown.rec);
+ok(shown.memo.join('|') === '瑶瑶拆开了 · 14:32', '回忆本那一条也多了这一行', shown.memo.join('|'));
+await p.click('#shareOpen'); await wait(400);
+ok(await p.evaluate(()=>!$('shOpened').classList.contains('hidden') && $('shOpened').textContent === '瑶瑶拆开了 · 14:32'), '分享面板里、链接下面也是这一行');
+await p.click('#shClose'); await wait(200);
+const askedAfter = openedAsked.length;
+await p.evaluate(()=>Opened.kick()); await wait(500);
+ok(openedAsked.length === askedAfter, '拆开了就不再问（本机有答案了）', openedAsked.length - askedAfter);
+ok(evSender.every(x=>x.e !== 'open'), '他这一头从头到尾没有打过 open', JSON.stringify(evSender.map(x=>x.e)));
+// 第 2b 步：他自己点开自己发的短链看看效果——同一台手机（同一个上下文）认得出这条 id，拆开不算她拆、也不进 K
+const me=await b.newPage(); me.on('pageerror',e=>console.log('[ERR]',e.message));
+await me.emulate(PHONE);
+await me.setBypassServiceWorker(true);
+const evSelf = [], trapSelf = evTrap(evSelf), askedSelf = [], trapOpenedSelf = openedTrap(askedSelf);
+await me.setRequestInterception(true);
+me.on('request', r=>{
+  if (trapSelf(r)) return;
+  if (trapOpenedSelf(r)) return;
+  if (r.url() === SHORT) return r.respond({status:302, headers:{Location: longLink + '&p=' + SHORT_ID}});
+  r.continue();
+});
+await me.goto(link,{waitUntil:'networkidle2'}); await wait(1000);
+ok(await me.evaluate(()=>OWN_LINK === true && SHORT_ID === 'kZ7mQ4'), '自己的手机认得出：这条短链是自己发的');
+await me.click('#sealBtn').catch(()=>{}); await wait(1200);
+ok(await me.$$eval('#guestActs .act', a=>a.filter(e=>e.offsetParent).length) === 3, '自己点开：信照样拆得开');
+await me.click('#acceptBtn'); await wait(500);
+ok(evSelf.length === 0, '自己点开自己发的：拆开、愿意都不记（不算她拆开，也不进 K）', JSON.stringify(evSelf));
+ok(askedSelf.length === 0, '她那一面（body.guest）从不去问「拆开了没有」', askedSelf.length);
+await me.close();
+// 第 2c 步：下次打开——他隔天再打开网站，回忆本那一条直接从本机读出「瑶瑶拆开了 · 14:32」，不用再问后台；点「看」计划卡下面也有
+const p2=await b.newPage(); p2.on('pageerror',e=>console.log('[ERR]',e.message));
+await p2.emulate(PHONE);
+const evP2 = [], trapP2 = evTrap(evP2), askedP2 = [], trapOpenedP2 = openedTrap(askedP2);
+await p2.setRequestInterception(true);
+p2.on('request', r=>{ if (trapP2(r) || trapOpenedP2(r)) return; if (isTile(r)) return serveTile(r); r.continue(); });
+await p2.goto(BASE + '/index.html?t=14:00',{waitUntil:'networkidle2'}); await wait(1000);
+ok((await p2.$$eval('.memo-row .mo', a=>a.map(e=>e.textContent))).join('|') === '瑶瑶拆开了 · 14:32', '下次打开：回忆本那一条写着「瑶瑶拆开了 · 14:32」', await p2.$$eval('.memo-row .mo', a=>a.map(e=>e.textContent)));
+ok(askedP2.length === 0, '下次打开：本机已有答案，不再问后台', askedP2.length);
+ok(await p2.evaluate(()=>$('openedLine').classList.contains('hidden')), '还没点开哪一份计划：计划卡下面那一行不出现');
+await p2.click('.memo-row .mb'); await wait(500);
+ok(await p2.evaluate(()=>!$('openedLine').classList.contains('hidden') && $('openedLine').textContent === '瑶瑶拆开了 · 14:32'), '点「看」：计划卡下面出现那一行');
+await p2.close();
 // 第三步：同一个链接，英文收件人打开（?lang=en）——客人那一面必须全英文，中文路径不受影响
 const e=await b.newPage(); e.on('pageerror',err=>console.log('[ERR]',err.message));
 await e.emulate(PHONE);
@@ -226,13 +305,14 @@ const ctx = await b.createBrowserContext();
 const s = await ctx.newPage(); s.on('pageerror',err=>console.log('[ERR]',err.message));
 await s.emulate(PHONE);
 // 这一页后台够不着（/plans 直接断掉）：分享必须静默回落到长链，界面上看不出区别
-let plansFailed = 0, tilesServed = 0; const evTried = [];
+let plansFailed = 0, tilesServed = 0, openedTried = 0; const evTried = [];
 // 瓦片是网站的 service worker 接走的（cacheFirst），不绕开它这里就拦不到
 await s.setBypassServiceWorker(true);
 await s.setRequestInterception(true);
 s.on('request', r=>{
   if (isTile(r)){ tilesServed++; return serveTile(r); }
   if (/\/plans$/.test(r.url())){ plansFailed++; return r.abort('failed'); }
+  if (/\/opened\?/.test(r.url())){ openedTried++; return r.abort('failed'); }   // 这一页不该问：没有短链、已拆开的也不用再问
   if (/\/ev$/.test(r.url())){
     if (r.method()==='OPTIONS') return r.respond({status:204, headers:CORS});   // 预检放过，才看得到那条 POST 想发什么
     evTried.push(JSON.parse(r.postData()||'{}')); return r.abort('failed');
@@ -274,11 +354,16 @@ const pk = await s.evaluate(()=>({ show: document.getElementById('posterMask').c
 ok(pk.show && !pk.mem && !pk.saved, '没分享过就出图：海报照出，不顺手生成 couple id', JSON.stringify(pk));
 // 第 6 条（英文 + 地图那一路）：种两条带位置的打卡，Story 图上就该有足迹地图——瓦片被替身接住（深色），
 // 画上去那一块就一定是暗的；字全是英文；没设日子就数点亮的地方
-await s.evaluate(()=>{
+// 这一条顺手也当第 9 条的英文样本：发过短链（sids）、三天前 09:05 拆开的（opened）——不是今天，所以带日期
+const OPENED_EN = (()=>{ const d = new Date(); d.setDate(d.getDate() - 3); d.setHours(9, 5, 0, 0); return d; })();
+const MON_EN = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const OPENED_EN_TXT = 'Yao opened it · ' + MON_EN[OPENED_EN.getMonth()] + ' ' + OPENED_EN.getDate() + ', 09:05';
+await s.evaluate((openedAt)=>{
   const plan = { ymd:'2026-09-12', s:[{t:'小巷咖啡', te:'Alley coffee', c:'食', m:600, u:60}, {t:'湖边走走', te:'Lakeside walk', c:'行', m:690, u:90}] };
   localStorage.setItem('xindong_log_v1', JSON.stringify([{ sig:'2026-09-12|小巷咖啡,湖边走走', ymd:'2026-09-12', done:true, plan,
+    sids:['kZ7mQ4'], sentAt: openedAt - 3600e3, opened: openedAt,
     checks:{ 0:{t:Date.now()-2e6, lat:43.6532, lon:-79.3832}, 1:{t:Date.now()-1e6, lat:43.6387, lon:-79.3810} } }]));
-});
+}, OPENED_EN.getTime());
 await s.click('#ratioStory');
 const enDim = await waitStory(s);
 ok(enDim.w === 1080 && enDim.h === 1920, '英文发件人：Story 版 1080×1920', enDim.w + 'x' + enDim.h);
@@ -306,6 +391,11 @@ ok(evTried.length===1 && evTried[0].e==='poster' && !('id' in evTried[0]), '没�
 ok(/^Done ✓/.test(await s.$eval('#shMake', el=>el.textContent)), '英文发件人：生成后按钮变 Done ✓');
 const enToast = await s.$eval('#toast', el=>el.textContent);
 ok(!/[\u4e00-\u9fa5]/.test(enToast), '英文发件人：toast 是英文', enToast);
+// 第 9 条（英文）：回忆本里那条三天前拆开的写成 "Yao opened it · Sep 27, 09:05"（不是今天 → 带日期）；这一页从头到尾没去问过后台
+const enOpened = await s.$$eval('.memo-row .mo', a=>a.map(e=>e.textContent));
+ok(enOpened.join('|') === OPENED_EN_TXT, '英文发件人：「她拆开了」那一行是英文，不是今天的带日期', enOpened.join('|') + ' vs ' + OPENED_EN_TXT);
+ok(await s.evaluate(()=>$('openedLine').classList.contains('hidden')), '英文发件人：这份没拿到短链，计划卡下面那一行不出现');
+ok(openedTried === 0, '英文发件人：没有短链的不问、已拆开的也不问——这一页一次都没打 /opened', openedTried);
 // 语言开关：点「中文」→ 写 xd_lang → 带 ?lang=zh 重载，?s= 这类参数照旧
 await s.click('#shClose'); await wait(200);
 await s.evaluate(()=>openPanel()); await wait(300);
