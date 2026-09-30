@@ -494,5 +494,71 @@ console.log('\n— 匿名计数（算 K）—');
   eq('换个 IP 不受影响', (await call3('POST', '/ev', { e: 'open' }, { 'CF-Connecting-IP': '198.51.100.7' })).status, 200);
 }
 
+console.log('\n— 她拆开了 —');
+{
+  const b64e = (obj) => Buffer.from(JSON.stringify(obj), 'utf8').toString('base64url');
+  const S = b64e({ k: 'plan', p: { v: 2, ymd: '2026-09-05', from: '坤怿', to: '瑶瑶', s: [{ t: '长堤走走', d: '风', m: 840, u: 60 }] }, c: {} });
+  const db = makeDB();
+  const env = { DB: db, IP_SALT: 'test' };
+  const call = makeCall(env);
+  const askOpened = async (ids) => {
+    const res = await worker.fetch(new Request('https://x/opened?ids=' + ids), env);
+    return { status: res.status, data: JSON.parse(await res.text()), cc: res.headers.get('Cache-Control'), cors: res.headers.get('Access-Control-Allow-Origin') };
+  };
+  const rowOf = async (id) => (await db.prepare('SELECT opened FROM plans WHERE id = ?').bind(id).all()).results[0];
+
+  const a = (await call('POST', '/plans', { s: S })).data.id;
+  const b = (await call('POST', '/plans', { s: S })).data.id;
+  const c = (await call('POST', '/plans', { s: S })).data.id;
+  ok('刚存好：opened 是空', (await rowOf(a)).opened == null, await rowOf(a));
+  const before = await askOpened(a);
+  eq('还没拆：问回来是空的（没拆 / 过期 / 不存在，在他那边都是同一件事）', before.data, { opened: {} });
+  ok('不缓存 + 带 CORS（他隔一会儿就问一次）', before.cc === 'no-store' && before.cors === '*', [before.cc, before.cors]);
+
+  console.log('  · 拆封蜡那一下顺路盖时间');
+  const t0 = Date.now();
+  eq('POST /ev open 带整个 id → ok', (await call('POST', '/ev', { e: 'open', id: a })).data, { ok: true });
+  const first = (await rowOf(a)).opened;
+  ok('plans 那一行盖上了 opened（毫秒时间戳，就是现在）', typeof first === 'number' && first >= t0 && first <= Date.now() + 1000, first);
+  const asked = await askOpened(a);
+  eq('GET /opened?ids= 答出 id → 几点', asked.data, { opened: { [a]: first } });
+  await new Promise((r) => setTimeout(r, 5));
+  await call('POST', '/ev', { e: 'open', id: a });
+  eq('再拆一次不改时间：只记第一次', (await rowOf(a)).opened, first);
+  eq('events 那张表照旧只有三列（她拆开了没往里加任何字段）',
+    Object.keys((await db.prepare('SELECT * FROM events').bind().all()).results[0]).sort(), ['d', 'e', 'pid4']);
+  eq('拆开之后 /p/:id 照常打开', (await worker.fetch(new Request('https://x/p/' + a), env)).status, 200);
+
+  console.log('  · 不该盖的不盖');
+  await call('POST', '/ev', { e: 'open', id: b.slice(0, 4) });
+  ok('只给前 4 位：K 照数，但 plans 不盖（前 4 位对不上一行，也不该对上）', (await rowOf(b)).opened == null);
+  await call('POST', '/ev', { e: 'accept', id: b });
+  await call('POST', '/ev', { e: 'handoff', id: b });
+  await call('POST', '/ev', { e: 'sent', id: b });
+  await call('POST', '/ev', { e: 'poster', id: b });
+  ok('愿意 / 接手 / 发出 / 海报 都不算拆开', (await rowOf(b)).opened == null);
+  eq('不存在的 id：open 照记（K 不受影响），没有哪一行会被盖', (await call('POST', '/ev', { e: 'open', id: 'zzzzzz' })).data, { ok: true });
+  eq('只有 a 被盖过', (await db.prepare('SELECT COUNT(*) AS c FROM plans WHERE opened IS NOT NULL').bind().all()).results[0].c, 1);
+
+  console.log('  · 一次问好几条');
+  await call('POST', '/ev', { e: 'open', id: c });
+  const many = await askOpened([a, b, c, 'zzzzzz', 'abc', '', 'abc10O', a].join(','));
+  eq('答案里只有拆开了的那几条，坏 id / 重复 id 都不碍事', Object.keys(many.data.opened).sort(), [a, c].sort());
+  eq('每一条都是各自的时间', many.data.opened[a], first);
+  eq('不给 ids → 空', (await askOpened('')).data, { opened: {} });
+  eq('ids 全是坏的 → 空，不是 400（他那边静默）', (await askOpened('nope,1234567,abc10O')).data, { opened: {} });
+  const AL = 'abcdefghijkmnpqrstuvwxyz';   // 短链字母表里的小写部分（没有 l）
+  const flood = Array.from({ length: 60 }, (_, i) => (i === 59 ? a : 'zzzz' + AL[i % AL.length] + AL[Math.floor(i / AL.length)])).join(',');
+  eq('一次最多问 40 条，多的不看（拆过的那条排在第 60 位，答不到）', (await askOpened(flood)).data, { opened: {} });
+  eq('排在前 40 位就答得到', (await askOpened(a + ',' + flood)).data, { opened: { [a]: first } });
+  eq('POST /opened 不是接口', (await call('POST', '/opened', {})).status, 404);
+
+  console.log('  · 过期');
+  await db.prepare('INSERT INTO plans (id, s, lang, at, exp, opened) VALUES (?, ?, ?, ?, ?, ?)').bind('old2ld', S, 'zh', 1, 2, 1).run();
+  eq('过期的那条即使拆过也不答', (await askOpened('old2ld')).data, { opened: {} });
+  await call('POST', '/ev', { e: 'open', id: 'old2ld' });
+  eq('过期的也不再盖', (await rowOf('old2ld')).opened, 1);
+}
+
 console.log(`\n${fail ? '✗' : '✓'} ${pass} 条通过，${fail} 条失败\n`);
 process.exit(fail ? 1 : 0);

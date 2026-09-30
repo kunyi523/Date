@@ -7,6 +7,7 @@
  *   3. 顺手代理天气和卡池，让前端只认一个域名（GET /weather, /cards, /sweet）
  *   4. 把整份计划换成一个 6 位短链，贴进聊天软件有卡片预览（POST /plans → GET /p/:id）
  *   5. 匿名数一下回路转没转起来：拆开 / 愿意 / 接手 / 发出 / 海报，各一行（POST /ev）
+ *   6. 告诉发的人「她拆开了 · 14:32」：拆封蜡那一下顺路在 plans 那一行盖个时间，他那边问 GET /opened?ids=…
  *
  * 不做账号。一台设备一个随机 id（前端生成，存在本机），同一对情侣对同一个地点
  * 只算最新一条。收上来的只有：地点标识、分数、几个布尔维度、标签、一句话、
@@ -27,10 +28,10 @@ const CORS = {
   'Access-Control-Max-Age': '86400',
 };
 
-const json = (data, status = 200) =>
+const json = (data, status = 200, extra = {}) =>
   new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS },
+    headers: { 'Content-Type': 'application/json; charset=utf-8', ...CORS, ...extra },
   });
 
 const DIMS = ['quiet', 'pair', 'linger', 'photo', 'noqueue'];
@@ -611,7 +612,10 @@ function expiredPage(site) {
    sent 他把链接发出去、poster 存成图片。open 记在网站上拆封蜡那一下，不记在 /p/:id——爬虫也会打那一页。
    只存动作名、哪一天（UTC）、短链 id 前 4 位。不存 IP、UA、couple id、设备 id，连精确时间都不存：
    这张表回答"回路转起来了没有"，不回答"谁做了什么"。
-   限流用的是和别的接口一样的一小时 IP 哈希，但单独一个桶：计数再多也不该挤占同一个 IP 拿短链的额度。 */
+   限流用的是和别的接口一样的一小时 IP 哈希，但单独一个桶：计数再多也不该挤占同一个 IP 拿短链的额度。
+
+   「她拆开了」搭的是同一趟车：open 带着整个 6 位 id 进来时，顺路在 plans 那一行盖上 opened（只盖第一次）。
+   同一个动作、同一次请求，她那头不用多打一次；events 那张表一个字都不多存。 */
 const EVENTS = ['open', 'accept', 'handoff', 'sent', 'poster'];
 const EV_ID_RE = /^[a-km-zA-HJ-NP-Z2-9]{4,6}$/;     // 整个短链 id 或者已经只剩前 4 位，都认
 const EV_PER_HOUR = 200;
@@ -636,7 +640,33 @@ async function postEvent(env, request) {
 
   await env.DB.prepare('INSERT INTO events (e, d, pid4) VALUES (?, ?, ?)')
     .bind(e, new Date(now).toISOString().slice(0, 10), pid4).run();
+  // 拆开封蜡 + 整个 id 才盖：前 4 位对不上一行，也不该对上
+  if (e === 'open' && ID_RE.test(id)) {
+    await env.DB.prepare('UPDATE plans SET opened = ? WHERE id = ? AND opened IS NULL AND exp > ?')
+      .bind(now, id, now).run();
+  }
   return json({ ok: true });
+}
+
+/* ── 她拆开了 ──
+   发件人那一头问：这几条短链拆开了没有、几点。只回答已经拆开、还没过期的那几条（id → 毫秒时间戳），
+   其余的不出现在答案里——没拆、过期、不存在，在他那边都是同一件事：还没有。
+   知道 id 就等于拿着链接，本来就能看到整份计划，多知道一个"几点拆的"没有多暴露什么。
+   不缓存：他隔一会儿就问一次，问的就是此刻。 */
+const OPENED_MAX_IDS = 40;
+
+async function getOpened(env, url) {
+  const ids = [...new Set(
+    (url.searchParams.get('ids') || '').split(',').map((s) => s.trim()).filter((s) => ID_RE.test(s))
+  )].slice(0, OPENED_MAX_IDS);
+  const opened = {};
+  if (!ids.length) return json({ opened }, 200, { 'Cache-Control': 'no-store' });
+  const marks = ids.map(() => '?').join(',');
+  const { results } = await env.DB.prepare(
+    `SELECT id, opened FROM plans WHERE id IN (${marks}) AND opened IS NOT NULL AND exp > ?`
+  ).bind(...ids, Date.now()).all();
+  for (const row of results || []) opened[row.id] = row.opened;
+  return json({ opened }, 200, { 'Cache-Control': 'no-store' });
 }
 
 export default {
@@ -658,6 +688,7 @@ export default {
         return await getPlanPage(env, request, path.slice(3));
       }
       if (request.method === 'POST' && path === '/ev') return await postEvent(env, request);
+      if (request.method === 'GET' && path === '/opened') return await getOpened(env, url);
       if (request.method === 'GET' && path === '/cards') return await getCards(env, url);
       if (request.method === 'GET' && path === '/weather') return await proxyWeather(url);
       if (request.method === 'GET' && path === '/sweet') return json({});   // 留给以后接模型
